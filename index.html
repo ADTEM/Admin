@@ -537,6 +537,31 @@ tr:hover td { background: var(--surface2); }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--green3); }
 
+/* === TIMELINE JOURNAL === */
+.timeline { position: relative; padding-left: 20px; }
+.timeline::before { content:''; position:absolute; left:6px; top:0; bottom:0; width:1px; background:var(--border); }
+.timeline-item { position:relative; margin-bottom:14px; }
+.timeline-item::before {
+  content:''; position:absolute; left:-17px; top:5px;
+  width:7px; height:7px; border-radius:50%;
+  background:var(--blue); border:2px solid var(--surface);
+}
+.timeline-item.ok::before { background:var(--green); }
+.timeline-item.warn::before { background:var(--yellow); }
+.timeline-item.danger::before { background:var(--red); }
+.timeline-item.info::before { background:var(--blue); }
+.timeline-date { font-size:10px; color:var(--text3); font-family:'Fira Code',monospace; display:flex; justify-content:space-between; }
+.timeline-text { font-size:12px; color:var(--text2); margin-top:2px; line-height:1.4; }
+.timeline-user { font-size:10px; color:var(--text4); margin-top:1px; }
+
+/* === UPLOAD === */
+.upload-progress { height:4px; background:var(--border); border-radius:2px; overflow:hidden; margin-top:8px; }
+.upload-progress-bar { height:100%; background:linear-gradient(90deg,var(--green3),var(--green)); border-radius:2px; transition:width 0.3s; width:0%; }
+.url-box { background:var(--surface2); border:1px solid var(--border2); border-radius:6px; padding:8px 10px; margin-top:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.url-box a { color:var(--blue); font-size:11px; word-break:break-all; flex:1; }
+.url-copy-btn { background:none; border:1px solid var(--border2); border-radius:4px; padding:3px 8px; font-size:10px; cursor:pointer; color:var(--text2); white-space:nowrap; }
+.url-copy-btn:hover { background:var(--surface3); }
+
 /* === TABS === */
 .tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 0; }
 .tab {
@@ -571,7 +596,62 @@ tr:hover td { background: var(--surface2); }
   display: flex; align-items: center; gap: 6px;
 }
 
-/* === LOGIN PAGE === */
+/* === MODE CONFIGURATION === */
+:root {
+  --cfg-green: #22c55e;
+  --cfg-green-dim: rgba(34,197,94,0.10);
+  --cfg-green-border: rgba(34,197,94,0.25);
+}
+#cfg-mode-banner {
+  display: none;
+  background: var(--cfg-green-dim);
+  border-bottom: 1px solid var(--cfg-green-border);
+  padding: 6px 16px;
+  font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--cfg-green); font-weight: 700;
+  align-items: center; gap: 6px;
+}
+body.mode-config #cfg-mode-banner { display: flex; }
+body.mode-config #sidebar {
+  background: #f0faf2;
+  border-right-color: var(--cfg-green-border);
+}
+body.mode-config .sidebar-logo { border-bottom-color: var(--cfg-green-border); }
+body.mode-config .logo-text h1 { color: var(--cfg-green); text-shadow: none; }
+body.mode-config .nav-section-title { color: rgba(34,197,94,0.5); }
+body.mode-config .nav-item.active {
+  background: var(--cfg-green-dim);
+  color: var(--cfg-green);
+  border-left-color: var(--cfg-green);
+}
+body.mode-config #topbar {
+  background: rgba(240,250,242,0.95);
+  border-bottom-color: var(--cfg-green-border);
+}
+body.mode-config #page-title { color: var(--cfg-green); }
+
+/* === ÉCRAN EN ATTENTE === */
+#waiting-screen {
+  position: fixed; inset: 0; z-index: 8999;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+}
+#waiting-screen.hidden { display: none; }
+.waiting-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 40px 36px; width: 420px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.10);
+  text-align: center;
+}
+.waiting-icon { font-size: 48px; margin-bottom: 16px; }
+.waiting-title { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+.waiting-sub { font-size: 12px; color: var(--text3); line-height: 1.6; margin-bottom: 24px; }
+.badge-attente {
+  background: rgba(201,134,10,0.12); color: var(--yellow);
+  border: 1px solid rgba(201,134,10,0.3);
+  border-radius: 20px; padding: 3px 10px;
+  font-size: 10px; font-weight: 700; letter-spacing: 1px;
+}
 #login-screen {
   position: fixed; inset: 0; z-index: 9000;
   background: var(--bg);
@@ -671,46 +751,121 @@ tr:hover td { background: var(--surface2); }
 <!-- LOGIN SCREEN -->
 <div id="login-screen">
   <div class="login-box">
-    <div class="login-logo">🍃</div>
+    <div class="login-logo" onclick="bypassLogin()" title="Mode développeur" style="cursor:pointer;">🍃</div>
     <div class="login-title">ADTEM</div>
     <div class="login-sub">Alliance Manager · Transport Manager</div>
-    <div class="login-error" id="login-error"></div>
-    <div class="form-group" style="text-align:left;">
-      <label class="form-label">Email</label>
-      <input type="email" class="form-input" id="login-email" placeholder="admin@adtem.fr" autocomplete="email">
+
+    <!-- Panel Connexion -->
+    <div id="panel-login">
+      <div class="login-error" id="login-error"></div>
+      <div class="form-group" style="text-align:left;">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-input" id="login-email" placeholder="admin@adtem.fr" autocomplete="email">
+      </div>
+      <div class="form-group" style="text-align:left;">
+        <label class="form-label">Mot de passe</label>
+        <input type="password" class="form-input" id="login-mdp" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:8px;justify-content:center;" onclick="doLogin()">
+        🔐 Se connecter
+      </button>
+      <div style="margin-top:10px;display:flex;gap:8px;">
+        <button class="btn btn-secondary btn-sm" style="flex:1;justify-content:center;" onclick="doResetPassword()">
+          Mot de passe oublié ?
+        </button>
+        <button class="btn btn-secondary btn-sm" style="flex:1;justify-content:center;" onclick="showPanelInscription()">
+          ➕ Créer un compte
+        </button>
+      </div>
     </div>
-    <div class="form-group" style="text-align:left;">
-      <label class="form-label">Mot de passe</label>
-      <input type="password" class="form-input" id="login-mdp" placeholder="••••••••" autocomplete="current-password">
-    </div>
-    <button class="btn btn-primary" style="width:100%;margin-top:8px;justify-content:center;" onclick="doLogin()">
-      🔐 Se connecter
-    </button>
-    <div style="margin-top:16px;">
-      <button class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;" onclick="doResetPassword()">
-        Mot de passe oublié ?
+
+    <!-- Panel Inscription -->
+    <div id="panel-inscription" style="display:none;">
+      <div class="login-error" id="inscription-error"></div>
+      <div style="background:var(--greenbg);border:1px solid rgba(74,140,82,0.2);border-radius:6px;padding:10px 12px;margin-bottom:14px;font-size:11.5px;color:var(--green2);text-align:left;">
+        📋 Votre demande sera soumise à validation par un administrateur avant tout accès.
+      </div>
+      <div class="form-group" style="text-align:left;">
+        <label class="form-label">Pseudo Jeu *</label>
+        <input type="text" class="form-input" id="reg-pseudo" placeholder="Votre pseudo dans Transport Manager">
+      </div>
+      <div class="form-group" style="text-align:left;">
+        <label class="form-label">Email *</label>
+        <input type="email" class="form-input" id="reg-email" placeholder="votre@email.com">
+      </div>
+      <div class="form-group" style="text-align:left;">
+        <label class="form-label">Mot de passe *</label>
+        <input type="password" class="form-input" id="reg-mdp" placeholder="Min. 6 caractères">
+      </div>
+      <div class="form-group" style="text-align:left;">
+        <label class="form-label">Confirmer le mot de passe *</label>
+        <input type="password" class="form-input" id="reg-mdp2" placeholder="Répétez le mot de passe">
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="doInscription()">
+        📨 Envoyer la demande
+      </button>
+      <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:8px;justify-content:center;" onclick="showPanelLogin()">
+        ← Retour à la connexion
       </button>
     </div>
-    <div style="margin-top:20px;font-size:10px;color:var(--text4);">
-      Mode dev : <a href="#" onclick="bypassLogin()" style="color:var(--green);text-decoration:none;">accès direct</a>
+
+    <!-- Panel Succès inscription -->
+    <div id="panel-inscription-ok" style="display:none;text-align:center;">
+      <div style="font-size:48px;margin-bottom:12px;">✅</div>
+      <div style="font-size:15px;font-weight:700;color:var(--green2);margin-bottom:8px;">Demande envoyée !</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:20px;">
+        Votre demande a été transmise aux administrateurs.<br>
+        Vous serez notifié une fois votre compte validé.
+      </div>
+      <button class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;" onclick="showPanelLogin()">
+        ← Retour à la connexion
+      </button>
     </div>
+
+  </div>
+</div>
+
+<!-- ÉCRAN EN ATTENTE DE VALIDATION -->
+<div id="waiting-screen" class="hidden">
+  <div class="waiting-box">
+    <div class="waiting-icon">⏳</div>
+    <div class="waiting-title">Compte en attente</div>
+    <div class="waiting-sub">
+      Votre compte <b id="waiting-pseudo"></b> est en cours de validation.<br>
+      Un administrateur doit approuver votre accès avant que vous puissiez utiliser le site.<br><br>
+      <span class="badge-attente">EN ATTENTE DE VALIDATION</span>
+    </div>
+    <div style="font-size:11px;color:var(--text4);margin-bottom:16px;">
+      Email : <span id="waiting-email"></span>
+    </div>
+    <button class="btn btn-secondary" style="width:100%;justify-content:center;" onclick="doLogout()">
+      ↩️ Se déconnecter
+    </button>
   </div>
 </div>
 
 <!-- SIDEBAR -->
 <div id="sidebar">
+  <!-- Bandeau mode config -->
+  <div id="cfg-mode-banner">⚙ Mode Configuration</div>
+
   <div class="sidebar-logo">
     <div class="logo-row">
       <div class="logo-leaf">🍃</div>
-      <div class="logo-text">
+      <div class="logo-text" id="sidebar-logo-normal">
         <h1>ADTEM</h1>
         <small>Alliance Manager</small>
       </div>
+      <div class="logo-text" id="sidebar-logo-config" style="display:none;">
+        <h1 style="color:var(--cfg-green);font-size:16px;">CONFIG</h1>
+        <small>Paramètres avancés</small>
+      </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V4</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V8</span></div>
   </div>
 
-  <nav class="sidebar-nav">
+  <!-- MENU NORMAL -->
+  <nav class="sidebar-nav" id="sidebar-menu-normal">
     <div class="nav-section">
       <div class="nav-section-title">Tableau de bord</div>
       <div class="nav-item active" data-page="dashboard">
@@ -754,19 +909,35 @@ tr:hover td { background: var(--surface2); }
       <div class="nav-item" data-page="aides">
         <span class="nav-icon">🤝</span> Suivi des aides
       </div>
-    </div>
-
-    <div class="nav-section">
-      <div class="nav-section-title">Administration</div>
-      <div class="nav-item" data-page="config">
-        <span class="nav-icon">⚙️</span> Configuration
-      </div>
-      <div class="nav-item" data-page="comptes" id="nav-comptes">
-        <span class="nav-icon">👤</span> Comptes utilisateurs
-      </div>
-      <div class="nav-item" data-page="rentabilite" style="opacity:0.5;">
+      <div class="nav-item" data-page="rentabilite">
         <span class="nav-icon">📈</span> Rentabilité membres
         <span class="nav-badge" style="background:var(--yellowbg);color:var(--yellow);border:1px solid rgba(201,134,10,0.3);">DEV</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MENU CONFIG -->
+  <nav class="sidebar-nav" id="sidebar-menu-config" style="display:none;">
+    <div class="nav-section">
+      <div class="nav-section-title">Paramètres</div>
+      <div class="nav-item cfg-nav" data-page="config">
+        <span class="nav-icon">⚙️</span> Configuration générale
+      </div>
+      <div class="nav-item cfg-nav" data-page="comptes" id="nav-comptes">
+        <span class="nav-icon">👤</span> Comptes utilisateurs
+        <span class="nav-badge" id="badge-attente" style="display:none;background:var(--redbg);color:var(--red);border:1px solid rgba(192,57,43,0.3);">0</span>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title">Données</div>
+      <div class="nav-item cfg-nav" data-page="sauvegarde">
+        <span class="nav-icon">💾</span> Sauvegarde
+      </div>
+      <div class="nav-item cfg-nav" data-page="reinitialisation">
+        <span class="nav-icon">🗑️</span> Réinitialisation
+      </div>
+      <div class="nav-item cfg-nav" data-page="dashboard" id="cfg-nav-import">
+        <span class="nav-icon">📥</span> Import JSON
       </div>
     </div>
   </nav>
@@ -776,7 +947,13 @@ tr:hover td { background: var(--surface2); }
       <div class="status-dot" id="db-dot"></div>
       <span id="db-label">Connexion Firebase...</span>
     </div>
-    <div style="color:var(--text4);font-size:9px;">ADTEM · Transport Manager</div>
+    <button onclick="toggleModeConfig()" id="btn-toggle-config"
+      style="margin-top:8px;width:100%;background:none;border:1px solid var(--border2);
+      border-radius:6px;padding:6px 10px;font-size:11px;font-weight:600;
+      color:var(--text3);cursor:pointer;font-family:inherit;transition:all 0.2s;text-align:left;">
+      ⚙️ Mode configuration
+    </button>
+    <div style="color:var(--text4);font-size:9px;margin-top:6px;">ADTEM · Transport Manager</div>
   </div>
 </div>
 
@@ -857,6 +1034,18 @@ tr:hover td { background: var(--surface2); }
           </tr></thead>
           <tbody id="last-ops"></tbody>
         </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="flex-between mb-16">
+        <div class="card-title" style="margin-bottom:0;"><span class="icon">📋</span> Journal d'activité</div>
+        <button class="btn btn-secondary btn-sm" onclick="clearJournal()">🗑️ Vider</button>
+      </div>
+      <div style="max-height:300px;overflow-y:auto;">
+        <div class="timeline" id="journal-timeline">
+          <div style="color:var(--text3);font-size:12px;">Aucune activité enregistrée.</div>
+        </div>
       </div>
     </div>
   </div>
@@ -1144,10 +1333,12 @@ tr:hover td { background: var(--surface2); }
           <div id="devis-location-preview" style="color:var(--text3);font-size:12px;text-align:center;padding:40px 0;">
             Remplissez le formulaire et cliquez sur "Générer le devis"
           </div>
-          <div id="devis-location-actions" style="display:none;margin-top:14px;display:none;gap:8px;flex-wrap:wrap;">
+          <div id="devis-location-actions" style="display:none;margin-top:14px;gap:8px;flex-wrap:wrap;">
             <button class="btn btn-primary btn-sm" onclick="exportDevisImage('devis-loc-content')">📥 Export PNG</button>
+            <button class="btn btn-yellow btn-sm" onclick="publierDevis('devis-loc-content','location')">☁️ Publier</button>
             <button class="btn btn-secondary btn-sm" onclick="saveDevis('location')">💾 Sauvegarder</button>
           </div>
+          <div id="devis-location-url" style="display:none;"></div>
         </div>
       </div>
     </div>
@@ -1274,8 +1465,10 @@ tr:hover td { background: var(--surface2); }
           </div>
           <div id="devis-ae-actions" style="display:none;margin-top:14px;gap:8px;flex-wrap:wrap;">
             <button class="btn btn-primary btn-sm" onclick="exportDevisImage('devis-ae-content')">📥 Export PNG</button>
+            <button class="btn btn-yellow btn-sm" onclick="publierDevis('devis-ae-content','ae')">☁️ Publier</button>
             <button class="btn btn-secondary btn-sm" onclick="saveDevis('ae')">💾 Sauvegarder</button>
           </div>
+          <div id="devis-ae-url" style="display:none;"></div>
         </div>
       </div>
     </div>
@@ -1324,7 +1517,7 @@ tr:hover td { background: var(--surface2); }
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Date</th><th>Membre</th><th>Type</th><th>Description</th><th>Montant</th><th>Statut</th><th>Actions</th>
+            <th>Date</th><th>Membre</th><th>Type</th><th>Description</th><th>Montant</th><th>Image</th><th>Actions</th>
           </tr></thead>
           <tbody id="aides-table-body">
             <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:30px;">Aucune aide enregistrée</td></tr>
@@ -1492,6 +1685,130 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
           </tbody>
         </table>
       </div>
+    </div>
+  </div>
+
+  <!-- ====== SAUVEGARDE ====== -->
+  <div class="page" id="page-sauvegarde">
+    <div class="section-title" style="color:var(--cfg-green);">💾 Sauvegarde & Synchronisation</div>
+    <div class="section-subtitle">Exportez, importez et gérez vos données Firebase</div>
+
+    <div class="kpi-grid mb-20">
+      <div class="kpi-card green">
+        <div class="kpi-label">Statut Firebase</div>
+        <div class="kpi-value green" id="sauv-stat-status" style="font-size:14px;">—</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-label">Dernière sauvegarde</div>
+        <div class="kpi-value blue" id="sauv-stat-last" style="font-size:14px;">—</div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-label">Taille estimée</div>
+        <div class="kpi-value yellow" id="sauv-stat-size" style="font-size:14px;">—</div>
+      </div>
+    </div>
+
+    <!-- Mode pause -->
+    <div class="card mb-16" id="card-sync-pause" style="border-color:rgba(201,134,10,0.3);">
+      <div class="flex-between mb-16">
+        <div class="card-title" style="color:var(--yellow);margin-bottom:0;">⏸ Mode pause — synchronisation Firebase</div>
+        <span id="sync-pause-badge" class="badge badge-green">▶ ACTIVE</span>
+      </div>
+      <p style="font-size:12px;color:var(--text3);margin-bottom:12px;">Suspend les listeners Firebase. Les données ne se mettent plus à jour en temps réel. Utile pour tester sans interférence.</p>
+      <button id="btn-toggle-pause" class="btn" style="width:100%;background:rgba(201,134,10,0.08);border:1px solid rgba(201,134,10,0.3);color:var(--yellow);" onclick="toggleSyncPause()">⏸ Mettre en pause</button>
+    </div>
+
+    <div class="grid-2 mb-16">
+      <!-- Télécharger -->
+      <div class="card" style="border-color:rgba(36,113,163,0.3);">
+        <div class="card-title" style="color:var(--blue);">💾 Télécharger une sauvegarde</div>
+        <p style="font-size:12px;color:var(--text3);margin-bottom:14px;">Exporte toutes les données Firebase en fichier <code style="background:var(--surface2);padding:1px 5px;border-radius:3px;">.json</code>. À conserver précieusement.</p>
+        <button class="btn" style="width:100%;background:var(--bluebg);border:1px solid rgba(36,113,163,0.3);color:var(--blue);" onclick="exporterSauvegarde()">
+          💾 Télécharger le fichier JSON
+        </button>
+      </div>
+
+      <!-- Charger -->
+      <div class="card" style="border-color:rgba(201,134,10,0.3);">
+        <div class="card-title" style="color:var(--yellow);">📂 Charger une sauvegarde</div>
+        <p style="font-size:12px;color:var(--text3);margin-bottom:14px;">Importe un fichier <code style="background:var(--surface2);padding:1px 5px;border-radius:3px;">.json</code> précédemment exporté. <b style="color:var(--red);">Écrase toutes les données actuelles.</b></p>
+        <input type="file" id="sauv-import-input" accept=".json" style="display:none;" onchange="importerSauvegarde(this)">
+        <button class="btn" style="width:100%;background:var(--yellowbg);border:1px solid rgba(201,134,10,0.3);color:var(--yellow);" onclick="document.getElementById('sauv-import-input').click()">
+          📂 Choisir un fichier JSON
+        </button>
+        <div id="sauv-import-result" style="display:none;margin-top:10px;padding:8px 10px;border-radius:6px;font-size:12px;"></div>
+      </div>
+    </div>
+
+    <!-- Tester connexion -->
+    <div class="card mb-16">
+      <div class="card-title" style="color:var(--cfg-green);">🔍 Tester la connexion Firebase</div>
+      <button class="btn" style="background:var(--greenbg);border:1px solid rgba(74,140,82,0.3);color:var(--green);" onclick="testerConnexion()">🔍 Tester maintenant</button>
+      <div id="sauv-test-result" style="display:none;margin-top:10px;padding:8px 10px;border-radius:6px;font-size:12px;"></div>
+    </div>
+
+    <!-- Info -->
+    <div class="card" style="border-color:var(--border);">
+      <div class="card-title">ℹ️ Comment ça fonctionne</div>
+      <div style="font-size:12px;color:var(--text2);line-height:2;">
+        <b style="color:var(--green);">Temps réel</b> — Firebase synchronise les données automatiquement entre tous les appareils connectés.<br>
+        <b style="color:var(--green);">Sauvegarde manuelle</b> — Téléchargez régulièrement un fichier JSON comme backup local.<br>
+        <b style="color:var(--blue);">Restauration</b> — En cas de problème, rechargez un fichier JSON pour restaurer toutes vos données.<br>
+        <b style="color:var(--yellow);">Mode pause</b> — Suspend uniquement les listeners temps réel, la base reste intacte.
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== REINITIALISATION ====== -->
+  <div class="page" id="page-reinitialisation">
+    <div class="section-title" style="color:var(--red);">🗑️ Réinitialisation des données</div>
+    <div class="section-subtitle">Suppression partielle ou totale des données Firebase</div>
+
+    <div class="kpi-grid mb-20">
+      <div class="kpi-card blue">
+        <div class="kpi-label">Membres</div>
+        <div class="kpi-value blue" id="rst-stat-membres">—</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Aides / Devis</div>
+        <div class="kpi-value green" id="rst-stat-aides">—</div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-label">Véhicules</div>
+        <div class="kpi-value yellow" id="rst-stat-vehicules">—</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">Ops compta</div>
+        <div class="kpi-value red" id="rst-stat-compta">—</div>
+      </div>
+    </div>
+
+    <!-- Réinitialisation sélective -->
+    <div class="card mb-16" style="border-color:rgba(192,57,43,0.3);">
+      <div class="card-title" style="color:var(--red);">⚠️ Réinitialisation sélective</div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:16px;">Vide un bloc de données sans toucher aux autres. <b>Double confirmation requise. Irréversible.</b></p>
+      <div class="grid-2" style="gap:10px;">
+        <button class="btn" onclick="resetSection('membres')" style="background:var(--redbg);border:1px solid rgba(192,57,43,0.3);color:var(--red);padding:12px;">👥 Vider les membres</button>
+        <button class="btn" onclick="resetSection('aides')" style="background:var(--redbg);border:1px solid rgba(192,57,43,0.3);color:var(--red);padding:12px;">🤝 Vider les aides/devis</button>
+        <button class="btn" onclick="resetSection('vehicules')" style="background:var(--redbg);border:1px solid rgba(192,57,43,0.3);color:var(--red);padding:12px;">🚌 Vider les véhicules</button>
+        <button class="btn" onclick="resetSection('compta')" style="background:var(--redbg);border:1px solid rgba(192,57,43,0.3);color:var(--red);padding:12px;">📊 Vider la comptabilité</button>
+        <button class="btn" onclick="resetSection('journal')" style="background:var(--redbg);border:1px solid rgba(192,57,43,0.3);color:var(--red);padding:12px;">📋 Vider le journal</button>
+        <button class="btn" onclick="resetSection('config')" style="background:var(--redbg);border:1px solid rgba(192,57,43,0.3);color:var(--red);padding:12px;">⚙️ Réinitialiser la config</button>
+      </div>
+    </div>
+
+    <!-- Réinitialisation complète -->
+    <div class="card" style="border-color:rgba(192,57,43,0.6);">
+      <div class="card-title" style="color:var(--red);">💥 Réinitialisation complète</div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:16px;">Efface <b>absolument toutes les données</b> — membres, aides, véhicules, comptabilité, journal, configuration. <b>Irréversible.</b></p>
+      <div class="form-group">
+        <label class="form-label" style="color:var(--red);">Tapez <b>CONFIRMER</b> pour activer le bouton</label>
+        <input type="text" class="form-input" id="reset-confirm-input" placeholder="CONFIRMER" oninput="checkResetConfirm()">
+      </div>
+      <button class="btn" id="btn-reset-total" disabled onclick="resetTotal()"
+        style="width:100%;background:rgba(192,57,43,0.15);border:2px solid var(--red);color:var(--red);font-weight:700;padding:14px;font-size:14px;opacity:0.4;cursor:not-allowed;">
+        🗑️ TOUT EFFACER — Réinitialisation complète
+      </button>
     </div>
   </div>
 
@@ -1717,16 +2034,26 @@ function initFirebase() {
   // ── Auth state listener
   auth.onAuthStateChanged(async user => {
     if (user) {
-      // Récupère le rôle depuis Realtime DB
       const snap = await db.ref('users/' + user.uid).once('value');
       const userData = snap.val() || {};
+
       CURRENT_USER.uid = user.uid;
       CURRENT_USER.email = user.email;
       CURRENT_USER.pseudo = userData.pseudo || user.email.split('@')[0];
-      CURRENT_USER.role = userData.role || 'membre';
+      CURRENT_USER.role = userData.role || 'en_attente';
 
-      // Affiche l'interface
+      // Compte en attente de validation
+      if (userData.role === 'en_attente' || userData.actif === false) {
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('waiting-screen').classList.remove('hidden');
+        document.getElementById('waiting-pseudo').textContent = CURRENT_USER.pseudo;
+        document.getElementById('waiting-email').textContent = user.email;
+        return;
+      }
+
+      // Compte actif → affiche l'interface
       document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('waiting-screen').classList.add('hidden');
       document.getElementById('topbar-user').style.display = 'flex';
       document.getElementById('user-avatar').textContent = CURRENT_USER.pseudo.charAt(0).toUpperCase();
       document.getElementById('user-pseudo').textContent = CURRENT_USER.pseudo;
@@ -1736,10 +2063,27 @@ function initFirebase() {
       if (CURRENT_USER.role !== 'admin') {
         document.getElementById('nav-comptes').style.display = 'none';
       }
+
+      // Écouter les demandes en attente (admin seulement)
+      if (CURRENT_USER.role === 'admin') {
+        db.ref('users').on('value', snap => {
+          if (!snap.val()) return;
+          const pending = Object.values(snap.val()).filter(u => u.role === 'en_attente').length;
+          const badge = document.getElementById('badge-attente');
+          if (badge) {
+            badge.textContent = pending;
+            badge.style.display = pending > 0 ? '' : 'none';
+          }
+        });
+      }
+
+      journalLog('Connexion', 'ok');
+
     } else {
-      // Non connecté → affiche login (sauf mode dev bypass)
+      document.getElementById('waiting-screen').classList.add('hidden');
       if (!APP.devBypass) {
         document.getElementById('login-screen').classList.remove('hidden');
+        showPanelLogin();
       }
     }
   });
@@ -1791,6 +2135,16 @@ function initFirebase() {
     }
   });
 
+  // Journal d'activité
+  db.ref('journal').orderByKey().limitToLast(30).on('value', snap => {
+    if (snap.val()) {
+      const entries = Object.values(snap.val()).reverse();
+      renderJournal(entries);
+    } else {
+      renderJournal([]);
+    }
+  });
+
   // Compta
   db.ref('compta/current').on('value', snap => {
     if (snap.val() && snap.val().comptabilite) {
@@ -1802,6 +2156,62 @@ function initFirebase() {
 }
 
 // ================================================================
+//  MODE CONFIGURATION
+// ================================================================
+let _modeConfig = false;
+
+function toggleModeConfig() {
+  _modeConfig = !_modeConfig;
+  document.body.classList.toggle('mode-config', _modeConfig);
+
+  const menuNormal = document.getElementById('sidebar-menu-normal');
+  const menuConfig = document.getElementById('sidebar-menu-config');
+  const logoNormal = document.getElementById('sidebar-logo-normal');
+  const logoConfig = document.getElementById('sidebar-logo-config');
+  const btn = document.getElementById('btn-toggle-config');
+
+  menuNormal.style.display = _modeConfig ? 'none' : '';
+  menuConfig.style.display = _modeConfig ? '' : 'none';
+  logoNormal.style.display = _modeConfig ? 'none' : '';
+  logoConfig.style.display = _modeConfig ? '' : 'none';
+
+  if (btn) {
+    btn.textContent = _modeConfig ? '← Retour au site' : '⚙️ Mode configuration';
+    btn.style.color = _modeConfig ? 'var(--cfg-green)' : '';
+    btn.style.borderColor = _modeConfig ? 'var(--cfg-green-border)' : '';
+    btn.style.background = _modeConfig ? 'var(--cfg-green-dim)' : '';
+  }
+
+  if (_modeConfig) {
+    // Aller sur config par défaut
+    showPage('config');
+    // Activer le bon nav-item dans menu config
+    document.querySelectorAll('.cfg-nav').forEach(n => n.classList.remove('active'));
+    const first = document.querySelector('.cfg-nav[data-page="config"]');
+    if (first) first.classList.add('active');
+  } else {
+    showPage('dashboard');
+  }
+}
+
+// Navigation depuis le menu config
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.cfg-nav').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.cfg-nav').forEach(n => n.classList.remove('active'));
+      item.classList.add('active');
+      const page = item.dataset.page;
+      if (page === 'dashboard') {
+        // Import JSON spécial
+        openModal('modal-import');
+      } else {
+        showPage(page);
+      }
+    });
+  });
+});
+
+// ================================================================
 //  NAVIGATION
 // ================================================================
 function showPage(pageId) {
@@ -1809,8 +2219,11 @@ function showPage(pageId) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const page = document.getElementById('page-' + pageId);
   if (page) page.classList.add('active');
-  const nav = document.querySelector(`.nav-item[data-page="${pageId}"]`);
-  if (nav) nav.classList.add('active');
+  // Active dans le bon menu (normal ou config)
+  const navNormal = document.querySelector(`#sidebar-menu-normal .nav-item[data-page="${pageId}"]`);
+  const navConfig = document.querySelector(`#sidebar-menu-config .nav-item[data-page="${pageId}"]`);
+  if (navNormal) navNormal.classList.add('active');
+  if (navConfig) navConfig.classList.add('active');
 
   // Update topbar
   const titles = {
@@ -1824,7 +2237,8 @@ function showPage(pageId) {
     aides: ['Suivi des aides', 'Historique des devis et aides'],
     comptes: ['Comptes utilisateurs', 'Gestion des accès au site'],
     rentabilite: ['Rentabilité membres', 'Analyse financière par membre'],
-    config: ['Configuration', 'Paramètres de l\'application']
+    sauvegarde: ['Sauvegarde', 'Export, import et gestion des données Firebase'],
+    reinitialisation: ['Réinitialisation', 'Suppression partielle ou totale des données'],
   };
   if (titles[pageId]) {
     document.getElementById('page-title').innerHTML =
@@ -1838,9 +2252,11 @@ function showPage(pageId) {
   if (pageId === 'config') loadConfigForm();
   if (pageId === 'comptes') loadComptes();
   if (pageId === 'rentabilite') loadRentabilite();
+  if (pageId === 'sauvegarde') loadSauvegardeStats();
+  if (pageId === 'reinitialisation') loadResetStats();
 }
 
-document.querySelectorAll('.nav-item').forEach(item => {
+document.querySelectorAll('.nav-item:not(.cfg-nav)').forEach(item => {
   item.addEventListener('click', () => showPage(item.dataset.page));
 });
 
@@ -1885,6 +2301,7 @@ function importJSON() {
     if (type === 'compta') {
       if (!data.comptabilite) throw new Error('Clé "comptabilite" manquante');
       db.ref('compta/current').set(data).then(() => {
+        journalLog(`Import comptabilité : ${data.comptabilite.length} opérations`, 'ok');
         toast('Comptabilité importée avec succès', 'success');
         closeModal('modal-import');
       });
@@ -1892,6 +2309,7 @@ function importJSON() {
       const vehicules = data.vehicules || data;
       if (!Array.isArray(vehicules)) throw new Error('Format invalide');
       db.ref('vehicules').set(vehicules).then(() => {
+        journalLog(`Import parc : ${vehicules.length} véhicules`, 'ok');
         toast(`${vehicules.length} véhicules importés`, 'success');
         closeModal('modal-import');
       });
@@ -2696,15 +3114,19 @@ async function exportDevisImage(contentId) {
 async function saveDevis(type) {
   const v = type === 'location' ? APP.devisLocation.vehiculesSelectionnes : APP.devisAE.vehiculesSelectionnes;
   const pseudo = document.getElementById(type === 'location' ? 'dl-pseudo' : 'ae-pseudo').value;
+  const montant = type === 'location'
+    ? parseInt(document.getElementById('calc-total').textContent.replace(/\s|€/g,'')) || 0
+    : parseInt(document.getElementById('ae-montant').value) || 0;
+
   const devis = {
     type, pseudo,
     date: new Date().toISOString(),
     vehicules: v.map(x => x['Numéro Parc']),
-    montant: type === 'location'
-      ? parseInt(document.getElementById('calc-total').textContent.replace(/\s|€/g,'')) || 0
-      : parseInt(document.getElementById('ae-montant').value) || 0
+    montant,
+    imageUrl: APP._lastDevisUrl && APP._lastDevisType === type ? APP._lastDevisUrl : null
   };
-  const ref = await db.ref('aides').push(devis);
+  await db.ref('aides').push(devis);
+  journalLog(`Devis ${type.toUpperCase()} sauvegardé pour ${pseudo} — ${montant.toLocaleString('fr')} €`, 'ok');
   toast('Devis sauvegardé en base', 'success');
 }
 
@@ -2803,7 +3225,7 @@ function updateDashboardCompta() {
     const m = isRev ? parseFloat(op['Revenus']) : parseFloat(op['Dépenses']);
     return `<tr>
       <td style="font-size:10px;color:var(--text3);white-space:nowrap;">${(op['Date de l\'opération'] || '').split(' ')[0]}</td>
-      <td style="font-size:11px;">${(op['Libellé de l\'opération'] || '').substring(0, 60)}${op['Libellé de l\'opération']?.length > 60 ? '...' : ''}</td>
+      <td style="font-size:11px;">${(op['Libellé de l\'opération'] || '').substring(0, 60)}${(op['Libellé de l\'opération'] && op['Libellé de l\'opération'].length > 60) ? '...' : ''}</td>
       <td>${isRev ? '<span class="badge badge-green">Revenu</span>' : '<span class="badge badge-red">Dépense</span>'}</td>
       <td style="text-align:right;font-weight:700;color:${isRev ? 'var(--green)' : 'var(--red)'};">${isRev ? '+' : '-'}${m.toLocaleString('fr')} €</td>
     </tr>`;
@@ -2944,7 +3366,12 @@ function renderAides() {
     <td>${a.type === 'location' ? '<span class="badge badge-blue">Location</span>' : a.type === 'ae' ? '<span class="badge badge-green">AE</span>' : '<span class="badge badge-gray">' + a.type + '</span>'}</td>
     <td style="font-size:11px;">${(a.vehicules || []).join(', ') || '—'}</td>
     <td style="font-weight:700;color:var(--green);">${a.montant ? a.montant.toLocaleString('fr') + ' €' : '—'}</td>
-    <td><span class="badge badge-green">Traité</span></td>
+    <td>
+      ${a.imageUrl
+        ? `<a href="${a.imageUrl}" target="_blank" class="badge badge-blue">🖼️ Voir</a>
+           <button class="url-copy-btn" style="margin-left:4px;" onclick="copyUrl('${a.imageUrl}')">📋</button>`
+        : '<span class="badge badge-gray">—</span>'}
+    </td>
     <td>
       <button class="btn btn-danger btn-icon btn-sm" onclick="deleteAide('${a.id}')">🗑️</button>
     </td>
@@ -3043,8 +3470,72 @@ function calcFinDate(debutIso, semaines) {
 }
 
 // ================================================================
-//  AUTH — LOGIN / LOGOUT
+//  NAVIGATION PANELS LOGIN
 // ================================================================
+function showPanelLogin() {
+  document.getElementById('panel-login').style.display = '';
+  document.getElementById('panel-inscription').style.display = 'none';
+  document.getElementById('panel-inscription-ok').style.display = 'none';
+}
+function showPanelInscription() {
+  document.getElementById('panel-login').style.display = 'none';
+  document.getElementById('panel-inscription').style.display = '';
+  document.getElementById('panel-inscription-ok').style.display = 'none';
+  document.getElementById('inscription-error').style.display = 'none';
+}
+
+// ================================================================
+//  INSCRIPTION — DEMANDE DE COMPTE
+// ================================================================
+async function doInscription() {
+  const pseudo = document.getElementById('reg-pseudo').value.trim();
+  const email  = document.getElementById('reg-email').value.trim();
+  const mdp    = document.getElementById('reg-mdp').value;
+  const mdp2   = document.getElementById('reg-mdp2').value;
+  const errEl  = document.getElementById('inscription-error');
+
+  errEl.style.display = 'none';
+
+  const showErr = (msg) => {
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+  };
+
+  if (!pseudo) return showErr('Le pseudo est obligatoire.');
+  if (!email)  return showErr('L\'email est obligatoire.');
+  if (mdp.length < 6) return showErr('Le mot de passe doit faire au moins 6 caractères.');
+  if (mdp !== mdp2) return showErr('Les mots de passe ne correspondent pas.');
+
+  try {
+    // Créer le compte Firebase Auth
+    const cred = await auth.createUserWithEmailAndPassword(email, mdp);
+    const uid = cred.user.uid;
+
+    // Enregistrer en base avec statut "en_attente"
+    await db.ref('users/' + uid).set({
+      pseudo,
+      email,
+      role: 'en_attente',
+      actif: false,
+      createdAt: new Date().toISOString(),
+      demandeAt: new Date().toISOString()
+    });
+
+    // Afficher le panel succès
+    document.getElementById('panel-inscription').style.display = 'none';
+    document.getElementById('panel-inscription-ok').style.display = '';
+
+    // Le onAuthStateChanged va détecter en_attente et afficher l'écran d'attente
+
+  } catch(e) {
+    const msgs = {
+      'auth/email-already-in-use': 'Cet email est déjà utilisé.',
+      'auth/invalid-email': 'Email invalide.',
+      'auth/weak-password': 'Mot de passe trop faible (min. 6 caractères).'
+    };
+    showErr(msgs[e.code] || 'Erreur : ' + e.message);
+  }
+}
 APP.devBypass = false;
 
 function bypassLogin() {
@@ -3179,43 +3670,174 @@ async function loadComptes() {
   const users = snap.val() || {};
   const container = document.getElementById('comptes-list');
 
-  if (!Object.keys(users).length) {
-    container.innerHTML = `<div style="color:var(--text3);text-align:center;padding:30px;">Aucun compte enregistré</div>`;
-    return;
+  const roleBadge = { admin: 'badge-red', moderateur: 'badge-yellow', membre: 'badge-green', en_attente: 'badge-yellow' };
+  const roleLabel = { admin: 'Administrateur', moderateur: 'Modérateur', membre: 'Membre', en_attente: 'En attente' };
+
+  const enAttente = Object.entries(users).filter(([,u]) => u.role === 'en_attente');
+  const actifs    = Object.entries(users).filter(([,u]) => u.role !== 'en_attente');
+
+  let html = '';
+
+  // ── SECTION EN ATTENTE ──
+  if (enAttente.length) {
+    html += `
+      <div style="margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;
+          color:var(--yellow);margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+          ⏳ Demandes en attente de validation
+          <span class="badge badge-yellow">${enAttente.length}</span>
+        </div>
+        ${enAttente.map(([uid, u]) => `
+          <div class="compte-card" style="border-color:rgba(201,134,10,0.4);background:var(--yellowbg);margin-bottom:8px;">
+            <div class="compte-avatar" style="background:linear-gradient(135deg,#a06808,var(--yellow2));">
+              ${(u.pseudo || '?').charAt(0).toUpperCase()}
+            </div>
+            <div class="compte-info" style="flex:1;margin-left:12px;">
+              <div style="font-size:13px;font-weight:700;">${u.pseudo || '—'}</div>
+              <small style="color:var(--text3);">${u.email || '—'} · Demande le ${u.demandeAt ? new Date(u.demandeAt).toLocaleDateString('fr') : '—'}</small>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <select class="form-select" id="role-select-${uid}" style="width:130px;font-size:11px;padding:4px 8px;">
+                <option value="membre" selected>Membre</option>
+                <option value="moderateur">Modérateur</option>
+                <option value="admin">Administrateur</option>
+              </select>
+              <button class="btn btn-primary btn-sm" onclick="validerCompte('${uid}')">✅ Valider</button>
+              <button class="btn btn-danger btn-sm" onclick="refuserCompte('${uid}')">❌ Refuser</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div style="border-top:1px solid var(--border);margin-bottom:16px;padding-top:4px;">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);margin-bottom:10px;">
+          Comptes actifs
+        </div>
+      </div>`;
   }
 
-  const roleBadge = {
-    admin: 'badge-red',
-    moderateur: 'badge-yellow',
-    membre: 'badge-green'
-  };
-  const roleLabel = { admin: 'Administrateur', moderateur: 'Modérateur', membre: 'Membre' };
+  // ── SECTION COMPTES ACTIFS ──
+  if (!actifs.length) {
+    html += `<div style="color:var(--text3);text-align:center;padding:20px;">Aucun compte actif</div>`;
+  } else {
+    html += actifs.map(([uid, u]) => `
+      <div class="compte-card" id="cc-${uid}">
+        <div class="compte-avatar">${(u.pseudo || '?').charAt(0).toUpperCase()}</div>
+        <div class="compte-info">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span id="pseudo-display-${uid}" style="font-size:13px;font-weight:700;">${u.pseudo || '—'}</span>
+            ${uid === CURRENT_USER.uid ? '<span style="font-size:10px;color:var(--text3);">(vous)</span>' : ''}
+            <button class="btn btn-secondary btn-icon btn-sm" onclick="toggleEditPseudo('${uid}')" title="Modifier le pseudo">✏️</button>
+          </div>
+          <div id="pseudo-edit-${uid}" style="display:none;margin-top:6px;">
+            <div style="display:flex;gap:6px;align-items:center;">
+              <input type="text" class="form-input" id="pseudo-input-${uid}" value="${u.pseudo || ''}" style="width:180px;padding:5px 8px;font-size:12px;">
+              <button class="btn btn-primary btn-sm" onclick="savePseudo('${uid}')">✅</button>
+              <button class="btn btn-secondary btn-sm" onclick="toggleEditPseudo('${uid}')">✕</button>
+            </div>
+          </div>
+          <small style="color:var(--text3);">${u.email || '—'} · Créé le ${u.createdAt ? new Date(u.createdAt).toLocaleDateString('fr') : '—'}</small>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+          <span class="badge ${roleBadge[u.role] || 'badge-gray'}">${roleLabel[u.role] || u.role || '—'}</span>
+          ${u.actif !== false ? '<span class="badge badge-green">Actif</span>' : '<span class="badge badge-gray">Désactivé</span>'}
+          ${uid !== CURRENT_USER.uid ? `
+            <select class="form-select" style="width:130px;font-size:11px;padding:4px 8px;"
+              onchange="changeRole('${uid}', this.value)">
+              <option value="membre"     ${u.role === 'membre'     ? 'selected' : ''}>Membre</option>
+              <option value="moderateur" ${u.role === 'moderateur' ? 'selected' : ''}>Modérateur</option>
+              <option value="admin"      ${u.role === 'admin'      ? 'selected' : ''}>Admin</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="sendResetEmail('${u.email}')" title="Reset mdp">🔑</button>
+            <button class="btn btn-secondary btn-sm" onclick="toggleActif('${uid}', ${u.actif !== false})"
+              title="${u.actif !== false ? 'Désactiver' : 'Activer'}">
+              ${u.actif !== false ? '🚫' : '✅'}
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="deleteCompte('${uid}')" title="Supprimer">🗑️</button>
+          ` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
 
-  container.innerHTML = Object.entries(users).map(([uid, u]) => `
-    <div class="compte-card">
-      <div class="compte-avatar">${(u.pseudo || '?').charAt(0).toUpperCase()}</div>
-      <div class="compte-info">
-        <h3>${u.pseudo || '—'} ${uid === CURRENT_USER.uid ? '<span style="font-size:10px;color:var(--text3);">(vous)</span>' : ''}</h3>
-        <small>${u.email || '—'} · Créé le ${u.createdAt ? new Date(u.createdAt).toLocaleDateString('fr') : '—'}</small>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span class="badge ${roleBadge[u.role] || 'badge-gray'}">${roleLabel[u.role] || u.role}</span>
-        ${u.actif !== false ? '<span class="badge badge-green">Actif</span>' : '<span class="badge badge-gray">Désactivé</span>'}
-        ${uid !== CURRENT_USER.uid ? `
-          <select class="form-select" style="width:130px;font-size:11px;padding:4px 8px;"
-            onchange="changeRole('${uid}', this.value)">
-            <option value="membre" ${u.role === 'membre' ? 'selected' : ''}>Membre</option>
-            <option value="moderateur" ${u.role === 'moderateur' ? 'selected' : ''}>Modérateur</option>
-            <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
-          </select>
-          <button class="btn btn-secondary btn-sm" onclick="sendResetEmail('${u.email}')" title="Reset mdp">🔑</button>
-          <button class="btn btn-danger btn-sm" onclick="toggleActif('${uid}', ${u.actif !== false})" title="${u.actif !== false ? 'Désactiver' : 'Activer'}">
-            ${u.actif !== false ? '🚫' : '✅'}
-          </button>
-        ` : ''}
-      </div>
-    </div>
-  `).join('');
+  container.innerHTML = html || `<div style="color:var(--text3);text-align:center;padding:30px;">Aucun compte</div>`;
+}
+
+async function validerCompte(uid) {
+  const roleSelect = document.getElementById('role-select-' + uid);
+  const role = roleSelect ? roleSelect.value : 'membre';
+
+  await db.ref('users/' + uid).update({ role, actif: true });
+
+  // Récupérer le pseudo pour le log
+  const snap = await db.ref('users/' + uid + '/pseudo').once('value');
+  const pseudo = snap.val() || uid;
+
+  journalLog(`Compte validé : ${pseudo} (rôle: ${role})`, 'ok');
+  toast(`Compte "${pseudo}" validé avec le rôle ${role}`, 'success');
+  loadComptes();
+}
+
+async function refuserCompte(uid) {
+  const snap = await db.ref('users/' + uid).once('value');
+  const u = snap.val() || {};
+  const pseudo = u.pseudo || uid;
+
+  if (!confirm(`Refuser la demande de "${pseudo}" ?\n\nLe compte Firebase Auth restera mais l'accès sera définitivement refusé.`)) return;
+
+  // Supprimer le nœud DB → plus d'accès possible
+  await db.ref('users/' + uid).remove();
+
+  journalLog(`Demande refusée : ${pseudo}`, 'warn');
+  toast(`Demande de "${pseudo}" refusée`, 'info');
+  loadComptes();
+}
+
+function toggleEditPseudo(uid) {
+  const display = document.getElementById('pseudo-display-' + uid);
+  const editZone = document.getElementById('pseudo-edit-' + uid);
+  const input = document.getElementById('pseudo-input-' + uid);
+  const isEditing = editZone.style.display !== 'none';
+  if (isEditing) {
+    editZone.style.display = 'none';
+    display.style.display = '';
+  } else {
+    editZone.style.display = 'block';
+    display.style.display = 'none';
+    input.focus();
+    input.select();
+  }
+}
+
+async function savePseudo(uid) {
+  const input = document.getElementById('pseudo-input-' + uid);
+  const newPseudo = input.value.trim();
+  if (!newPseudo) { toast('Le pseudo ne peut pas être vide', 'error'); return; }
+
+  await db.ref('users/' + uid + '/pseudo').set(newPseudo);
+
+  // Met à jour l'affichage sans recharger toute la liste
+  document.getElementById('pseudo-display-' + uid).textContent = newPseudo;
+  document.getElementById('pseudo-edit-' + uid).style.display = 'none';
+  document.getElementById('pseudo-display-' + uid).style.display = '';
+
+  // Met à jour l'avatar topbar si c'est le user connecté
+  if (uid === CURRENT_USER.uid) {
+    CURRENT_USER.pseudo = newPseudo;
+    document.getElementById('user-pseudo').textContent = newPseudo;
+    document.getElementById('user-avatar').textContent = newPseudo.charAt(0).toUpperCase();
+  }
+
+  toast('Pseudo mis à jour : ' + newPseudo, 'success');
+}
+
+async function deleteCompte(uid) {
+  const pseudoEl = document.getElementById('pseudo-display-' + uid);
+  const pseudo = pseudoEl ? pseudoEl.textContent : uid;
+  if (!confirm(`Supprimer définitivement le compte "${pseudo}" ?\n\nCette action supprime les données en base mais pas le compte Firebase Auth (à faire manuellement dans la console si nécessaire).`)) return;
+
+  await db.ref('users/' + uid).remove();
+  toast(`Compte "${pseudo}" supprimé de la base`, 'success');
+  loadComptes();
 }
 
 async function changeRole(uid, newRole) {
@@ -3265,7 +3887,7 @@ function loadRentabilite() {
     if (!compta.length) {
       // Charge depuis Firebase
       db.ref('compta/last').once('value').then(snap => {
-        if (snap.val()?.comptabilite) {
+        if (snap.val() && snap.val().comptabilite) {
           APP.comptaLast = snap.val().comptabilite;
           loadRentabilite();
         } else {
@@ -3421,6 +4043,371 @@ function showRentaDetail(pseudo) {
 }
 
 document.getElementById('renta-month-select').addEventListener('change', loadRentabilite);
+
+// ================================================================
+//  CLOUDINARY CONFIG
+// ================================================================
+const CLOUDINARY = {
+  cloudName: 'dxh8zwdnw',
+  uploadPreset: 'adtem_devis',
+  url: () => `https://api.cloudinary.com/v1_1/dxh8zwdnw/image/upload`
+};
+
+// ================================================================
+//  CLOUDINARY — PUBLIER UN DEVIS
+// ================================================================
+async function publierDevis(contentId, type) {
+  const el = document.getElementById(contentId);
+  if (!el) { toast('Contenu introuvable', 'error'); return; }
+
+  toast('Génération et publication en cours...', 'info');
+
+  try {
+    // 1. Générer l'image via html2canvas
+    const clone = el.cloneNode(true);
+    clone.style.transform = 'none';
+    clone.style.position = 'fixed';
+    clone.style.top = '-9999px';
+    clone.style.left = '0';
+    document.body.appendChild(clone);
+
+    const canvas = await html2canvas(clone, {
+      scale: 2, backgroundColor: '#ffffff',
+      useCORS: true, allowTaint: false
+    });
+    document.body.removeChild(clone);
+
+    // 2. Convertir en Blob
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+
+    // 3. Préparer le nom du fichier
+    const pseudo = document.getElementById(type === 'location' ? 'dl-pseudo' : 'ae-pseudo').value || 'inconnu';
+    const now = new Date();
+    const ts = `${String(now.getDate()).padStart(2,'0')}${String(now.getMonth()+1).padStart(2,'0')}${now.getFullYear().toString().slice(2)}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+    const publicId = `adtem/devis/${type}/${pseudo}-${ts}`;
+
+    // 4. Upload vers Cloudinary
+    const formData = new FormData();
+    formData.append('file', blob, `devis-${ts}.png`);
+    formData.append('upload_preset', CLOUDINARY.uploadPreset);
+    formData.append('public_id', publicId);
+    formData.append('folder', `adtem/devis/${type}`);
+
+    const resp = await fetch(CLOUDINARY.url(), { method: 'POST', body: formData });
+    if (!resp.ok) throw new Error('Erreur Cloudinary : ' + resp.status);
+
+    const data = await resp.json();
+    const imageUrl = data.secure_url;
+
+    // 5. Afficher l'URL
+    const urlBox = document.getElementById(`devis-${type === 'location' ? 'location' : 'ae'}-url`);
+    if (urlBox) {
+      urlBox.style.display = 'block';
+      urlBox.innerHTML = `
+        <div class="url-box">
+          <a href="${imageUrl}" target="_blank">🔗 ${imageUrl}</a>
+          <button class="url-copy-btn" onclick="copyUrl('${imageUrl}')">📋 Copier</button>
+        </div>`;
+    }
+
+    // 6. Stocker l'URL avec le devis si sauvegardé
+    APP._lastDevisUrl = imageUrl;
+    APP._lastDevisType = type;
+
+    journalLog(`Devis ${type.toUpperCase()} publié pour ${pseudo}`, 'ok');
+    toast('Devis publié sur Cloudinary !', 'success');
+
+  } catch(e) {
+    toast('Erreur publication : ' + e.message, 'error');
+    journalLog(`Erreur publication devis ${type} : ${e.message}`, 'danger');
+  }
+}
+
+function copyUrl(url) {
+  navigator.clipboard.writeText(url).then(() => toast('URL copiée !', 'success'));
+}
+
+// ================================================================
+//  JOURNAL D'ACTIVITÉ
+// ================================================================
+function journalLog(text, type = 'info') {
+  const now = new Date();
+  const heure = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const date = now.toLocaleDateString('fr-FR');
+  const user = CURRENT_USER.pseudo || 'Système';
+
+  const entry = { date, heure, text, type, user };
+
+  db.ref('journal').push(entry).then(() => {
+    // Limite à 50 entrées : supprimer les plus anciennes
+    db.ref('journal').once('value').then(snap => {
+      if (snap.numChildren() > 50) {
+        const keys = Object.keys(snap.val());
+        // Supprimer le premier (le plus ancien)
+        db.ref('journal/' + keys[0]).remove();
+      }
+    });
+  });
+}
+
+function renderJournal(entries) {
+  const tl = document.getElementById('journal-timeline');
+  if (!tl) return;
+  if (!entries || !entries.length) {
+    tl.innerHTML = '<div style="color:var(--text3);font-size:12px;">Aucune activité enregistrée.</div>';
+    return;
+  }
+  tl.innerHTML = entries.slice(0, 30).map(j => `
+    <div class="timeline-item ${j.type || 'info'}">
+      <div class="timeline-date">
+        <span>${j.date || ''} ${j.heure || ''}</span>
+      </div>
+      <div class="timeline-text">${j.text || ''}</div>
+      <div class="timeline-user">👤 ${j.user || 'Système'}</div>
+    </div>
+  `).join('');
+}
+
+function clearJournal() {
+  if (!confirm('Vider le journal d\'activité ?')) return;
+  db.ref('journal').remove().then(() => toast('Journal vidé', 'success'));
+}
+
+// ================================================================
+//  SAUVEGARDE — EXPORT / IMPORT / PAUSE / TEST
+// ================================================================
+let _syncPaused = false;
+let _firebaseListeners = [];
+
+function toggleSyncPause() {
+  _syncPaused = !_syncPaused;
+  const btn = document.getElementById('btn-toggle-pause');
+  const badge = document.getElementById('sync-pause-badge');
+  const card = document.getElementById('card-sync-pause');
+
+  if (_syncPaused) {
+    if (btn) { btn.textContent = '▶ Reprendre la synchronisation'; btn.style.background = 'var(--greenbg)'; btn.style.color = 'var(--green)'; btn.style.borderColor = 'rgba(74,140,82,0.3)'; }
+    if (badge) { badge.textContent = '⏸ EN PAUSE'; badge.className = 'badge badge-yellow'; }
+    if (card) card.style.borderColor = 'rgba(201,134,10,0.6)';
+    toast('⏸ Synchronisation en pause', 'info');
+  } else {
+    if (btn) { btn.textContent = '⏸ Mettre en pause'; btn.style.background = 'var(--yellowbg)'; btn.style.color = 'var(--yellow)'; btn.style.borderColor = 'rgba(201,134,10,0.3)'; }
+    if (badge) { badge.textContent = '▶ ACTIVE'; badge.className = 'badge badge-green'; }
+    if (card) card.style.borderColor = 'rgba(201,134,10,0.3)';
+    toast('▶ Synchronisation reprise', 'success');
+  }
+}
+
+async function exporterSauvegarde() {
+  toast('Chargement de toutes les données...', 'info');
+  try {
+    const snap = await db.ref('/').once('value');
+    const data = snap.val() || {};
+
+    const json = JSON.stringify({ _adtem_backup: true, _date: new Date().toISOString(), _version: 'V7', ...data }, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const now = new Date();
+    const ts = `${String(now.getDate()).padStart(2,'0')}${String(now.getMonth()+1).padStart(2,'0')}${now.getFullYear()}`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `adtem-sauvegarde-${ts}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    // Taille
+    const kb = (new Blob([json]).size / 1024).toFixed(1);
+    document.getElementById('sauv-stat-last').textContent = now.toLocaleDateString('fr-FR') + ' ' + now.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
+    document.getElementById('sauv-stat-size').textContent = kb + ' Ko';
+
+    journalLog('Sauvegarde complète exportée (' + kb + ' Ko)', 'ok');
+    toast('💾 Sauvegarde téléchargée (' + kb + ' Ko)', 'success');
+  } catch(e) {
+    toast('Erreur export : ' + e.message, 'error');
+  }
+}
+
+function importerSauvegarde(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const result = document.getElementById('sauv-import-result');
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+
+      // Vérification minimale
+      if (!data._adtem_backup) {
+        if (!confirm('⚠️ Ce fichier ne semble pas être une sauvegarde ADTEM.\n\nContinuer quand même ?')) {
+          input.value = ''; return;
+        }
+      }
+
+      // Double confirmation
+      if (!confirm(`⚠️ Charger la sauvegarde "${file.name}" ?\n\nToutes les données actuelles seront remplacées.\nCette action est irréversible.`)) {
+        input.value = ''; return;
+      }
+      if (!confirm('Dernière confirmation — êtes-vous absolument certain(e) ?')) {
+        input.value = ''; return;
+      }
+
+      toast('Restauration en cours...', 'info');
+
+      // Supprimer les clés internes
+      const { _adtem_backup, _date, _version, ...toRestore } = data;
+
+      // Restaurer dans Firebase
+      await db.ref('/').set(toRestore);
+
+      const kb = (file.size / 1024).toFixed(1);
+      if (result) {
+        result.style.display = 'block';
+        result.style.background = 'var(--greenbg)';
+        result.style.border = '1px solid rgba(74,140,82,0.3)';
+        result.style.color = 'var(--green2)';
+        result.textContent = `✅ Sauvegarde restaurée (${kb} Ko) — données rechargées.`;
+      }
+
+      journalLog(`Sauvegarde importée : ${file.name} (${kb} Ko)`, 'ok');
+      toast('✅ Sauvegarde chargée avec succès', 'success');
+    } catch(err) {
+      if (result) {
+        result.style.display = 'block';
+        result.style.background = 'var(--redbg)';
+        result.style.border = '1px solid rgba(192,57,43,0.3)';
+        result.style.color = 'var(--red)';
+        result.textContent = `❌ Erreur : ${err.message}`;
+      }
+      toast('Fichier invalide : ' + err.message, 'error');
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+async function testerConnexion() {
+  const el = document.getElementById('sauv-test-result');
+  el.style.display = 'block';
+  el.textContent = '⏳ Test en cours...';
+  el.style.background = 'var(--surface2)';
+  el.style.border = '1px solid var(--border2)';
+  el.style.color = 'var(--text2)';
+
+  try {
+    const start = Date.now();
+    const snap = await db.ref('.info/connected').once('value');
+    const ping = Date.now() - start;
+    const connected = snap.val();
+
+    if (connected !== false) {
+      el.style.background = 'var(--greenbg)';
+      el.style.border = '1px solid rgba(74,140,82,0.3)';
+      el.style.color = 'var(--green2)';
+      el.textContent = `✅ Firebase connecté — latence ~${ping}ms`;
+      document.getElementById('sauv-stat-status').textContent = '✅ Connecté';
+    } else {
+      throw new Error('Non connecté');
+    }
+  } catch(e) {
+    el.style.background = 'var(--redbg)';
+    el.style.border = '1px solid rgba(192,57,43,0.3)';
+    el.style.color = 'var(--red)';
+    el.textContent = '❌ Connexion Firebase impossible : ' + e.message;
+    document.getElementById('sauv-stat-status').textContent = '❌ Erreur';
+  }
+}
+
+function loadSauvegardeStats() {
+  db.ref('/').once('value').then(snap => {
+    const data = snap.val() || {};
+    const json = JSON.stringify(data);
+    const kb = (new Blob([json]).size / 1024).toFixed(1);
+    const el = document.getElementById('sauv-stat-size');
+    if (el) el.textContent = kb + ' Ko';
+    const statusEl = document.getElementById('sauv-stat-status');
+    if (statusEl) statusEl.textContent = '✅ Connecté';
+  }).catch(() => {
+    const statusEl = document.getElementById('sauv-stat-status');
+    if (statusEl) statusEl.textContent = '❌ Erreur';
+  });
+}
+
+// ================================================================
+//  RÉINITIALISATION
+// ================================================================
+function checkResetConfirm() {
+  const val = document.getElementById('reset-confirm-input').value;
+  const btn = document.getElementById('btn-reset-total');
+  const ok = val === 'CONFIRMER';
+  btn.disabled = !ok;
+  btn.style.opacity = ok ? '1' : '0.4';
+  btn.style.cursor = ok ? 'pointer' : 'not-allowed';
+}
+
+async function resetSection(section) {
+  const labels = {
+    membres: 'tous les membres',
+    aides: 'toutes les aides et devis',
+    vehicules: 'tout le parc de véhicules',
+    compta: 'toute la comptabilité',
+    journal: 'le journal d\'activité',
+    config: 'la configuration'
+  };
+
+  const label = labels[section] || section;
+  if (!confirm(`Vider ${label} ?\n\nCette action est irréversible.`)) return;
+  if (!confirm(`Dernière confirmation — vider ${label} ?`)) return;
+
+  await db.ref(section === 'compta' ? 'compta' : section).remove();
+
+  journalLog(`Réinitialisation sélective : ${label}`, 'danger');
+  toast(`${label} vidé`, 'success');
+  loadResetStats();
+}
+
+async function resetTotal() {
+  // Vérification du champ CONFIRMER déjà faite par le disabled
+  if (!confirm('⚠️ RÉINITIALISATION COMPLÈTE\n\nToutes les données seront effacées :\n• Membres\n• Aides & Devis\n• Véhicules\n• Comptabilité\n• Journal\n• Configuration\n\nContinuer ?')) return;
+  if (!confirm('Dernière confirmation — cette action est absolument irréversible.')) return;
+
+  try {
+    // Supprime tout sauf les users (comptes d'accès)
+    await db.ref('membres').remove();
+    await db.ref('aides').remove();
+    await db.ref('vehicules').remove();
+    await db.ref('compta').remove();
+    await db.ref('journal').remove();
+    await db.ref('config').remove();
+
+    // Reset UI
+    APP.membres = [];
+    APP.aides = [];
+    APP.vehicules = [];
+    APP.compta = [];
+
+    document.getElementById('reset-confirm-input').value = '';
+    checkResetConfirm();
+
+    toast('✅ Réinitialisation complète effectuée', 'success');
+    loadResetStats();
+    showPage('dashboard');
+  } catch(e) {
+    toast('Erreur réinitialisation : ' + e.message, 'error');
+  }
+}
+
+function loadResetStats() {
+  const membres = document.getElementById('rst-stat-membres');
+  const aides = document.getElementById('rst-stat-aides');
+  const vehicules = document.getElementById('rst-stat-vehicules');
+  const compta = document.getElementById('rst-stat-compta');
+  if (membres) membres.textContent = APP.membres.length;
+  if (aides) aides.textContent = APP.aides.length;
+  if (vehicules) vehicules.textContent = APP.vehicules.length;
+  if (compta) compta.textContent = APP.compta.length;
+}
 
 // ================================================================
 //  INIT
