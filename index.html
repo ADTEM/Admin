@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <style>
 :root {
@@ -570,8 +571,94 @@ tr:hover td { background: var(--surface2); }
   display: flex; align-items: center; gap: 6px;
 }
 
-/* === AE DEVIS === */
-.ae-conducteur-badge {
+/* === LOGIN PAGE === */
+#login-screen {
+  position: fixed; inset: 0; z-index: 9000;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+}
+#login-screen.hidden { display: none; }
+.login-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 40px 36px; width: 380px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.10);
+  text-align: center;
+}
+.login-logo {
+  width: 56px; height: 56px; margin: 0 auto 16px;
+  background: linear-gradient(135deg, var(--green3), var(--green));
+  border-radius: 14px 4px 14px 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+}
+.login-title { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: 2px; margin-bottom: 4px; }
+.login-sub { font-size: 11px; color: var(--text3); margin-bottom: 28px; }
+.login-error {
+  background: var(--redbg); border: 1px solid rgba(192,57,43,0.2);
+  border-radius: 6px; padding: 8px 12px; font-size: 12px;
+  color: var(--red); margin-bottom: 14px; display: none;
+}
+
+/* === TOPBAR USER === */
+.topbar-user {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--text2);
+}
+.topbar-user-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--green3), var(--green));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: white; font-weight: 700; flex-shrink: 0;
+}
+.topbar-user-role {
+  font-size: 9px; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--text4);
+}
+
+/* === COMPTES PAGE === */
+.compte-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px;
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.compte-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--green3), var(--green));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; color: white; font-weight: 700; flex-shrink: 0;
+}
+.compte-info { flex: 1; margin-left: 12px; }
+.compte-info h3 { font-size: 13px; font-weight: 700; }
+.compte-info small { font-size: 10px; color: var(--text3); }
+
+/* === RENTABILITE PAGE === */
+.renta-table { width: 100%; border-collapse: collapse; }
+.renta-table thead tr { background: var(--surface3); }
+.renta-table th {
+  padding: 10px 14px; font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--text3); font-weight: 700;
+  cursor: pointer; user-select: none; white-space: nowrap;
+}
+.renta-table th:hover { color: var(--green); }
+.renta-table td {
+  padding: 10px 14px; border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+.renta-table tr:hover td { background: var(--surface2); cursor: pointer; }
+.renta-table .col-num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.bilan-pos { color: var(--green2); font-weight: 700; }
+.bilan-neg { color: var(--red); font-weight: 700; background: var(--redbg); border-radius: 4px; padding: 2px 6px; }
+.sort-arrow { font-size: 9px; margin-left: 3px; color: var(--text4); }
+
+/* === DETAIL MEMBRE MODAL === */
+.detail-op-row {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 8px 0; border-bottom: 1px solid var(--border); gap: 12px;
+}
+.detail-op-label { font-size: 11px; color: var(--text2); flex: 1; line-height: 1.4; }
+.detail-op-date { font-size: 10px; color: var(--text3); white-space: nowrap; }
+.detail-op-amount { font-size: 12px; font-weight: 700; white-space: nowrap; }
   background: rgba(66,165,245,0.12); border: 1px solid rgba(66,165,245,0.3);
   border-radius: 6px; padding: 8px 12px; text-align: center;
   font-size: 22px; font-weight: 800; color: var(--blue);
@@ -580,6 +667,35 @@ tr:hover td { background: var(--surface2); }
 </style>
 </head>
 <body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🍃</div>
+    <div class="login-title">ADTEM</div>
+    <div class="login-sub">Alliance Manager · Transport Manager</div>
+    <div class="login-error" id="login-error"></div>
+    <div class="form-group" style="text-align:left;">
+      <label class="form-label">Email</label>
+      <input type="email" class="form-input" id="login-email" placeholder="admin@adtem.fr" autocomplete="email">
+    </div>
+    <div class="form-group" style="text-align:left;">
+      <label class="form-label">Mot de passe</label>
+      <input type="password" class="form-input" id="login-mdp" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:8px;justify-content:center;" onclick="doLogin()">
+      🔐 Se connecter
+    </button>
+    <div style="margin-top:16px;">
+      <button class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;" onclick="doResetPassword()">
+        Mot de passe oublié ?
+      </button>
+    </div>
+    <div style="margin-top:20px;font-size:10px;color:var(--text4);">
+      Mode dev : <a href="#" onclick="bypassLogin()" style="color:var(--green);text-decoration:none;">accès direct</a>
+    </div>
+  </div>
+</div>
 
 <!-- SIDEBAR -->
 <div id="sidebar">
@@ -591,7 +707,7 @@ tr:hover td { background: var(--surface2); }
         <small>Alliance Manager</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V3</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V4</span></div>
   </div>
 
   <nav class="sidebar-nav">
@@ -645,6 +761,13 @@ tr:hover td { background: var(--surface2); }
       <div class="nav-item" data-page="config">
         <span class="nav-icon">⚙️</span> Configuration
       </div>
+      <div class="nav-item" data-page="comptes" id="nav-comptes">
+        <span class="nav-icon">👤</span> Comptes utilisateurs
+      </div>
+      <div class="nav-item" data-page="rentabilite" style="opacity:0.5;">
+        <span class="nav-icon">📈</span> Rentabilité membres
+        <span class="nav-badge" style="background:var(--yellowbg);color:var(--yellow);border:1px solid rgba(201,134,10,0.3);">DEV</span>
+      </div>
     </div>
   </nav>
 
@@ -663,6 +786,14 @@ tr:hover td { background: var(--surface2); }
   <div class="topbar-actions">
     <button class="btn btn-secondary btn-sm" id="btn-sync-data">🔄 Sync données</button>
     <button class="btn btn-primary btn-sm" id="btn-import-data">📥 Import JSON</button>
+    <div class="topbar-user" id="topbar-user" style="display:none;">
+      <div class="topbar-user-avatar" id="user-avatar">?</div>
+      <div>
+        <div id="user-pseudo" style="font-weight:600;font-size:12px;">—</div>
+        <div class="topbar-user-role" id="user-role">—</div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="doLogout()" title="Déconnexion">↩️</button>
+    </div>
   </div>
 </div>
 
@@ -1280,7 +1411,142 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
     </div>
   </div>
 
+  <!-- ====== COMPTES UTILISATEURS ====== -->
+  <div class="page" id="page-comptes">
+    <div class="flex-between mb-20">
+      <div>
+        <div class="section-title">Comptes utilisateurs</div>
+        <div class="section-subtitle">Gestion des accès au site ADTEM Manager</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openModalCreateCompte()">➕ Créer un compte</button>
+    </div>
+
+    <div class="card mb-20" style="background:var(--yellowbg);border-color:rgba(201,134,10,0.2);">
+      <div style="font-size:12px;color:var(--yellow);font-weight:600;">
+        ℹ️ Les mots de passe sont gérés et chiffrés par Firebase Authentication. Ils ne sont jamais visibles, même par l'administrateur.
+      </div>
+    </div>
+
+    <div id="comptes-list">
+      <div style="color:var(--text3);text-align:center;padding:30px;">Chargement...</div>
+    </div>
+  </div>
+
+  <!-- ====== RENTABILITÉ MEMBRES ====== -->
+  <div class="page" id="page-rentabilite">
+    <div class="flex-between mb-20">
+      <div>
+        <div class="section-title">Rentabilité membres
+          <span class="badge badge-yellow" style="font-size:10px;vertical-align:middle;margin-left:8px;">EN DÉVELOPPEMENT</span>
+        </div>
+        <div class="section-subtitle">Analyse des revenus et dépenses par membre de l'alliance</div>
+      </div>
+      <div class="flex gap-8">
+        <select class="form-select" id="renta-month-select" style="width:180px;">
+          <option value="current">Mois en cours</option>
+          <option value="last">Mois précédent</option>
+          <option value="all">Toutes périodes</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" onclick="loadRentabilite()">🔄 Actualiser</button>
+      </div>
+    </div>
+
+    <div class="kpi-grid mb-20">
+      <div class="kpi-card green">
+        <div class="kpi-label">Total revenus alliance</div>
+        <div class="kpi-value green" id="renta-kpi-revenus">—</div>
+        <div class="kpi-sub">Paiements reçus des membres</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">Total versements</div>
+        <div class="kpi-value red" id="renta-kpi-depenses">—</div>
+        <div class="kpi-sub">Virements vers les membres</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-label">Solde net alliance</div>
+        <div class="kpi-value blue" id="renta-kpi-solde">—</div>
+        <div class="kpi-sub">Revenus - Versements</div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-label">Membres déficitaires</div>
+        <div class="kpi-value yellow" id="renta-kpi-deficitaires">—</div>
+        <div class="kpi-sub">Bilan négatif pour l'alliance</div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;">
+      <div class="table-wrap">
+        <table class="renta-table">
+          <thead>
+            <tr>
+              <th onclick="sortRenta('pseudo')">Membre <span class="sort-arrow" id="sort-pseudo">↕</span></th>
+              <th onclick="sortRenta('revenus')" style="text-align:right;">Revenus <span class="sort-arrow" id="sort-revenus">↕</span></th>
+              <th onclick="sortRenta('depenses')" style="text-align:right;">Dépenses <span class="sort-arrow" id="sort-depenses">↕</span></th>
+              <th onclick="sortRenta('bilan')" style="text-align:right;">Bilan <span class="sort-arrow" id="sort-bilan">↕</span></th>
+            </tr>
+          </thead>
+          <tbody id="renta-table-body">
+            <tr><td colspan="4" style="text-align:center;color:var(--text3);padding:30px;">
+              Importez des données de comptabilité pour voir la rentabilité
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /main -->
+
+<!-- MODAL CREATE COMPTE -->
+<div class="modal-overlay hidden" id="modal-create-compte">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <span class="modal-title">➕ Créer un compte utilisateur</span>
+      <button class="modal-close" onclick="closeModal('modal-create-compte')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Pseudo / Nom affiché *</label>
+        <input type="text" class="form-input" id="cc-pseudo" placeholder="Ex: MattSwing">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email *</label>
+        <input type="email" class="form-input" id="cc-email" placeholder="joueur@exemple.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mot de passe provisoire *</label>
+        <input type="password" class="form-input" id="cc-mdp" placeholder="Min. 6 caractères">
+        <div style="font-size:10px;color:var(--text3);margin-top:4px;">L'utilisateur pourra le changer via "Mot de passe oublié"</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Rôle</label>
+        <select class="form-select" id="cc-role">
+          <option value="membre">Membre (lecture seule)</option>
+          <option value="moderateur">Modérateur</option>
+          <option value="admin">Administrateur</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-create-compte')">Annuler</button>
+      <button class="btn btn-primary" onclick="createCompte()">✅ Créer le compte</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETAIL MEMBRE RENTABILITE -->
+<div class="modal-overlay hidden" id="modal-renta-detail">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-header">
+      <span class="modal-title" id="renta-detail-title">Détail membre</span>
+      <button class="modal-close" onclick="closeModal('modal-renta-detail')">✕</button>
+    </div>
+    <div class="modal-body" id="renta-detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-renta-detail')">Fermer</button>
+    </div>
+  </div>
+</div>
 
 <!-- TOAST CONTAINER -->
 <div id="toast-container"></div>
@@ -1412,6 +1678,12 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+const auth = firebase.auth();
+
+// ================================================================
+//  ÉTAT UTILISATEUR CONNECTÉ
+// ================================================================
+const CURRENT_USER = { uid: null, pseudo: null, role: null, email: null };
 
 // ================================================================
 //  ÉTAT APPLICATION
@@ -1419,6 +1691,7 @@ const db = firebase.database();
 const APP = {
   vehicules: [],
   compta: [],
+  comptaLast: [],
   membres: [],
   aides: [],
   config: {
@@ -1441,7 +1714,37 @@ const APP = {
 //  FIREBASE — LISTENERS
 // ================================================================
 function initFirebase() {
-  // Test connexion
+  // ── Auth state listener
+  auth.onAuthStateChanged(async user => {
+    if (user) {
+      // Récupère le rôle depuis Realtime DB
+      const snap = await db.ref('users/' + user.uid).once('value');
+      const userData = snap.val() || {};
+      CURRENT_USER.uid = user.uid;
+      CURRENT_USER.email = user.email;
+      CURRENT_USER.pseudo = userData.pseudo || user.email.split('@')[0];
+      CURRENT_USER.role = userData.role || 'membre';
+
+      // Affiche l'interface
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('topbar-user').style.display = 'flex';
+      document.getElementById('user-avatar').textContent = CURRENT_USER.pseudo.charAt(0).toUpperCase();
+      document.getElementById('user-pseudo').textContent = CURRENT_USER.pseudo;
+      document.getElementById('user-role').textContent = CURRENT_USER.role.toUpperCase();
+
+      // Cache le nav Comptes si pas admin
+      if (CURRENT_USER.role !== 'admin') {
+        document.getElementById('nav-comptes').style.display = 'none';
+      }
+    } else {
+      // Non connecté → affiche login (sauf mode dev bypass)
+      if (!APP.devBypass) {
+        document.getElementById('login-screen').classList.remove('hidden');
+      }
+    }
+  });
+
+  // Test connexion DB
   db.ref('.info/connected').on('value', snap => {
     const connected = snap.val();
     document.getElementById('db-dot').className = 'status-dot ' + (connected ? 'connected' : 'error');
@@ -1480,7 +1783,7 @@ function initFirebase() {
     renderAides();
   });
 
-  // Véhicules (si stockés en Firebase)
+  // Véhicules
   db.ref('vehicules').on('value', snap => {
     if (snap.val()) {
       APP.vehicules = snap.val();
@@ -1488,7 +1791,7 @@ function initFirebase() {
     }
   });
 
-  // Compta (si stockée en Firebase)
+  // Compta
   db.ref('compta/current').on('value', snap => {
     if (snap.val() && snap.val().comptabilite) {
       APP.compta = snap.val().comptabilite;
@@ -1519,6 +1822,8 @@ function showPage(pageId) {
     'devis-ae': ['Devis — Aide à l\'Exploitation', 'Créer un devis AE'],
     membres: ['Membres', 'Gestion des joueurs de l\'alliance'],
     aides: ['Suivi des aides', 'Historique des devis et aides'],
+    comptes: ['Comptes utilisateurs', 'Gestion des accès au site'],
+    rentabilite: ['Rentabilité membres', 'Analyse financière par membre'],
     config: ['Configuration', 'Paramètres de l\'application']
   };
   if (titles[pageId]) {
@@ -1531,6 +1836,8 @@ function showPage(pageId) {
   if (pageId === 'locations') renderLocations();
   if (pageId === 'compta') renderCompta();
   if (pageId === 'config') loadConfigForm();
+  if (pageId === 'comptes') loadComptes();
+  if (pageId === 'rentabilite') loadRentabilite();
 }
 
 document.querySelectorAll('.nav-item').forEach(item => {
@@ -2734,6 +3041,386 @@ function calcFinDate(debutIso, semaines) {
   date.setDate(date.getDate() + semaines * 7);
   return `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()}`;
 }
+
+// ================================================================
+//  AUTH — LOGIN / LOGOUT
+// ================================================================
+APP.devBypass = false;
+
+function bypassLogin() {
+  APP.devBypass = true;
+  document.getElementById('login-screen').classList.add('hidden');
+  CURRENT_USER.pseudo = 'Dev';
+  CURRENT_USER.role = 'admin';
+  document.getElementById('topbar-user').style.display = 'flex';
+  document.getElementById('user-avatar').textContent = 'D';
+  document.getElementById('user-pseudo').textContent = 'Dev Mode';
+  document.getElementById('user-role').textContent = 'ADMIN';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const mdp = document.getElementById('login-mdp').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+
+  if (!email || !mdp) {
+    errEl.textContent = 'Veuillez remplir tous les champs.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  try {
+    await auth.signInWithEmailAndPassword(email, mdp);
+    // onAuthStateChanged prend le relais
+  } catch(e) {
+    const msgs = {
+      'auth/user-not-found': 'Aucun compte avec cet email.',
+      'auth/wrong-password': 'Mot de passe incorrect.',
+      'auth/invalid-email': 'Email invalide.',
+      'auth/too-many-requests': 'Trop de tentatives. Réessayez plus tard.',
+      'auth/invalid-credential': 'Email ou mot de passe incorrect.'
+    };
+    errEl.textContent = msgs[e.code] || 'Erreur : ' + e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+async function doLogout() {
+  await auth.signOut();
+  CURRENT_USER.uid = null;
+  CURRENT_USER.pseudo = null;
+  CURRENT_USER.role = null;
+  APP.devBypass = false;
+  document.getElementById('topbar-user').style.display = 'none';
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-mdp').value = '';
+}
+
+async function doResetPassword() {
+  const email = document.getElementById('login-email').value.trim();
+  if (!email) {
+    document.getElementById('login-error').textContent = 'Entrez votre email d\'abord.';
+    document.getElementById('login-error').style.display = 'block';
+    return;
+  }
+  try {
+    await auth.sendPasswordResetEmail(email);
+    toast('Email de réinitialisation envoyé à ' + email, 'success');
+  } catch(e) {
+    toast('Erreur : ' + e.message, 'error');
+  }
+}
+
+// Login avec Enter
+document.getElementById('login-mdp').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+// ================================================================
+//  COMPTES UTILISATEURS
+// ================================================================
+function openModalCreateCompte() {
+  document.getElementById('cc-pseudo').value = '';
+  document.getElementById('cc-email').value = '';
+  document.getElementById('cc-mdp').value = '';
+  document.getElementById('cc-role').value = 'membre';
+  openModal('modal-create-compte');
+}
+
+async function createCompte() {
+  const pseudo = document.getElementById('cc-pseudo').value.trim();
+  const email = document.getElementById('cc-email').value.trim();
+  const mdp = document.getElementById('cc-mdp').value;
+  const role = document.getElementById('cc-role').value;
+
+  if (!pseudo || !email || !mdp) {
+    toast('Tous les champs obligatoires doivent être remplis', 'error');
+    return;
+  }
+  if (mdp.length < 6) {
+    toast('Le mot de passe doit faire au moins 6 caractères', 'error');
+    return;
+  }
+
+  try {
+    // Crée le compte Auth — NOTE: cela connecte temporairement le nouvel user
+    // On sauvegarde le user courant avant
+    const currentUser = auth.currentUser;
+
+    const cred = await auth.createUserWithEmailAndPassword(email, mdp);
+    const newUid = cred.user.uid;
+
+    // Sauvegarde dans Realtime DB
+    await db.ref('users/' + newUid).set({
+      pseudo, role, email, actif: true,
+      createdAt: new Date().toISOString(),
+      createdBy: CURRENT_USER.pseudo || 'admin'
+    });
+
+    // Déconnecte le nouvel user, reconnecte l'admin
+    // (nécessite de mémoriser les creds admin — limitation client-side)
+    toast(`Compte "${pseudo}" créé. L'utilisateur peut se connecter avec son email.`, 'success');
+    closeModal('modal-create-compte');
+    loadComptes();
+  } catch(e) {
+    const msgs = {
+      'auth/email-already-in-use': 'Cet email est déjà utilisé.',
+      'auth/invalid-email': 'Email invalide.',
+      'auth/weak-password': 'Mot de passe trop faible (min. 6 caractères).'
+    };
+    toast(msgs[e.code] || 'Erreur : ' + e.message, 'error');
+  }
+}
+
+async function loadComptes() {
+  const snap = await db.ref('users').once('value');
+  const users = snap.val() || {};
+  const container = document.getElementById('comptes-list');
+
+  if (!Object.keys(users).length) {
+    container.innerHTML = `<div style="color:var(--text3);text-align:center;padding:30px;">Aucun compte enregistré</div>`;
+    return;
+  }
+
+  const roleBadge = {
+    admin: 'badge-red',
+    moderateur: 'badge-yellow',
+    membre: 'badge-green'
+  };
+  const roleLabel = { admin: 'Administrateur', moderateur: 'Modérateur', membre: 'Membre' };
+
+  container.innerHTML = Object.entries(users).map(([uid, u]) => `
+    <div class="compte-card">
+      <div class="compte-avatar">${(u.pseudo || '?').charAt(0).toUpperCase()}</div>
+      <div class="compte-info">
+        <h3>${u.pseudo || '—'} ${uid === CURRENT_USER.uid ? '<span style="font-size:10px;color:var(--text3);">(vous)</span>' : ''}</h3>
+        <small>${u.email || '—'} · Créé le ${u.createdAt ? new Date(u.createdAt).toLocaleDateString('fr') : '—'}</small>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="badge ${roleBadge[u.role] || 'badge-gray'}">${roleLabel[u.role] || u.role}</span>
+        ${u.actif !== false ? '<span class="badge badge-green">Actif</span>' : '<span class="badge badge-gray">Désactivé</span>'}
+        ${uid !== CURRENT_USER.uid ? `
+          <select class="form-select" style="width:130px;font-size:11px;padding:4px 8px;"
+            onchange="changeRole('${uid}', this.value)">
+            <option value="membre" ${u.role === 'membre' ? 'selected' : ''}>Membre</option>
+            <option value="moderateur" ${u.role === 'moderateur' ? 'selected' : ''}>Modérateur</option>
+            <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="sendResetEmail('${u.email}')" title="Reset mdp">🔑</button>
+          <button class="btn btn-danger btn-sm" onclick="toggleActif('${uid}', ${u.actif !== false})" title="${u.actif !== false ? 'Désactiver' : 'Activer'}">
+            ${u.actif !== false ? '🚫' : '✅'}
+          </button>
+        ` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+async function changeRole(uid, newRole) {
+  await db.ref('users/' + uid + '/role').set(newRole);
+  toast('Rôle mis à jour', 'success');
+}
+
+async function toggleActif(uid, currentActif) {
+  await db.ref('users/' + uid + '/actif').set(!currentActif);
+  toast(currentActif ? 'Compte désactivé' : 'Compte activé', 'success');
+  loadComptes();
+}
+
+async function sendResetEmail(email) {
+  try {
+    await auth.sendPasswordResetEmail(email);
+    toast('Email de réinitialisation envoyé à ' + email, 'success');
+  } catch(e) {
+    toast('Erreur : ' + e.message, 'error');
+  }
+}
+
+// ================================================================
+//  RENTABILITÉ MEMBRES
+// ================================================================
+const RENTA = { data: [], sortCol: 'bilan', sortDir: -1 };
+
+function extractPseudo(libelle) {
+  // Pattern 1: "Virement à PSEUDO (..."
+  let m = libelle.match(/Virement à ([^(]+)\s*\(/);
+  if (m) return m[1].trim();
+  // Pattern 2: "Paiement de la facture N°XXXXX de PSEUDO d'un montant"
+  m = libelle.match(/Paiement de la facture N°\d+ de (.+?) d['u]/);
+  if (m) return m[1].trim();
+  return null;
+}
+
+function loadRentabilite() {
+  const monthSelect = document.getElementById('renta-month-select').value;
+
+  let compta = [];
+  if (monthSelect === 'all') {
+    // Combine current + last
+    compta = [...APP.compta, ...(APP.comptaLast || [])];
+  } else if (monthSelect === 'last') {
+    compta = APP.comptaLast || [];
+    if (!compta.length) {
+      // Charge depuis Firebase
+      db.ref('compta/last').once('value').then(snap => {
+        if (snap.val()?.comptabilite) {
+          APP.comptaLast = snap.val().comptabilite;
+          loadRentabilite();
+        } else {
+          toast('Aucune donnée pour le mois précédent', 'info');
+        }
+      });
+      return;
+    }
+  } else {
+    compta = APP.compta;
+  }
+
+  // Agrège par pseudo
+  // INVERSION : "Revenus" JSON = dépense réelle, "Dépenses" JSON = revenu réel
+  const map = {};
+
+  compta.forEach(op => {
+    const libelle = op['Libellé de l\'opération'] || '';
+    const pseudo = extractPseudo(libelle);
+    if (!pseudo) return;
+
+    if (!map[pseudo]) map[pseudo] = { pseudo, revenus: 0, depenses: 0, ops: [] };
+
+    // "Dépenses" JSON = revenu pour l'alliance (paiement de facture)
+    const rev = parseFloat(op['Dépenses']) || 0;
+    // "Revenus" JSON = dépense pour l'alliance (virement vers membre)
+    const dep = parseFloat(op['Revenus']) || 0;
+
+    map[pseudo].revenus += rev;
+    map[pseudo].depenses += dep;
+    map[pseudo].ops.push({
+      date: op['Date de l\'opération'] || '',
+      libelle,
+      revenu: rev,
+      depense: dep
+    });
+  });
+
+  RENTA.data = Object.values(map).map(m => ({
+    ...m,
+    bilan: m.revenus - m.depenses
+  }));
+
+  // KPIs globaux
+  const totalRev = RENTA.data.reduce((s, m) => s + m.revenus, 0);
+  const totalDep = RENTA.data.reduce((s, m) => s + m.depenses, 0);
+  const deficitaires = RENTA.data.filter(m => m.bilan < 0).length;
+
+  document.getElementById('renta-kpi-revenus').textContent = totalRev.toLocaleString('fr') + ' €';
+  document.getElementById('renta-kpi-depenses').textContent = totalDep.toLocaleString('fr') + ' €';
+  const solde = totalRev - totalDep;
+  const soldeEl = document.getElementById('renta-kpi-solde');
+  soldeEl.textContent = (solde >= 0 ? '+' : '') + solde.toLocaleString('fr') + ' €';
+  soldeEl.className = 'kpi-value ' + (solde >= 0 ? 'green' : 'red');
+  document.getElementById('renta-kpi-deficitaires').textContent = deficitaires;
+
+  renderRentaTable();
+}
+
+function sortRenta(col) {
+  if (RENTA.sortCol === col) RENTA.sortDir *= -1;
+  else { RENTA.sortCol = col; RENTA.sortDir = -1; }
+  // Reset arrows
+  ['pseudo','revenus','depenses','bilan'].forEach(c => {
+    const el = document.getElementById('sort-' + c);
+    if (el) el.textContent = '↕';
+  });
+  const arrow = document.getElementById('sort-' + col);
+  if (arrow) arrow.textContent = RENTA.sortDir === 1 ? '↑' : '↓';
+  renderRentaTable();
+}
+
+function renderRentaTable() {
+  const sorted = [...RENTA.data].sort((a, b) => {
+    const va = typeof a[RENTA.sortCol] === 'string' ? a[RENTA.sortCol].toLowerCase() : a[RENTA.sortCol];
+    const vb = typeof b[RENTA.sortCol] === 'string' ? b[RENTA.sortCol].toLowerCase() : b[RENTA.sortCol];
+    return va < vb ? -RENTA.sortDir : va > vb ? RENTA.sortDir : 0;
+  });
+
+  const tbody = document.getElementById('renta-table-body');
+  if (!sorted.length) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:30px;">Aucune donnée disponible</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = sorted.map(m => {
+    const bilanClass = m.bilan >= 0 ? 'bilan-pos' : 'bilan-neg';
+    const bilanStr = (m.bilan >= 0 ? '+' : '') + m.bilan.toLocaleString('fr') + ' €';
+    return `<tr onclick="showRentaDetail('${m.pseudo}')">
+      <td style="font-weight:600;">${m.pseudo}</td>
+      <td class="col-num" style="color:var(--green2);">${m.revenus.toLocaleString('fr')} €</td>
+      <td class="col-num" style="color:var(--red);">${m.depenses.toLocaleString('fr')} €</td>
+      <td class="col-num"><span class="${bilanClass}">${bilanStr}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function showRentaDetail(pseudo) {
+  const membre = RENTA.data.find(m => m.pseudo === pseudo);
+  if (!membre) return;
+
+  document.getElementById('renta-detail-title').textContent = `Détail — ${pseudo}`;
+
+  const virements = membre.ops.filter(o => o.depense > 0);
+  const paiements = membre.ops.filter(o => o.revenu > 0);
+
+  document.getElementById('renta-detail-body').innerHTML = `
+    <div class="kpi-grid" style="margin-bottom:16px;">
+      <div class="kpi-card green">
+        <div class="kpi-label">Revenus</div>
+        <div class="kpi-value green">${membre.revenus.toLocaleString('fr')} €</div>
+        <div class="kpi-sub">${paiements.length} paiement(s)</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">Dépenses</div>
+        <div class="kpi-value red">${membre.depenses.toLocaleString('fr')} €</div>
+        <div class="kpi-sub">${virements.length} virement(s)</div>
+      </div>
+      <div class="kpi-card ${membre.bilan >= 0 ? 'green' : 'red'}">
+        <div class="kpi-label">Bilan</div>
+        <div class="kpi-value ${membre.bilan >= 0 ? 'green' : 'red'}">${(membre.bilan >= 0 ? '+' : '') + membre.bilan.toLocaleString('fr')} €</div>
+      </div>
+    </div>
+
+    ${virements.length ? `
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--red);margin-bottom:8px;">
+        Virements vers ${pseudo}
+      </div>
+      ${virements.map(o => `
+        <div class="detail-op-row">
+          <div class="detail-op-label">${o.libelle}</div>
+          <div class="detail-op-date">${o.date.split(' ')[0]}</div>
+          <div class="detail-op-amount" style="color:var(--red);">- ${o.depense.toLocaleString('fr')} €</div>
+        </div>
+      `).join('')}
+    ` : ''}
+
+    ${paiements.length ? `
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green2);margin:16px 0 8px;">
+        Paiements de ${pseudo}
+      </div>
+      ${paiements.map(o => `
+        <div class="detail-op-row">
+          <div class="detail-op-label">${o.libelle}</div>
+          <div class="detail-op-date">${o.date.split(' ')[0]}</div>
+          <div class="detail-op-amount" style="color:var(--green2);">+ ${o.revenu.toLocaleString('fr')} €</div>
+        </div>
+      `).join('')}
+    ` : ''}
+  `;
+
+  openModal('modal-renta-detail');
+}
+
+document.getElementById('renta-month-select').addEventListener('change', loadRentabilite);
 
 // ================================================================
 //  INIT
