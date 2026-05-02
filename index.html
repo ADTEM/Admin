@@ -861,7 +861,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V8</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V9</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -1479,7 +1479,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
     <div class="flex-between mb-20">
       <div>
         <div class="section-title">Membres de l'alliance</div>
-        <div class="section-subtitle">Gestion des joueurs ADTEM</div>
+        <div class="section-subtitle">Gestion des joueurs et de leurs souscriptions</div>
       </div>
       <div class="flex gap-8">
         <button class="btn btn-secondary btn-sm" onclick="openImportMembres()">📋 Import copier/coller</button>
@@ -1487,13 +1487,62 @@ body.mode-config #page-title { color: var(--cfg-green); }
       </div>
     </div>
 
-    <div class="filter-bar mb-16">
-      <input type="text" id="membres-search" placeholder="🔍 Rechercher un membre..." oninput="filterMembres()">
+    <!-- KPIs membres -->
+    <div class="kpi-grid mb-20">
+      <div class="kpi-card green">
+        <div class="kpi-label">Total membres</div>
+        <div class="kpi-value green" id="kpi-membres-total">—</div>
+        <div class="kpi-sub">Joueurs actifs</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-label">Avec options</div>
+        <div class="kpi-value blue" id="kpi-membres-options">—</div>
+        <div class="kpi-sub">Souscripteurs</div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-label">Revenus prévus</div>
+        <div class="kpi-value yellow" id="kpi-revenus-prevus">—</div>
+        <div class="kpi-sub">Prélèvement le 5 du mois</div>
+      </div>
     </div>
 
-    <div id="membres-list">
-      <div style="color:var(--text3);font-size:12px;text-align:center;padding:30px;">Chargement des membres...</div>
+    <!-- Filtres -->
+    <div class="filter-bar mb-16">
+      <input type="text" id="membres-search" placeholder="🔍 Pseudo, entreprise..." oninput="filterMembres()" style="flex:1;">
+      <select id="membres-filtre-niveau" onchange="filterMembres()">
+        <option value="">Tous niveaux</option>
+        <option value="1">Niveau 1</option>
+        <option value="2">Niveau 2</option>
+        <option value="3">Niveau 3</option>
+        <option value="4">Niveau 4</option>
+        <option value="5">Niveau 5</option>
+      </select>
+      <select id="membres-filtre-options" onchange="filterMembres()">
+        <option value="">Toutes options</option>
+        <option value="avec">Avec options</option>
+        <option value="sans">Sans options</option>
+      </select>
     </div>
+
+    <!-- Tableau -->
+    <div class="card" style="padding:0;">
+      <div class="table-wrap">
+        <table id="membres-table">
+          <thead><tr>
+            <th>Pseudo</th>
+            <th>Entreprise</th>
+            <th style="text-align:center;">Niv.</th>
+            <th>Options souscrites</th>
+            <th style="text-align:right;">Total/mois</th>
+            <th style="text-align:center;">Actions</th>
+          </tr></thead>
+          <tbody id="membres-tbody">
+            <tr><td colspan="6" style="text-align:center;color:var(--text3);padding:30px;">Chargement...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div id="membres-count" style="margin-top:8px;font-size:11px;color:var(--text3);text-align:right;"></div>
   </div>
 
   <!-- ====== AIDES ====== -->
@@ -1581,7 +1630,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
 
       <div>
         <div class="config-group">
-          <div class="config-group-title">🏷️ Options des membres</div>
+          <div class="config-group-title">🏷️ Options des membres (avec prix mensuel)</div>
           <div id="options-list" style="margin-bottom:12px;">
             <!-- Dynamique -->
           </div>
@@ -1896,24 +1945,91 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
 </div>
 
 <!-- MODAL IMPORT MEMBRES -->
+<!-- MODAL IMPORT MEMBRES C/C -->
 <div class="modal-overlay hidden" id="modal-import-membres">
-  <div class="modal" style="max-width:500px;">
+  <div class="modal" style="max-width:680px;">
     <div class="modal-header">
-      <span class="modal-title">👥 Import membres — Copier/Coller</span>
+      <span class="modal-title">📋 Import membres — Copier/Coller</span>
       <button class="modal-close" onclick="closeModal('modal-import-membres')">✕</button>
     </div>
     <div class="modal-body">
-      <div style="background:rgba(76,175,80,0.08);border:1px solid rgba(76,175,80,0.2);border-radius:6px;padding:12px;margin-bottom:14px;font-size:11.5px;color:var(--text2);">
-        ℹ️ Collez le texte copié depuis Transport Manager. Format attendu : une ligne par joueur avec Pseudo, Entreprise, Niveau, Options séparés par des tabulations ou espaces.
+      <div style="background:var(--yellowbg);border:1px solid rgba(201,134,10,0.2);border-radius:6px;padding:10px 12px;margin-bottom:14px;font-size:11.5px;color:var(--yellow);line-height:1.5;">
+        ⚠️ L'import <b>met à jour</b> les membres existants et <b>supprime</b> ceux absents de la liste.<br>
+        Laissez une zone vide pour ne pas toucher à cette catégorie.
       </div>
-      <div class="form-group">
-        <label class="form-label">Texte collé depuis le jeu</label>
-        <textarea class="form-textarea" id="membres-paste" rows="10" placeholder="Pseudo    Entreprise    Niveau 1    Option X"></textarea>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">📋 Zone membres (Pseudo / Entreprise / Niveau / Solde / Statut…)</label>
+          <textarea class="form-textarea" id="membres-paste" rows="12"
+            placeholder="Thomasre	Besac Mobilty	4	2 533 924 €	Président	Suivi	Modifier
+rorolpb69	Mobily'T	5	6 533 000 €	Vice-Président	..."
+            style="font-size:11px;font-family:'Fira Code',monospace;"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">📋 Zone contrats (Joueur / Offres / Total mensuel…)</label>
+          <textarea class="form-textarea" id="contrats-paste" rows="12"
+            placeholder="BlueTrans	Notre employé c'est le meilleur	7 000 €	Modifier
+Kevin_49	Ultra Rénov, Option élec	287 000 €	..."
+            style="font-size:11px;font-family:'Fira Code',monospace;"></textarea>
+        </div>
       </div>
+      <div id="import-preview" style="display:none;margin-top:10px;padding:10px 12px;background:var(--greenbg);border:1px solid rgba(74,140,82,0.2);border-radius:6px;font-size:11.5px;color:var(--green2);"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-import-membres')">Annuler</button>
-      <button class="btn btn-primary" onclick="parseMembresImport()">📋 Importer</button>
+      <button class="btn btn-yellow btn-sm" onclick="previewImport()">👁️ Aperçu</button>
+      <button class="btn btn-primary" onclick="parseMembresImport()">📥 Importer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDIT MEMBRE -->
+<div class="modal-overlay hidden" id="modal-edit-membre">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header">
+      <span class="modal-title" id="edit-membre-title">✏️ Modifier le membre</span>
+      <button class="modal-close" onclick="closeModal('modal-edit-membre')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-membre-id">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Pseudo *</label>
+          <input type="text" class="form-input" id="edit-pseudo">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Niveau</label>
+          <select class="form-select" id="edit-niveau">
+            <option value="1">Niveau 1</option>
+            <option value="2">Niveau 2</option>
+            <option value="3">Niveau 3</option>
+            <option value="4">Niveau 4</option>
+            <option value="5">Niveau 5</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Entreprise</label>
+        <input type="text" class="form-input" id="edit-entreprise">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Options souscrites</label>
+        <div id="edit-options-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+      <div style="background:var(--surface2);border-radius:6px;padding:10px 12px;margin-top:4px;">
+        <div class="flex-between">
+          <span style="font-size:12px;color:var(--text2);">Total mensuel calculé :</span>
+          <span style="font-size:15px;font-weight:800;color:var(--green2);" id="edit-total-calc">0 €</span>
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label class="form-label">Notes</label>
+        <textarea class="form-textarea" id="edit-notes" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-edit-membre')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveEditMembre()">💾 Sauvegarder</button>
     </div>
   </div>
 </div>
@@ -1926,35 +2042,29 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
       <button class="modal-close" onclick="closeModal('modal-add-membre')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Pseudo Jeu *</label>
-        <input type="text" class="form-input" id="add-pseudo">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Pseudo Forum</label>
-        <input type="text" class="form-input" id="add-pseudo-forum">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Nom d'entreprise</label>
-        <input type="text" class="form-input" id="add-entreprise">
-      </div>
       <div class="form-grid">
         <div class="form-group">
-          <label class="form-label">Niveau</label>
-          <input type="text" class="form-input" id="add-niveau" placeholder="Niveau 1">
+          <label class="form-label">Pseudo Jeu *</label>
+          <input type="text" class="form-input" id="add-pseudo">
         </div>
         <div class="form-group">
-          <label class="form-label">Options payantes</label>
-          <input type="text" class="form-input" id="add-options" placeholder="Totale, ...">
+          <label class="form-label">Niveau</label>
+          <select class="form-select" id="add-niveau">
+            <option value="1">Niveau 1</option>
+            <option value="2">Niveau 2</option>
+            <option value="3">Niveau 3</option>
+            <option value="4">Niveau 4</option>
+            <option value="5">Niveau 5</option>
+          </select>
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Date d'adhésion</label>
-        <input type="date" class="form-input" id="add-date-adhesion">
+        <label class="form-label">Entreprise</label>
+        <input type="text" class="form-input" id="add-entreprise">
       </div>
       <div class="form-group">
         <label class="form-label">Notes</label>
-        <textarea class="form-textarea" id="add-notes" rows="3"></textarea>
+        <textarea class="form-textarea" id="add-notes" rows="2"></textarea>
       </div>
     </div>
     <div class="modal-footer">
@@ -3254,87 +3364,380 @@ function exportCompta() {
 // ================================================================
 //  MEMBRES
 // ================================================================
-function openImportMembres() { openModal('modal-import-membres'); }
-function openAddMembre() {
-  document.getElementById('add-date-adhesion').value = new Date().toISOString().slice(0,10);
-  openModal('modal-add-membre');
+// ================================================================
+//  MEMBRES — OPTIONS PAR DÉFAUT
+// ================================================================
+const OPTIONS_DEFAUT = [
+  { nom: "Vert et pas cher",                   prix: 5000   },
+  { nom: "L'ami du comptable",                  prix: 7500   },
+  { nom: "Notre employé c'est le meilleur",     prix: 7000   },
+  { nom: "L'as de l'atelier",                   prix: 7500   },
+  { nom: "Super Rénov",                         prix: 30000  },
+  { nom: "Maxi Rénov",                          prix: 60000  },
+  { nom: "Ultra Rénov",                         prix: 240000 },
+  { nom: "Option élec",                         prix: 20000  }
+];
+
+function getOptions() {
+  // Fusionne options config Firebase avec défauts
+  const cfg = APP.config.options || [];
+  if (!cfg.length) return OPTIONS_DEFAUT;
+  // Si options stockées en base avec prix
+  if (typeof cfg[0] === 'object') return cfg;
+  // Ancien format (tableau de strings) → enrichir avec prix
+  return cfg.map(nom => {
+    const found = OPTIONS_DEFAUT.find(o => o.nom === nom);
+    return found || { nom, prix: 0 };
+  });
 }
 
-function parseMembresImport() {
-  const text = document.getElementById('membres-paste').value.trim();
-  if (!text) { toast('Aucun texte à importer', 'error'); return; }
+function calcTotalMensuel(optionsArray) {
+  const opts = getOptions();
+  return (optionsArray || []).reduce((sum, nom) => {
+    const o = opts.find(x => x.nom === nom);
+    return sum + (o ? o.prix : 0);
+  }, 0);
+}
 
-  const lines = text.split('\n').filter(l => l.trim());
-  let count = 0;
+// ================================================================
+//  MEMBRES — RENDER TABLEAU
+// ================================================================
+function renderMembres() {
+  const search  = (document.getElementById('membres-search').value || '').toLowerCase();
+  const niv     = document.getElementById('membres-filtre-niveau').value;
+  const optFilt = document.getElementById('membres-filtre-options').value;
+
+  let filtered = APP.membres.filter(m => {
+    if (search && !(m.pseudo||'').toLowerCase().includes(search) && !(m.entreprise||'').toLowerCase().includes(search)) return false;
+    if (niv && String(m.niveau) !== niv) return false;
+    const hasOpts = m.options && m.options.length > 0;
+    if (optFilt === 'avec' && !hasOpts) return false;
+    if (optFilt === 'sans' && hasOpts) return false;
+    return true;
+  });
+
+  // KPIs
+  const totalRevPrevus = APP.membres.reduce((s, m) => s + (m.totalMensuel || 0), 0);
+  const avecOpts = APP.membres.filter(m => m.options && m.options.length > 0).length;
+  const kpiTotal = document.getElementById('kpi-membres-total');
+  const kpiOpts  = document.getElementById('kpi-membres-options');
+  const kpiRev   = document.getElementById('kpi-revenus-prevus');
+  if (kpiTotal) kpiTotal.textContent = APP.membres.length;
+  if (kpiOpts)  kpiOpts.textContent  = avecOpts;
+  if (kpiRev)   kpiRev.textContent   = totalRevPrevus.toLocaleString('fr') + ' €';
+  // KPI dashboard
+  const kpiM = document.getElementById('kpi-membres');
+  if (kpiM) kpiM.textContent = APP.membres.length;
+  document.getElementById('badge-membres').textContent = APP.membres.length;
+
+  const tbody = document.getElementById('membres-tbody');
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:30px;">
+      ${APP.membres.length ? 'Aucun résultat' : 'Aucun membre. Cliquez sur Import ou Ajouter.'}
+    </td></tr>`;
+    document.getElementById('membres-count').textContent = '';
+    return;
+  }
+
+  const opts = getOptions();
+
+  tbody.innerHTML = filtered.map(m => {
+    const optsArr = m.options || [];
+    const total   = m.totalMensuel || calcTotalMensuel(optsArr);
+    const optBadges = optsArr.length
+      ? optsArr.map(o => `<span class="badge badge-green" style="font-size:9px;margin:1px 2px;">${o}</span>`).join('')
+      : '<span style="color:var(--text4);font-size:11px;">—</span>';
+
+    return `<tr>
+      <td style="font-weight:700;">${m.pseudo || '—'}</td>
+      <td style="font-size:12px;color:var(--text2);">${m.entreprise || '—'}</td>
+      <td style="text-align:center;">
+        <span class="badge badge-blue">Niv.${m.niveau || '?'}</span>
+      </td>
+      <td style="max-width:320px;">${optBadges}</td>
+      <td style="text-align:right;font-weight:700;color:${total > 0 ? 'var(--green2)' : 'var(--text3)'};">
+        ${total > 0 ? total.toLocaleString('fr') + ' €' : '—'}
+      </td>
+      <td style="text-align:center;">
+        <div style="display:flex;gap:4px;justify-content:center;">
+          <button class="btn btn-secondary btn-icon btn-sm" onclick="openEditMembre('${m.id}')" title="Modifier">✏️</button>
+          <button class="btn btn-secondary btn-icon btn-sm" onclick="createDevisForMembre('${m.pseudo}')" title="Créer un devis">📄</button>
+          <button class="btn btn-danger btn-icon btn-sm" onclick="deleteMembre('${m.id}')" title="Supprimer">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('membres-count').textContent =
+    `${filtered.length} membre(s) affiché(s) sur ${APP.membres.length}`;
+}
+
+function filterMembres() { renderMembres(); }
+
+// ================================================================
+//  MEMBRES — IMPORT COPIER/COLLER
+// ================================================================
+function openImportMembres() {
+  document.getElementById('membres-paste').value = '';
+  document.getElementById('contrats-paste').value = '';
+  document.getElementById('import-preview').style.display = 'none';
+  openModal('modal-import-membres');
+}
+
+function parseMembresTexte(text) {
+  // Nettoie les entités HTML
+  text = text.replace(/&amp;#039;/g, "'").replace(/&#039;/g, "'").replace(/&amp;/g, '&');
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const membres = [];
   lines.forEach(line => {
-    const parts = line.split(/\t|  +/).map(p => p.trim()).filter(Boolean);
-    if (parts.length < 1) return;
-    const membre = {
-      pseudo: parts[0] || '',
-      entreprise: parts[1] || '',
-      niveau: parts[2] || '',
-      options: parts.slice(3).join(', ') || '',
-      dateAdhesion: new Date().toISOString().slice(0,10),
-      notes: ''
-    };
-    if (membre.pseudo) {
-      db.ref('membres').push(membre);
-      count++;
+    // Sépare par tabulation
+    const parts = line.split('\t').map(p => p.trim());
+    if (parts.length < 2) return;
+    // Colonnes : Pseudo / Entreprise / Niveau / Solde / Statut / Suivi / Modifier
+    // On ignore Solde (contient €), Statut, Suivi, Modifier
+    const pseudo = parts[0];
+    const entreprise = parts[1] || '';
+    // Niveau = 1er champ numérique après entreprise
+    let niveau = '1';
+    for (let i = 2; i < parts.length; i++) {
+      if (/^\d$/.test(parts[i])) { niveau = parts[i]; break; }
+    }
+    if (pseudo && pseudo !== 'Pseudo' && pseudo !== 'PSEUDO') {
+      membres.push({ pseudo, entreprise, niveau });
     }
   });
-  closeModal('modal-import-membres');
-  toast(`${count} membre(s) importé(s)`, 'success');
+  return membres;
 }
+
+function parseContratsTexte(text) {
+  text = text.replace(/&amp;#039;/g, "'").replace(/&#039;/g, "'").replace(/&amp;/g, '&');
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const contrats = {};
+  lines.forEach(line => {
+    const parts = line.split('\t').map(p => p.trim());
+    if (parts.length < 2) return;
+    const joueur = parts[0];
+    if (!joueur || joueur === 'Joueur' || joueur === 'JOUEUR') return;
+    // Options = parts[1], totalMensuel = parts[2] (ex: "7 000 €")
+    const optionsStr = parts[1] || '';
+    const totalStr   = parts[2] || '0';
+    const options    = optionsStr.split(',').map(o => o.trim()).filter(Boolean);
+    const total      = parseInt(totalStr.replace(/[^\d]/g, '')) || 0;
+    contrats[joueur.toLowerCase()] = { options, totalMensuel: total };
+  });
+  return contrats;
+}
+
+function previewImport() {
+  const membresText   = document.getElementById('membres-paste').value.trim();
+  const contratsText  = document.getElementById('contrats-paste').value.trim();
+  const preview = document.getElementById('import-preview');
+
+  let msgs = [];
+  if (membresText) {
+    const m = parseMembresTexte(membresText);
+    msgs.push(`✅ ${m.length} membre(s) détecté(s)`);
+  }
+  if (contratsText) {
+    const c = parseContratsTexte(contratsText);
+    msgs.push(`✅ ${Object.keys(c).length} contrat(s) détecté(s)`);
+  }
+  if (!msgs.length) {
+    preview.style.display = 'block';
+    preview.style.background = 'var(--redbg)';
+    preview.style.color = 'var(--red)';
+    preview.textContent = '❌ Aucune donnée détectée dans les zones.';
+    return;
+  }
+  preview.style.display = 'block';
+  preview.style.background = 'var(--greenbg)';
+  preview.style.color = 'var(--green2)';
+  preview.innerHTML = msgs.join('<br>');
+}
+
+async function parseMembresImport() {
+  const membresText  = document.getElementById('membres-paste').value.trim();
+  const contratsText = document.getElementById('contrats-paste').value.trim();
+
+  if (!membresText && !contratsText) {
+    toast('Collez au moins une zone de données', 'error');
+    return;
+  }
+
+  // 1. Parser les données
+  const nouveauxMembres = membresText ? parseMembresTexte(membresText) : null;
+  const contratsMap     = contratsText ? parseContratsTexte(contratsText) : {};
+
+  // 2. Charger les membres actuels depuis Firebase
+  const snap = await db.ref('membres').once('value');
+  const existants = snap.val() || {};
+
+  // Index par pseudo (lowercase) → id Firebase
+  const existantsIdx = {};
+  Object.entries(existants).forEach(([id, m]) => {
+    if (m.pseudo) existantsIdx[m.pseudo.toLowerCase()] = { id, data: m };
+  });
+
+  let added = 0, updated = 0, removed = 0;
+  const batch = {};
+
+  if (nouveauxMembres) {
+    // Index des nouveaux pseudos
+    const nouveauxIdx = {};
+    nouveauxMembres.forEach(m => { nouveauxIdx[m.pseudo.toLowerCase()] = m; });
+
+    // Supprimer les membres absents de la nouvelle liste
+    for (const [pseudoLow, { id }] of Object.entries(existantsIdx)) {
+      if (!nouveauxIdx[pseudoLow]) {
+        await db.ref('membres/' + id).remove();
+        removed++;
+      }
+    }
+
+    // Ajouter ou mettre à jour
+    for (const nm of nouveauxMembres) {
+      const pseudoLow = nm.pseudo.toLowerCase();
+      const contrat   = contratsMap[pseudoLow] || {};
+      const options   = contrat.options || (existantsIdx[pseudoLow] ? existantsIdx[pseudoLow].data.options || [] : []);
+      const total     = contrat.totalMensuel !== undefined
+        ? contrat.totalMensuel
+        : calcTotalMensuel(options);
+
+      const membreData = {
+        pseudo:       nm.pseudo,
+        entreprise:   nm.entreprise,
+        niveau:       nm.niveau,
+        options,
+        totalMensuel: total,
+        updatedAt:    new Date().toISOString()
+      };
+
+      if (existantsIdx[pseudoLow]) {
+        // Preserve notes et dateAdhesion
+        membreData.notes       = existantsIdx[pseudoLow].data.notes || '';
+        membreData.dateAdhesion= existantsIdx[pseudoLow].data.dateAdhesion || '';
+        await db.ref('membres/' + existantsIdx[pseudoLow].id).update(membreData);
+        updated++;
+      } else {
+        membreData.dateAdhesion = new Date().toISOString().slice(0, 10);
+        membreData.notes = '';
+        await db.ref('membres').push(membreData);
+        added++;
+      }
+    }
+  } else if (contratsText) {
+    // Seulement contrats → update options sur membres existants
+    for (const [pseudoLow, contrat] of Object.entries(contratsMap)) {
+      if (existantsIdx[pseudoLow]) {
+        await db.ref('membres/' + existantsIdx[pseudoLow].id).update({
+          options:      contrat.options,
+          totalMensuel: contrat.totalMensuel,
+          updatedAt:    new Date().toISOString()
+        });
+        updated++;
+      }
+    }
+  }
+
+  const msg = [
+    added   > 0 ? `${added} ajouté(s)`   : '',
+    updated > 0 ? `${updated} mis à jour` : '',
+    removed > 0 ? `${removed} supprimé(s)` : ''
+  ].filter(Boolean).join(' · ');
+
+  journalLog(`Import membres : ${msg}`, 'ok');
+  toast(`Import terminé — ${msg}`, 'success');
+  closeModal('modal-import-membres');
+}
+
+// ================================================================
+//  MEMBRES — AJOUTER MANUELLEMENT
+// ================================================================
+function openAddMembre() { openModal('modal-add-membre'); }
 
 function saveMembre() {
   const pseudo = document.getElementById('add-pseudo').value.trim();
   if (!pseudo) { toast('Le pseudo est requis', 'error'); return; }
   const membre = {
     pseudo,
-    pseudoForum: document.getElementById('add-pseudo-forum').value,
-    entreprise: document.getElementById('add-entreprise').value,
-    niveau: document.getElementById('add-niveau').value,
-    options: document.getElementById('add-options').value,
-    dateAdhesion: document.getElementById('add-date-adhesion').value,
-    notes: document.getElementById('add-notes').value
+    entreprise:   document.getElementById('add-entreprise').value.trim(),
+    niveau:       document.getElementById('add-niveau').value,
+    options:      [],
+    totalMensuel: 0,
+    dateAdhesion: new Date().toISOString().slice(0, 10),
+    notes:        document.getElementById('add-notes').value
   };
   db.ref('membres').push(membre).then(() => {
     toast('Membre ajouté', 'success');
     closeModal('modal-add-membre');
+    journalLog(`Membre ajouté manuellement : ${pseudo}`, 'ok');
   });
 }
 
-function renderMembres() {
-  const search = (document.getElementById('membres-search').value || '').toLowerCase();
-  const filtered = APP.membres.filter(m =>
-    !search ||
-    (m.pseudo || '').toLowerCase().includes(search) ||
-    (m.entreprise || '').toLowerCase().includes(search)
-  );
+// ================================================================
+//  MEMBRES — ÉDITION MODALE
+// ================================================================
+function openEditMembre(id) {
+  const m = APP.membres.find(x => x.id === id);
+  if (!m) return;
 
-  const container = document.getElementById('membres-list');
-  if (!filtered.length) {
-    container.innerHTML = `<div style="color:var(--text3);font-size:12px;text-align:center;padding:30px;">
-      ${APP.membres.length ? 'Aucun résultat' : 'Aucun membre. Utilisez le bouton Import ou Ajouter.'}
-    </div>`;
-    return;
-  }
+  document.getElementById('edit-membre-id').value   = id;
+  document.getElementById('edit-membre-title').textContent = `✏️ Modifier — ${m.pseudo}`;
+  document.getElementById('edit-pseudo').value       = m.pseudo || '';
+  document.getElementById('edit-entreprise').value   = m.entreprise || '';
+  document.getElementById('edit-niveau').value       = String(m.niveau || '1');
+  document.getElementById('edit-notes').value        = m.notes || '';
 
-  container.innerHTML = filtered.map(m => `
-    <div class="membre-card">
-      <div class="membre-info">
-        <h3>${m.pseudo || '—'}</h3>
-        <small>${m.entreprise ? m.entreprise + ' · ' : ''}${m.niveau || ''} ${m.options ? '· ' + m.options : ''}</small>
-      </div>
-      <div class="membre-actions">
-        <button class="btn btn-secondary btn-sm" onclick="createDevisForMembre('${m.pseudo}')">📄 Devis</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteMembre('${m.id}')">🗑️</button>
-      </div>
-    </div>
+  // Checkboxes options
+  const opts    = getOptions();
+  const actives = m.options || [];
+  const container = document.getElementById('edit-options-list');
+  container.innerHTML = opts.map(o => `
+    <label style="display:flex;align-items:center;gap:10px;padding:6px 10px;
+      background:var(--surface2);border-radius:6px;cursor:pointer;font-size:12px;">
+      <input type="checkbox" value="${o.nom}"
+        ${actives.includes(o.nom) ? 'checked' : ''}
+        onchange="recalcEditTotal()"
+        style="accent-color:var(--green);width:14px;height:14px;">
+      <span style="flex:1;">${o.nom}</span>
+      <span style="color:var(--text3);font-size:11px;">${o.prix.toLocaleString('fr')} €/mois</span>
+    </label>
   `).join('');
+
+  recalcEditTotal();
+  openModal('modal-edit-membre');
 }
 
-function filterMembres() { renderMembres(); }
+function recalcEditTotal() {
+  const checked = [...document.querySelectorAll('#edit-options-list input[type=checkbox]:checked')]
+    .map(cb => cb.value);
+  const total = calcTotalMensuel(checked);
+  document.getElementById('edit-total-calc').textContent = total.toLocaleString('fr') + ' €';
+}
+
+async function saveEditMembre() {
+  const id         = document.getElementById('edit-membre-id').value;
+  const pseudo     = document.getElementById('edit-pseudo').value.trim();
+  if (!pseudo) { toast('Le pseudo est requis', 'error'); return; }
+
+  const checked = [...document.querySelectorAll('#edit-options-list input[type=checkbox]:checked')]
+    .map(cb => cb.value);
+
+  const data = {
+    pseudo,
+    entreprise:   document.getElementById('edit-entreprise').value.trim(),
+    niveau:       document.getElementById('edit-niveau').value,
+    options:      checked,
+    totalMensuel: calcTotalMensuel(checked),
+    notes:        document.getElementById('edit-notes').value,
+    updatedAt:    new Date().toISOString()
+  };
+
+  await db.ref('membres/' + id).update(data);
+  journalLog(`Membre modifié : ${pseudo}`, 'info');
+  toast(`Membre "${pseudo}" mis à jour`, 'success');
+  closeModal('modal-edit-membre');
+}
 
 function createDevisForMembre(pseudo) {
   document.getElementById('dl-pseudo').value = pseudo;
@@ -3343,8 +3746,13 @@ function createDevisForMembre(pseudo) {
 }
 
 function deleteMembre(id) {
-  if (!confirm('Supprimer ce membre ?')) return;
-  db.ref('membres/' + id).remove().then(() => toast('Membre supprimé', 'success'));
+  const m = APP.membres.find(x => x.id === id);
+  const pseudo = m ? m.pseudo : id;
+  if (!confirm(`Supprimer le membre "${pseudo}" ?`)) return;
+  db.ref('membres/' + id).remove().then(() => {
+    journalLog(`Membre supprimé : ${pseudo}`, 'warn');
+    toast('Membre supprimé', 'success');
+  });
 }
 
 // ================================================================
@@ -3390,61 +3798,72 @@ document.getElementById('aides-type-filter').addEventListener('change', renderAi
 // ================================================================
 function loadConfigForm() {
   document.getElementById('cfg-api-compta-current').value = APP.config.apiComptaCurrent || '';
-  document.getElementById('cfg-api-compta-last').value = APP.config.apiComptaLast || '';
-  document.getElementById('cfg-api-vehicules').value = APP.config.apiVehicules || '';
-  document.getElementById('cfg-google-form').value = APP.config.googleForm || '';
-  document.getElementById('cfg-prix-sem').value = APP.config.prixSem || 1000;
-  document.getElementById('cfg-duree-max').value = APP.config.dureeMax || 12;
-  document.getElementById('cfg-promo').value = APP.config.promo || '';
-  document.getElementById('cfg-assets-url').value = APP.config.assetsUrl || '';
+  document.getElementById('cfg-api-compta-last').value    = APP.config.apiComptaLast    || '';
+  document.getElementById('cfg-api-vehicules').value      = APP.config.apiVehicules      || '';
+  document.getElementById('cfg-google-form').value        = APP.config.googleForm        || '';
+  document.getElementById('cfg-prix-sem').value           = APP.config.prixSem  || 1000;
+  document.getElementById('cfg-duree-max').value          = APP.config.dureeMax || 12;
+  document.getElementById('cfg-promo').value              = APP.config.promo    || '';
+  document.getElementById('cfg-assets-url').value         = APP.config.assetsUrl|| '';
   if (APP.config.cgv) document.getElementById('cfg-cgv').value = APP.config.cgv;
 
-  // Options
-  const opts = APP.config.options || [];
-  document.getElementById('options-list').innerHTML = opts.map((o, i) => `
-    <div class="flex-between" style="margin-bottom:6px;">
-      <input type="text" class="form-input" style="flex:1;margin-right:8px;" value="${o}" id="opt-${i}">
+  // Options avec prix
+  const opts = getOptions();
+  const container = document.getElementById('options-list');
+  container.innerHTML = opts.map((o, i) => `
+    <div class="flex-between" style="margin-bottom:6px;gap:8px;" id="opt-row-${i}">
+      <input type="text" class="form-input" style="flex:2;" value="${o.nom}" id="opt-nom-${i}"
+        placeholder="Nom de l'option">
+      <input type="number" class="form-input" style="width:120px;flex-shrink:0;" value="${o.prix}" id="opt-prix-${i}"
+        placeholder="Prix €/mois">
       <button class="btn btn-danger btn-sm" onclick="removeOption(${i})">🗑️</button>
     </div>
   `).join('');
 }
 
 function addOption() {
-  APP.config.options = APP.config.options || [];
-  APP.config.options.push('Nouvelle option');
+  const opts = getOptions();
+  opts.push({ nom: 'Nouvelle option', prix: 0 });
+  APP.config.options = opts;
   loadConfigForm();
 }
 
 function removeOption(i) {
-  APP.config.options.splice(i, 1);
+  const opts = getOptions();
+  opts.splice(i, 1);
+  APP.config.options = opts;
   loadConfigForm();
 }
 
 function saveConfig() {
-  // Récupère les options
+  // Récupère les options avec prix
   const opts = [];
-  document.querySelectorAll('[id^="opt-"]').forEach(el => {
-    if (el.value.trim()) opts.push(el.value.trim());
-  });
+  let i = 0;
+  while (document.getElementById('opt-nom-' + i)) {
+    const nom  = (document.getElementById('opt-nom-'  + i).value || '').trim();
+    const prix = parseInt(document.getElementById('opt-prix-' + i).value) || 0;
+    if (nom) opts.push({ nom, prix });
+    i++;
+  }
 
   const config = {
     apiComptaCurrent: document.getElementById('cfg-api-compta-current').value,
-    apiComptaLast: document.getElementById('cfg-api-compta-last').value,
-    apiVehicules: document.getElementById('cfg-api-vehicules').value,
-    googleForm: document.getElementById('cfg-google-form').value,
-    prixSem: parseInt(document.getElementById('cfg-prix-sem').value) || 1000,
-    dureeMax: parseInt(document.getElementById('cfg-duree-max').value) || 12,
-    promo: document.getElementById('cfg-promo').value,
-    assetsUrl: document.getElementById('cfg-assets-url').value,
-    cgv: document.getElementById('cfg-cgv').value,
-    options: opts
+    apiComptaLast:    document.getElementById('cfg-api-compta-last').value,
+    apiVehicules:     document.getElementById('cfg-api-vehicules').value,
+    googleForm:       document.getElementById('cfg-google-form').value,
+    prixSem:          parseInt(document.getElementById('cfg-prix-sem').value)  || 1000,
+    dureeMax:         parseInt(document.getElementById('cfg-duree-max').value) || 12,
+    promo:            document.getElementById('cfg-promo').value,
+    assetsUrl:        document.getElementById('cfg-assets-url').value,
+    cgv:              document.getElementById('cfg-cgv').value,
+    options:          opts
   };
 
   db.ref('config').set(config).then(() => {
     Object.assign(APP.config, config);
     toast('Configuration sauvegardée', 'success');
-    // Mettre à jour prix devis
     document.getElementById('dl-prix-sem').value = config.prixSem;
+    journalLog('Configuration sauvegardée', 'ok');
   });
 }
 
