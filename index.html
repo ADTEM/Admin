@@ -861,7 +861,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V9</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V10</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -961,7 +961,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
 <div id="topbar">
   <div id="page-title">Tableau de bord <small>Vue générale de l'alliance</small></div>
   <div class="topbar-actions">
-    <button class="btn btn-secondary btn-sm" id="btn-sync-data">🔄 Sync données</button>
+    <button class="btn btn-secondary btn-sm" id="btn-sync-data">📡 Télécharger les données</button>
     <button class="btn btn-primary btn-sm" id="btn-import-data">📥 Import JSON</button>
     <div class="topbar-user" id="topbar-user" style="display:none;">
       <div class="topbar-user-avatar" id="user-avatar">?</div>
@@ -1914,6 +1914,20 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
   </div>
 </div>
 
+<!-- MODAL RÉSULTAT TÉLÉCHARGEMENT -->
+<div class="modal-overlay hidden" id="modal-sync-result">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <span class="modal-title">📡 Résultat du téléchargement</span>
+      <button class="modal-close" onclick="closeModal('modal-sync-result')">✕</button>
+    </div>
+    <div class="modal-body" id="sync-result-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeModal('modal-sync-result')">OK</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST CONTAINER -->
 <div id="toast-container"></div>
 
@@ -2127,9 +2141,9 @@ const APP = {
     assetsUrl: 'https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/',
     cgv: '',
     options: ['L\'ami du comptable', 'Totale'],
-    apiComptaCurrent: '',
-    apiComptaLast: '',
-    apiVehicules: '',
+    apiComptaCurrent: 'https://transport-manager.net/api/api_compta.php?key=95080a1958d89045a251862c0bd84ab7&format=json&periode=current',
+    apiComptaLast:    'https://transport-manager.net/api/api_compta.php?key=95080a1958d89045a251862c0bd84ab7&format=json&periode=lastmonth',
+    apiVehicules:     'https://transport-manager.net/api/api_vehicules.php?key=95080a1958d89045a251862c0bd84ab7',
     googleForm: '',
     promo: ''
   },
@@ -2152,12 +2166,27 @@ function initFirebase() {
       CURRENT_USER.pseudo = userData.pseudo || user.email.split('@')[0];
       CURRENT_USER.role = userData.role || 'en_attente';
 
-      // Compte en attente de validation
-      if (userData.role === 'en_attente' || userData.actif === false) {
+      // Compte en attente ou suspendu
+      if (userData.role === 'en_attente' || userData.role === 'suspendu' || userData.actif === false) {
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('waiting-screen').classList.remove('hidden');
         document.getElementById('waiting-pseudo').textContent = CURRENT_USER.pseudo;
         document.getElementById('waiting-email').textContent = user.email;
+
+        // Message différent selon le statut
+        const titre   = document.querySelector('#waiting-screen .waiting-title');
+        const sousTxt = document.querySelector('#waiting-screen .waiting-sub');
+        const badge   = document.querySelector('#waiting-screen .badge-attente');
+
+        if (userData.role === 'suspendu') {
+          if (titre)   titre.textContent = 'Compte suspendu';
+          if (sousTxt) sousTxt.innerHTML = `Votre compte <b>${CURRENT_USER.pseudo}</b> a été suspendu par un administrateur.<br>Contactez l'équipe ADTEM pour plus d'informations.`;
+          if (badge)   { badge.textContent = 'COMPTE SUSPENDU'; badge.style.background = 'rgba(192,57,43,0.12)'; badge.style.color = 'var(--red)'; badge.style.borderColor = 'rgba(192,57,43,0.3)'; }
+        } else {
+          if (titre)   titre.textContent = 'Compte en attente';
+          if (sousTxt) sousTxt.innerHTML = `Votre compte <b>${CURRENT_USER.pseudo}</b> est en cours de validation.<br>Un administrateur doit approuver votre accès.`;
+          if (badge)   { badge.textContent = 'EN ATTENTE DE VALIDATION'; badge.style.background = ''; badge.style.color = ''; badge.style.borderColor = ''; }
+        }
         return;
       }
 
@@ -2433,45 +2462,93 @@ function importJSON() {
 //  SYNC DONNÉES (via URL API)
 // ================================================================
 document.getElementById('btn-sync-data').addEventListener('click', async () => {
-  toast('Synchronisation en cours...', 'info');
-  let synced = 0;
+  // Vérifier URLs
+  const urls = {
+    vehicules:    APP.config.apiVehicules     || 'https://transport-manager.net/api/api_vehicules.php?key=95080a1958d89045a251862c0bd84ab7',
+    comptaCurrent: APP.config.apiComptaCurrent || 'https://transport-manager.net/api/api_compta.php?key=95080a1958d89045a251862c0bd84ab7&format=json&periode=current',
+    comptaLast:   APP.config.apiComptaLast    || 'https://transport-manager.net/api/api_compta.php?key=95080a1958d89045a251862c0bd84ab7&format=json&periode=lastmonth'
+  };
 
-  if (APP.config.apiVehicules) {
-    try {
-      const r = await fetch(APP.config.apiVehicules);
-      const data = await r.json();
-      const vehicules = data.vehicules || data;
-      if (Array.isArray(vehicules)) {
-        await db.ref('vehicules').set(vehicules);
-        synced++;
-      }
-    } catch(e) { toast('Erreur API véhicules', 'error'); }
+  const resultLines = [];
+  const btn = document.getElementById('btn-sync-data');
+  btn.disabled = true;
+  btn.textContent = '⏳ Téléchargement...';
+
+  function addResult(icon, label, msg, color) {
+    resultLines.push(`
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:18px;flex-shrink:0;">${icon}</span>
+        <div>
+          <div style="font-weight:700;font-size:13px;color:${color};">${label}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px;">${msg}</div>
+        </div>
+      </div>`);
   }
 
-  if (APP.config.apiComptaCurrent) {
-    try {
-      const r = await fetch(APP.config.apiComptaCurrent);
-      const data = await r.json();
-      if (data.comptabilite) {
-        await db.ref('compta/current').set(data);
-        synced++;
-      }
-    } catch(e) { toast('Erreur API compta current', 'error'); }
+  // ── Véhicules
+  try {
+    const r = await fetch(urls.vehicules);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    const vehicules = data.vehicules || data;
+    if (!Array.isArray(vehicules)) throw new Error('Format inattendu');
+    const avant = APP.vehicules.length;
+    await db.ref('vehicules').set(vehicules);
+    const nouveaux = vehicules.length - avant;
+    addResult('🚌', 'Parc de véhicules',
+      `${vehicules.length} véhicules importés${nouveaux > 0 ? ` (+${nouveaux} nouveaux)` : ' (à jour)'}`,
+      'var(--green2)');
+    journalLog(`Sync véhicules : ${vehicules.length} importés`, 'ok');
+  } catch(e) {
+    addResult('❌', 'Parc de véhicules', 'Erreur : ' + e.message, 'var(--red)');
+    journalLog('Erreur sync véhicules : ' + e.message, 'danger');
   }
 
-  if (APP.config.apiComptaLast) {
-    try {
-      const r = await fetch(APP.config.apiComptaLast);
-      const data = await r.json();
-      if (data.comptabilite) {
-        await db.ref('compta/last').set(data);
-        synced++;
-      }
-    } catch(e) { toast('Erreur API compta last', 'error'); }
+  // ── Compta mois en cours
+  try {
+    const r = await fetch(urls.comptaCurrent);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    if (!data.comptabilite) throw new Error('Clé "comptabilite" manquante');
+    const avant = APP.compta.length;
+    await db.ref('compta/current').set(data);
+    const nb = data.comptabilite.length;
+    const nouvelles = nb - avant;
+    addResult('📊', 'Comptabilité — mois en cours',
+      `${nb} opérations${nouvelles > 0 ? ` (${nouvelles} nouvelles)` : ' (à jour)'}`,
+      'var(--green2)');
+    journalLog(`Sync compta current : ${nb} opérations`, 'ok');
+  } catch(e) {
+    addResult('❌', 'Comptabilité — mois en cours', 'Erreur : ' + e.message, 'var(--red)');
+    journalLog('Erreur sync compta current : ' + e.message, 'danger');
   }
 
-  if (synced > 0) toast(`${synced} source(s) synchronisée(s)`, 'success');
-  else toast('Aucune URL API configurée (voir Configuration)', 'info');
+  // ── Compta mois précédent
+  try {
+    const r = await fetch(urls.comptaLast);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    if (!data.comptabilite) throw new Error('Clé "comptabilite" manquante');
+    const avant = (APP.comptaLast || []).length;
+    await db.ref('compta/last').set(data);
+    const nb = data.comptabilite.length;
+    const nouvelles = nb - avant;
+    addResult('📅', 'Comptabilité — mois précédent',
+      `${nb} opérations${nouvelles > 0 ? ` (${nouvelles} nouvelles)` : ' (à jour)'}`,
+      'var(--green2)');
+    journalLog(`Sync compta last : ${nb} opérations`, 'ok');
+  } catch(e) {
+    addResult('❌', 'Comptabilité — mois précédent', 'Erreur : ' + e.message, 'var(--red)');
+    journalLog('Erreur sync compta last : ' + e.message, 'danger');
+  }
+
+  // Afficher la modal résultat
+  document.getElementById('sync-result-body').innerHTML =
+    `<div style="margin:-4px 0;">${resultLines.join('')}</div>`;
+  openModal('modal-sync-result');
+
+  btn.disabled = false;
+  btn.textContent = '📡 Télécharger les données';
 });
 
 // ================================================================
@@ -3244,48 +3321,51 @@ async function saveDevis(type) {
 //  COMPTABILITÉ
 // ================================================================
 function renderCompta() {
-  const month = document.getElementById('compta-month-select').value;
   const ops = APP.compta;
 
+  // INVERSION BUG JEU : "Dépenses" JSON = revenu réel, "Revenus" JSON = dépense réelle
   let totalRevenu = 0, totalDepense = 0, nbRev = 0, nbDep = 0;
   ops.forEach(op => {
-    const r = parseFloat(op['Revenus']) || 0;
-    const d = parseFloat(op['Dépenses']) || 0;
-    totalRevenu += r; totalDepense += d;
-    if (r > 0) nbRev++;
-    if (d > 0) nbDep++;
+    const rev = parseFloat(op['Dépenses']) || 0;  // inversé
+    const dep = parseFloat(op['Revenus'])  || 0;  // inversé
+    totalRevenu  += rev;
+    totalDepense += dep;
+    if (rev > 0) nbRev++;
+    if (dep > 0) nbDep++;
   });
 
-  document.getElementById('c-revenus').textContent = totalRevenu.toLocaleString('fr') + ' €';
+  document.getElementById('c-revenus').textContent  = totalRevenu.toLocaleString('fr') + ' €';
   document.getElementById('c-depenses').textContent = totalDepense.toLocaleString('fr') + ' €';
   const solde = totalRevenu - totalDepense;
   const soldeEl = document.getElementById('c-solde');
   soldeEl.textContent = (solde >= 0 ? '+' : '') + solde.toLocaleString('fr') + ' €';
   soldeEl.className = 'kpi-value ' + (solde >= 0 ? 'green' : 'red');
-  document.getElementById('c-nb-revenus').textContent = `${nbRev} opération(s)`;
+  document.getElementById('c-nb-revenus').textContent  = `${nbRev} opération(s)`;
   document.getElementById('c-nb-depenses').textContent = `${nbDep} opération(s)`;
 
   filterCompta();
 }
 
 function filterCompta() {
-  const search = (document.getElementById('compta-search').value || '').toLowerCase();
+  const search     = (document.getElementById('compta-search').value || '').toLowerCase();
   const typeFilter = document.getElementById('compta-type-filter').value;
 
   let ops = APP.compta.filter(op => {
     const libelle = (op['Libellé de l\'opération'] || '').toLowerCase();
     if (search && !libelle.includes(search)) return false;
-    const isRevenu = parseFloat(op['Revenus']) > 0;
-    const isDepense = parseFloat(op['Dépenses']) > 0;
-    if (typeFilter === 'revenu' && !isRevenu) return false;
+    // INVERSION : "Dépenses" JSON = revenu réel
+    const isRevenu  = parseFloat(op['Dépenses']) > 0;
+    const isDepense = parseFloat(op['Revenus'])  > 0;
+    if (typeFilter === 'revenu'  && !isRevenu)  return false;
     if (typeFilter === 'depense' && !isDepense) return false;
     return true;
   });
 
   const tbody = document.getElementById('compta-table-body');
   tbody.innerHTML = ops.map(op => {
-    const isRevenu = parseFloat(op['Revenus']) > 0;
-    const montant = isRevenu ? parseFloat(op['Revenus']) : parseFloat(op['Dépenses']);
+    // INVERSION : "Dépenses" JSON = revenu réel
+    const isRevenu = parseFloat(op['Dépenses']) > 0;
+    const montant  = isRevenu ? parseFloat(op['Dépenses']) : parseFloat(op['Revenus']);
     return `<tr>
       <td style="font-size:11px;font-family:'Fira Code',monospace;white-space:nowrap;">${op['Date de l\'opération'] || ''}</td>
       <td>${op['Libellé de l\'opération'] || ''}</td>
@@ -3294,7 +3374,7 @@ function filterCompta() {
         : '<span class="badge badge-red">Dépense</span>'
       }</td>
       <td style="text-align:right;font-weight:700;color:${isRevenu ? 'var(--green)' : 'var(--red)'};">
-        ${isRevenu ? '+' : '-'}${montant.toLocaleString('fr')} €
+        ${isRevenu ? '+' : '-'}${(montant || 0).toLocaleString('fr')} €
       </td>
     </tr>`;
   }).join('');
@@ -3319,38 +3399,43 @@ document.getElementById('compta-month-select').addEventListener('change', async 
 });
 
 function updateDashboardCompta() {
-  const now = new Date();
   let revMois = 0, depMois = 0;
+  // INVERSION BUG JEU : "Dépenses" JSON = revenu réel, "Revenus" JSON = dépense réelle
   APP.compta.forEach(op => {
-    revMois += parseFloat(op['Revenus']) || 0;
-    depMois += parseFloat(op['Dépenses']) || 0;
+    revMois += parseFloat(op['Dépenses']) || 0;
+    depMois += parseFloat(op['Revenus'])  || 0;
   });
-  document.getElementById('kpi-revenus').textContent = revMois.toLocaleString('fr') + ' €';
+  document.getElementById('kpi-revenus').textContent  = revMois.toLocaleString('fr') + ' €';
   document.getElementById('kpi-depenses').textContent = depMois.toLocaleString('fr') + ' €';
 
-  // Dernières ops dashboard
+  // Dernières ops dashboard — INVERSION
   const last = APP.compta.slice(0, 8);
   document.getElementById('last-ops').innerHTML = last.map(op => {
-    const isRev = parseFloat(op['Revenus']) > 0;
-    const m = isRev ? parseFloat(op['Revenus']) : parseFloat(op['Dépenses']);
+    const isRev = parseFloat(op['Dépenses']) > 0;  // "Dépenses" JSON = revenu réel
+    const m = isRev ? parseFloat(op['Dépenses']) : parseFloat(op['Revenus']);
+    const libelle = op['Libellé de l\'opération'] || '';
     return `<tr>
       <td style="font-size:10px;color:var(--text3);white-space:nowrap;">${(op['Date de l\'opération'] || '').split(' ')[0]}</td>
-      <td style="font-size:11px;">${(op['Libellé de l\'opération'] || '').substring(0, 60)}${(op['Libellé de l\'opération'] && op['Libellé de l\'opération'].length > 60) ? '...' : ''}</td>
+      <td style="font-size:11px;">${libelle.substring(0,60)}${libelle.length > 60 ? '...' : ''}</td>
       <td>${isRev ? '<span class="badge badge-green">Revenu</span>' : '<span class="badge badge-red">Dépense</span>'}</td>
-      <td style="text-align:right;font-weight:700;color:${isRev ? 'var(--green)' : 'var(--red)'};">${isRev ? '+' : '-'}${m.toLocaleString('fr')} €</td>
+      <td style="text-align:right;font-weight:700;color:${isRev ? 'var(--green2)' : 'var(--red)'};">
+        ${isRev ? '+' : '-'}${(m || 0).toLocaleString('fr')} €
+      </td>
     </tr>`;
   }).join('');
 }
 
 function exportCompta() {
   const rows = [['Date', 'Libellé', 'Type', 'Montant']];
+  // INVERSION BUG JEU : "Dépenses" JSON = revenu réel, "Revenus" JSON = dépense réelle
   APP.compta.forEach(op => {
-    const isRev = parseFloat(op['Revenus']) > 0;
+    const isRev = parseFloat(op['Dépenses']) > 0;
+    const montant = isRev ? op['Dépenses'] : op['Revenus'];
     rows.push([
       op['Date de l\'opération'] || '',
       `"${(op['Libellé de l\'opération'] || '').replace(/"/g,'""')}"`,
       isRev ? 'Revenu' : 'Dépense',
-      isRev ? op['Revenus'] : op['Dépenses']
+      montant
     ]);
   });
   const csv = rows.map(r => r.join(',')).join('\n');
@@ -3797,9 +3882,9 @@ document.getElementById('aides-type-filter').addEventListener('change', renderAi
 //  CONFIG
 // ================================================================
 function loadConfigForm() {
-  document.getElementById('cfg-api-compta-current').value = APP.config.apiComptaCurrent || '';
-  document.getElementById('cfg-api-compta-last').value    = APP.config.apiComptaLast    || '';
-  document.getElementById('cfg-api-vehicules').value      = APP.config.apiVehicules      || '';
+  document.getElementById('cfg-api-compta-current').value = APP.config.apiComptaCurrent || 'https://transport-manager.net/api/api_compta.php?key=95080a1958d89045a251862c0bd84ab7&format=json&periode=current';
+  document.getElementById('cfg-api-compta-last').value    = APP.config.apiComptaLast    || 'https://transport-manager.net/api/api_compta.php?key=95080a1958d89045a251862c0bd84ab7&format=json&periode=lastmonth';
+  document.getElementById('cfg-api-vehicules').value      = APP.config.apiVehicules      || 'https://transport-manager.net/api/api_vehicules.php?key=95080a1958d89045a251862c0bd84ab7';
   document.getElementById('cfg-google-form').value        = APP.config.googleForm        || '';
   document.getElementById('cfg-prix-sem').value           = APP.config.prixSem  || 1000;
   document.getElementById('cfg-duree-max').value          = APP.config.dureeMax || 12;
@@ -4089,11 +4174,12 @@ async function loadComptes() {
   const users = snap.val() || {};
   const container = document.getElementById('comptes-list');
 
-  const roleBadge = { admin: 'badge-red', moderateur: 'badge-yellow', membre: 'badge-green', en_attente: 'badge-yellow' };
-  const roleLabel = { admin: 'Administrateur', moderateur: 'Modérateur', membre: 'Membre', en_attente: 'En attente' };
+  const roleBadge = { admin: 'badge-red', moderateur: 'badge-yellow', membre: 'badge-green', en_attente: 'badge-yellow', suspendu: 'badge-gray' };
+  const roleLabel = { admin: 'Administrateur', moderateur: 'Modérateur', membre: 'Membre', en_attente: 'En attente', suspendu: 'Suspendu' };
 
   const enAttente = Object.entries(users).filter(([,u]) => u.role === 'en_attente');
-  const actifs    = Object.entries(users).filter(([,u]) => u.role !== 'en_attente');
+  const suspendus = Object.entries(users).filter(([,u]) => u.role === 'suspendu');
+  const actifs    = Object.entries(users).filter(([,u]) => u.role !== 'en_attente' && u.role !== 'suspendu');
 
   let html = '';
 
@@ -4134,6 +4220,32 @@ async function loadComptes() {
       </div>`;
   }
 
+  // ── SECTION SUSPENDUS ──
+  if (suspendus.length) {
+    html += `
+      <div style="margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;
+          color:var(--red);margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+          🚫 Comptes suspendus
+          <span class="badge badge-red">${suspendus.length}</span>
+        </div>
+        ${suspendus.map(([uid, u]) => `
+          <div class="compte-card" style="border-color:rgba(192,57,43,0.3);background:var(--redbg);margin-bottom:8px;opacity:0.85;">
+            <div class="compte-avatar" style="background:linear-gradient(135deg,#8e1a12,var(--red));">
+              ${(u.pseudo || '?').charAt(0).toUpperCase()}
+            </div>
+            <div class="compte-info" style="flex:1;margin-left:12px;">
+              <div style="font-size:13px;font-weight:700;text-decoration:line-through;color:var(--text3);">${u.pseudo || '—'}</div>
+              <small style="color:var(--text3);">${u.email || '—'} · Suspendu le ${u.suspendedAt ? new Date(u.suspendedAt).toLocaleDateString('fr') : '—'} par ${u.suspendedBy || '—'}</small>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button class="btn btn-secondary btn-sm" onclick="reactiverCompte('${uid}')">✅ Réactiver</button>
+              <button class="btn btn-danger btn-sm" onclick="supprimerDefinitivement('${uid}')">🗑️ Supprimer de la base</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>`;
+
   // ── SECTION COMPTES ACTIFS ──
   if (!actifs.length) {
     html += `<div style="color:var(--text3);text-align:center;padding:20px;">Aucun compte actif</div>`;
@@ -4171,7 +4283,7 @@ async function loadComptes() {
               title="${u.actif !== false ? 'Désactiver' : 'Activer'}">
               ${u.actif !== false ? '🚫' : '✅'}
             </button>
-            <button class="btn btn-danger btn-sm" onclick="deleteCompte('${uid}')" title="Supprimer">🗑️</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteCompte('${uid}')" title="Suspendre le compte">⛔ Suspendre</button>
           ` : ''}
         </div>
       </div>
@@ -4251,15 +4363,40 @@ async function savePseudo(uid) {
 
 async function deleteCompte(uid) {
   const pseudoEl = document.getElementById('pseudo-display-' + uid);
-  const pseudo = pseudoEl ? pseudoEl.textContent : uid;
-  if (!confirm(`Supprimer définitivement le compte "${pseudo}" ?\n\nCette action supprime les données en base mais pas le compte Firebase Auth (à faire manuellement dans la console si nécessaire).`)) return;
+  const pseudo = pseudoEl ? pseudoEl.textContent.trim() : uid;
 
-  await db.ref('users/' + uid).remove();
-  toast(`Compte "${pseudo}" supprimé de la base`, 'success');
+  if (!confirm(`Suspendre le compte "${pseudo}" ?\n\nLe compte sera bloqué immédiatement. L'utilisateur ne pourra plus se connecter.\n\nNote : Le compte Firebase Auth reste techniquement actif mais sans accès au site.`)) return;
+
+  await db.ref('users/' + uid).update({
+    actif: false,
+    role: 'suspendu',
+    suspendedAt: new Date().toISOString(),
+    suspendedBy: CURRENT_USER.pseudo || 'admin'
+  });
+
+  journalLog(`Compte suspendu : ${pseudo}`, 'warn');
+  toast(`Compte "${pseudo}" suspendu`, 'info');
   loadComptes();
 }
 
-async function changeRole(uid, newRole) {
+async function reactiverCompte(uid) {
+  const snap = await db.ref('users/' + uid + '/pseudo').once('value');
+  const pseudo = snap.val() || uid;
+  await db.ref('users/' + uid).update({ actif: true, role: 'membre', suspendedAt: null, suspendedBy: null });
+  journalLog(`Compte réactivé : ${pseudo}`, 'ok');
+  toast(`Compte "${pseudo}" réactivé`, 'success');
+  loadComptes();
+}
+
+async function supprimerDefinitivement(uid) {
+  const snap = await db.ref('users/' + uid + '/pseudo').once('value');
+  const pseudo = snap.val() || uid;
+  if (!confirm(`Supprimer définitivement "${pseudo}" de la base de données ?\n\nNote : Le compte Firebase Auth reste actif. Pour le supprimer complètement, allez dans la console Firebase → Authentication.`)) return;
+  await db.ref('users/' + uid).remove();
+  journalLog(`Compte supprimé de la base : ${pseudo}`, 'danger');
+  toast(`Compte "${pseudo}" supprimé de la base`, 'info');
+  loadComptes();
+}
   await db.ref('users/' + uid + '/role').set(newRole);
   toast('Rôle mis à jour', 'success');
 }
