@@ -537,7 +537,47 @@ tr:hover td { background: var(--surface2); }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--green3); }
 
-/* === TIMELINE JOURNAL === */
+/* === BILAN FINANCIER === */
+.bilan-table { width:100%; border-collapse:collapse; font-size:11px; }
+.bilan-table th, .bilan-table td { padding:5px 8px; white-space:nowrap; border-bottom:1px solid var(--border); }
+.bilan-table thead th { background:var(--surface3); color:var(--text2); text-align:center; font-weight:700; position:sticky; top:0; z-index:2; font-size:10px; text-transform:uppercase; letter-spacing:1px; }
+.bilan-table thead th:first-child { text-align:left; position:sticky; left:0; z-index:3; min-width:200px; }
+.bilan-table td:first-child { position:sticky; left:0; background:var(--surface); z-index:1; }
+.bilan-table .bilan-theme-recette td { font-weight:700; font-size:12px; background:rgba(74,140,82,0.12); color:var(--green2); border-top:2px solid rgba(74,140,82,0.3); }
+.bilan-table .bilan-theme-depense td { font-weight:700; font-size:12px; background:rgba(192,57,43,0.08); color:var(--red); border-top:2px solid rgba(192,57,43,0.2); }
+.bilan-table .bilan-cat-row td { background:var(--surface); }
+.bilan-table .bilan-cat-row td:first-child { padding-left:24px; color:var(--text2); font-size:11px; }
+.bilan-table .bilan-cat-row:hover td { background:var(--surface2); }
+.bilan-table .bilan-total-recettes td { background:rgba(74,140,82,0.18); color:var(--green2); font-weight:800; }
+.bilan-table .bilan-total-depenses td { background:rgba(192,57,43,0.15); color:var(--red); font-weight:800; }
+.bilan-table .bilan-solde-row td { font-weight:800; font-size:13px; background:var(--surface2); border-top:3px solid var(--border); padding:8px; }
+.bilan-table .bilan-separator td { background:var(--bg); height:8px; border:none; }
+.bilan-table td.num { text-align:right; font-variant-numeric:tabular-nums; }
+.bilan-table td.zero { color:var(--text4); text-align:right; }
+.bilan-table .col-total { font-weight:700; color:var(--red); }
+.bilan-table .col-moy { color:var(--blue); }
+.bilan-table .th-annee { background:var(--green3) !important; color:var(--green2) !important; font-size:13px; }
+
+/* === PERSONNEL FCO === */
+.fco-ok { color:var(--green2); font-weight:600; }
+.fco-warn { color:var(--yellow); font-weight:600; }
+.fco-danger { color:var(--red); font-weight:700; }
+.fco-badge-ok { background:var(--greenbg); color:var(--green2); border:1px solid rgba(74,140,82,0.3); border-radius:10px; padding:2px 8px; font-size:9px; font-weight:700; }
+.fco-badge-warn { background:var(--yellowbg); color:var(--yellow); border:1px solid rgba(201,134,10,0.3); border-radius:10px; padding:2px 8px; font-size:9px; font-weight:700; }
+.fco-badge-danger { background:var(--redbg); color:var(--red); border:1px solid rgba(192,57,43,0.3); border-radius:10px; padding:2px 8px; font-size:9px; font-weight:700; }
+
+/* === THEMES CATEGORIES === */
+.theme-card { border-radius:8px; margin-bottom:12px; overflow:hidden; border:1px solid var(--border); }
+.theme-card-header { padding:10px 14px; display:flex; align-items:center; gap:10px; }
+.theme-color-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
+.cat-row { display:flex; align-items:center; gap:10px; padding:8px 14px; border-top:1px solid var(--border); font-size:12px; }
+.cat-row:hover { background:var(--surface2); }
+.rule-tag { background:var(--surface3); border:1px solid var(--border2); border-radius:4px; padding:1px 6px; font-size:10px; font-family:'Fira Code',monospace; }
+
+/* === MESSAGES FORUM === */
+.template-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px; margin-bottom:10px; }
+.template-preview { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:12px; font-size:12px; line-height:1.6; white-space:pre-wrap; }
+.variable-tag { display:inline-block; background:var(--greenbg); color:var(--green2); border:1px solid rgba(74,140,82,0.3); border-radius:4px; padding:0 5px; font-size:10px; font-family:'Fira Code',monospace; cursor:pointer; margin:2px; }
 .timeline { position: relative; padding-left: 20px; }
 .timeline::before { content:''; position:absolute; left:6px; top:0; bottom:0; width:1px; background:var(--border); }
 .timeline-item { position:relative; margin-bottom:14px; }
@@ -751,7 +791,9 @@ body.mode-config #page-title { color: var(--cfg-green); }
 <!-- LOGIN SCREEN -->
 <div id="login-screen">
   <div class="login-box">
-    <div class="login-logo" onclick="bypassLogin()" title="Mode développeur" style="cursor:pointer;">🍃</div>
+    <img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/Logo%20Alliance.png"
+      onclick="bypassLogin()" title="Mode développeur" style="height:70px;width:auto;object-fit:contain;cursor:pointer;margin:0 auto 16px;display:block;"
+      crossorigin="anonymous" onerror="this.style.display='none'">
     <div class="login-title">ADTEM</div>
     <div class="login-sub">Alliance Manager · Transport Manager</div>
 
@@ -851,7 +893,9 @@ body.mode-config #page-title { color: var(--cfg-green); }
 
   <div class="sidebar-logo">
     <div class="logo-row">
-      <div class="logo-leaf">🍃</div>
+      <img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/Logo%20Alliance.png"
+        style="height:48px;width:auto;object-fit:contain;" crossorigin="anonymous"
+        onerror="this.style.display='none'" id="sidebar-logo-img">
       <div class="logo-text" id="sidebar-logo-normal">
         <h1>ADTEM</h1>
         <small>Alliance Manager</small>
@@ -861,7 +905,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V15</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V17</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -913,6 +957,26 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <span class="nav-icon">📈</span> Rentabilité membres
         <span class="nav-badge" style="background:var(--yellowbg);color:var(--yellow);border:1px solid rgba(201,134,10,0.3);">DEV</span>
       </div>
+      <div class="nav-item" data-page="personnel">
+        <span class="nav-icon">👤</span> Personnel / FCO
+      </div>
+      <div class="nav-item" data-page="frequentation">
+        <span class="nav-icon">📉</span> Fréquentation lignes
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Finance</div>
+      <div class="nav-item" data-page="tableau-financier">
+        <span class="nav-icon">🧾</span> Tableau financier
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Outils</div>
+      <div class="nav-item" data-page="messages-forum">
+        <span class="nav-icon">💬</span> Messages forum
+      </div>
     </div>
   </nav>
 
@@ -922,6 +986,15 @@ body.mode-config #page-title { color: var(--cfg-green); }
       <div class="nav-section-title">Paramètres</div>
       <div class="nav-item cfg-nav" data-page="config">
         <span class="nav-icon">⚙️</span> Configuration générale
+      </div>
+      <div class="nav-item cfg-nav" data-page="cfg-financier">
+        <span class="nav-icon">⚖️</span> Financier
+      </div>
+      <div class="nav-item cfg-nav" data-page="cfg-categories">
+        <span class="nav-icon">🏷️</span> Thèmes & Catégories
+      </div>
+      <div class="nav-item cfg-nav" data-page="cfg-messages">
+        <span class="nav-icon">💬</span> Templates messages
       </div>
       <div class="nav-item cfg-nav" data-page="comptes" id="nav-comptes">
         <span class="nav-icon">👤</span> Comptes utilisateurs
@@ -935,9 +1008,6 @@ body.mode-config #page-title { color: var(--cfg-green); }
       </div>
       <div class="nav-item cfg-nav" data-page="reinitialisation">
         <span class="nav-icon">🗑️</span> Réinitialisation
-      </div>
-      <div class="nav-item cfg-nav" data-page="dashboard" id="cfg-nav-import">
-        <span class="nav-icon">📥</span> Import JSON
       </div>
     </div>
   </nav>
@@ -962,7 +1032,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
   <div id="page-title">Tableau de bord <small>Vue générale de l'alliance</small></div>
   <div class="topbar-actions">
     <button class="btn btn-secondary btn-sm" id="btn-sync-data">📡 Télécharger les données</button>
-    <button class="btn btn-primary btn-sm" id="btn-import-data">📥 Import JSON</button>
+    <button class="btn btn-primary btn-sm" id="btn-import-csv" style="display:none;">📥 Import CSV</button>
     <div class="topbar-user" id="topbar-user" style="display:none;">
       <div class="topbar-user-avatar" id="user-avatar">?</div>
       <div>
@@ -1625,7 +1695,14 @@ body.mode-config #page-title { color: var(--cfg-green); }
         </div>
 
         <div class="config-group">
-          <div class="config-group-title">📋 Texte CGV devis</div>
+          <div class="config-group-title">📥 Bouton Import CSV</div>
+          <p style="font-size:11.5px;color:var(--text3);margin-bottom:10px;">Affiche le bouton "Import CSV" dans la barre du haut (pour usage en cas de panne API).</p>
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;">
+            <input type="checkbox" id="cfg-show-import-csv" style="width:16px;height:16px;accent-color:var(--green);"
+              onchange="toggleImportCSVBtn(this.checked)">
+            Afficher le bouton Import CSV
+          </label>
+        </div>
           <textarea class="form-textarea" id="cfg-cgv" rows="8" style="font-size:11px;">Le prix de location est fixé librement par l'alliance. La location d'un véhicule ne peut pas dépasser 12 semaines mais elle peut être renouvelée plusieurs fois.
 Un joueur peut réserver un véhicule maximum une semaine en avance. Pour être certains de recevoir les véhicules voulus dans les temps, le joueur doit envoyer sa demande de location 48h avant le début de location souhaité.
 Il dispose d'un délai de 7 jours pour accepter ou refuser la proposition de location sur le forum.
@@ -1744,6 +1821,20 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
       </div>
     </div>
 
+    <!-- Push/Load Firebase -->
+    <div class="grid-2 mb-16">
+      <div class="card" style="border-color:rgba(74,140,82,0.3);">
+        <div class="card-title" style="color:var(--cfg-green);">📤 Pousser vers Firebase</div>
+        <p style="font-size:11.5px;color:var(--text3);margin-bottom:12px;">Envoie l'état actuel (membres, config, aides...) vers Firebase. Écrase les données distantes.</p>
+        <button class="btn" style="width:100%;background:var(--greenbg);border:1px solid rgba(74,140,82,0.3);color:var(--green2);" onclick="pushFirebase()">☁️ Envoyer maintenant</button>
+      </div>
+      <div class="card" style="border-color:rgba(192,57,43,0.3);">
+        <div class="card-title" style="color:var(--red);">📥 Tirer depuis Firebase</div>
+        <p style="font-size:11.5px;color:var(--text3);margin-bottom:12px;">Recharge toutes les données depuis Firebase. <b style="color:var(--red);">Écrase les données locales.</b></p>
+        <button class="btn" style="width:100%;background:var(--redbg);border:1px solid rgba(192,57,43,0.3);color:var(--red);" onclick="loadFirebase()">📥 Charger depuis Firebase</button>
+      </div>
+    </div>
+
     <!-- Mode pause -->
     <div class="card mb-16" id="card-sync-pause" style="border-color:rgba(201,134,10,0.3);">
       <div class="flex-between mb-16">
@@ -1848,6 +1939,235 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
     </div>
   </div>
 
+  <!-- ====== PERSONNEL / FCO ====== -->
+  <div class="page" id="page-personnel">
+    <div class="flex-between mb-20">
+      <div>
+        <div class="section-title">Personnel ADTEM / FCO</div>
+        <div class="section-subtitle">Suivi des agents et des formations obligatoires</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openImportPersonnel()">📋 Import copier/coller</button>
+    </div>
+
+    <div class="kpi-grid mb-20">
+      <div class="kpi-card blue"><div class="kpi-label">Total agents</div><div class="kpi-value blue" id="pers-kpi-total">—</div></div>
+      <div class="kpi-card green"><div class="kpi-label">Conducteurs</div><div class="kpi-value green" id="pers-kpi-conduite">—</div></div>
+      <div class="kpi-card yellow"><div class="kpi-label">Atelier</div><div class="kpi-value yellow" id="pers-kpi-atelier">—</div></div>
+      <div class="kpi-card red"><div class="kpi-label">FCO expirées / proches</div><div class="kpi-value red" id="pers-kpi-fco-alerte">—</div></div>
+    </div>
+
+    <div class="filter-bar mb-16">
+      <input type="text" id="pers-search" placeholder="🔍 Nom, matricule..." oninput="filterPersonnel()" style="flex:1;">
+      <select id="pers-filtre-poste" onchange="filterPersonnel()">
+        <option value="">Tous postes</option>
+        <option value="Conduite">Conduite</option>
+        <option value="Atelier">Atelier</option>
+      </select>
+      <select id="pers-filtre-fco" onchange="filterPersonnel()">
+        <option value="">Tous statuts FCO</option>
+        <option value="danger">Expirée</option>
+        <option value="warn">< 90 jours</option>
+        <option value="ok">OK</option>
+      </select>
+    </div>
+
+    <div class="card" style="padding:0;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Matricule</th><th>Nom</th><th>Poste</th><th>Validité FCO</th><th>Statut FCO</th><th style="text-align:center;">Actions</th>
+          </tr></thead>
+          <tbody id="personnel-tbody">
+            <tr><td colspan="6" style="text-align:center;color:var(--text3);padding:30px;">Aucun agent. Importez depuis le copier/coller du jeu.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== FREQUENTATION LIGNES ====== -->
+  <div class="page" id="page-frequentation">
+    <div class="flex-between mb-20">
+      <div>
+        <div class="section-title">Fréquentation des lignes</div>
+        <div class="section-subtitle">Objectifs de fréquentation par ligne et créneau horaire</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openImportFreq()">📋 Import copier/coller</button>
+    </div>
+
+    <div class="card" style="padding:0;">
+      <div class="table-wrap">
+        <table id="freq-table">
+          <thead>
+            <tr>
+              <th>Ligne</th>
+              <th style="text-align:right;">LU-VE Creuses</th>
+              <th style="text-align:right;">LU-VE Pointes</th>
+              <th style="text-align:right;">LU-VE Soir</th>
+              <th style="text-align:right;">SA Creuses</th>
+              <th style="text-align:right;">SA Pointes</th>
+              <th style="text-align:right;">SA Soir</th>
+              <th style="text-align:right;">DI&JF Creuses</th>
+              <th style="text-align:right;">DI&JF Pointes</th>
+            </tr>
+          </thead>
+          <tbody id="freq-tbody">
+            <tr><td colspan="9" style="text-align:center;color:var(--text3);padding:30px;">Aucune donnée. Importez depuis le copier/coller du jeu.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== TABLEAU FINANCIER ====== -->
+  <div class="page" id="page-tableau-financier">
+    <div class="flex-between mb-20">
+      <div>
+        <div class="section-title">Tableau financier</div>
+        <div class="section-subtitle">Recettes et dépenses par thème et catégorie</div>
+      </div>
+      <div class="flex gap-8">
+        <select class="form-select" id="bilan-annee" onchange="renderBilan()" style="width:120px;"></select>
+        <button class="btn btn-secondary btn-sm" onclick="exportBilanCSV()">📤 Export CSV</button>
+      </div>
+    </div>
+    <div class="kpi-grid mb-20" id="bilan-stat-cards"></div>
+    <div class="card" style="padding:0;overflow-x:auto;">
+      <div id="bilan-table-container" style="min-width:800px;"></div>
+    </div>
+  </div>
+
+  <!-- ====== MESSAGES FORUM ====== -->
+  <div class="page" id="page-messages-forum">
+    <div class="flex-between mb-20">
+      <div>
+        <div class="section-title">Créateur de messages forum</div>
+        <div class="section-subtitle">Générez vos messages formatés pour le forum Transport Manager</div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="gap:16px;align-items:start;">
+      <!-- Colonne gauche : formulaire -->
+      <div>
+        <div class="card mb-16">
+          <div class="card-title"><span class="icon">📋</span> Choisir un template</div>
+          <div class="form-group">
+            <label class="form-label">Template</label>
+            <select class="form-select" id="msg-template-select" onchange="loadTemplate()">
+              <option value="">— Sélectionner —</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card mb-16" id="msg-variables-card" style="display:none;">
+          <div class="card-title"><span class="icon">✏️</span> Variables</div>
+          <div id="msg-variables-form"></div>
+        </div>
+
+        <div class="flex gap-8">
+          <button class="btn btn-primary" style="flex:1;" onclick="genererMessage()">💬 Générer le message</button>
+          <button class="btn btn-secondary btn-sm" id="msg-forum-btn" style="display:none;" onclick="ouvrirForumMsg()">🌐 Forum</button>
+        </div>
+      </div>
+
+      <!-- Colonne droite : aperçu -->
+      <div>
+        <div class="card">
+          <div class="card-title"><span class="icon">👁️</span> Aperçu du message</div>
+          <div id="msg-preview" style="color:var(--text3);font-size:12px;font-style:italic;padding:20px 0;text-align:center;">
+            Sélectionnez un template et remplissez les variables
+          </div>
+          <div id="msg-actions" style="display:none;margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" onclick="copierMessage()">📋 Copier le message</button>
+            <button class="btn btn-secondary btn-sm" id="msg-open-forum-btn" style="display:none;" onclick="ouvrirForumMsg()">🌐 Ouvrir le forum</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== CONFIG FINANCIER ====== -->
+  <div class="page" id="page-cfg-financier">
+    <div class="section-title" style="color:var(--cfg-green);">⚖️ Configuration financière</div>
+    <div class="section-subtitle">Paramètres de solde et correction d'écart</div>
+
+    <div class="grid-2 mb-16">
+      <div class="card">
+        <div class="card-title">💳 Solde de départ</div>
+        <p style="font-size:11.5px;color:var(--text3);margin-bottom:12px;">Montant initial avant tout import de compta. Le solde affiché = départ + recettes − dépenses + écart.</p>
+        <div class="form-group">
+          <label class="form-label">Argent de départ (€)</label>
+          <input type="number" class="form-input" id="cfg-argent-depart" placeholder="Ex: 5000000">
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">
+          Valeur actuelle : <b id="cfg-argent-actuel" style="color:var(--green2);">0 €</b>
+        </div>
+        <button class="btn btn-primary" onclick="sauvegarderArgentDepart()">✅ Enregistrer</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">⚖️ Correction d'écart financier</div>
+        <p style="font-size:11.5px;color:var(--text3);margin-bottom:8px;">Entrez le <b>solde affiché dans le jeu</b>. Le site calculera automatiquement l'écart à appliquer.</p>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">
+          Solde calculé actuellement : <b id="cfg-solde-calcule" style="color:var(--blue);">—</b>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <input type="number" class="form-input" id="cfg-ecart" placeholder="Solde réel dans le jeu (ex: 12000000)" oninput="previewEcart()">
+          <button class="btn btn-primary" onclick="appliquerEcart()">✓ Appliquer</button>
+        </div>
+        <div style="font-size:12px;color:var(--text2);">
+          Correction actuelle : <b id="cfg-ecart-actuel" style="color:var(--blue);">0 €</b>
+          <button class="btn btn-secondary btn-sm" style="margin-left:8px;" onclick="resetEcart()">↺ Réinitialiser</button>
+        </div>
+        <div id="cfg-ecart-preview" style="display:none;margin-top:8px;padding:8px 10px;border-radius:6px;background:var(--surface2);font-size:11px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== CONFIG THEMES & CATEGORIES ====== -->
+  <div class="page" id="page-cfg-categories">
+    <div class="flex-between mb-20">
+      <div>
+        <div class="section-title" style="color:var(--cfg-green);">🏷️ Thèmes & Catégories</div>
+        <div class="section-subtitle">Chaque thème regroupe des catégories avec des règles de matching sur les libellés (* = wildcard)</div>
+      </div>
+      <div class="flex gap-8">
+        <button class="btn btn-secondary btn-sm" onclick="majToutesOps()">🔄 MAJ toutes les opérations</button>
+        <button class="btn btn-primary btn-sm" onclick="ouvrirModalNouveauTheme()">➕ Nouveau thème</button>
+      </div>
+    </div>
+    <div id="themes-list"></div>
+  </div>
+
+  <!-- ====== CONFIG TEMPLATES MESSAGES ====== -->
+  <div class="page" id="page-cfg-messages">
+    <div class="flex-between mb-20">
+      <div>
+        <div class="section-title" style="color:var(--cfg-green);">💬 Templates de messages forum</div>
+        <div class="section-subtitle">Configurez vos modèles de messages avec variables et assets</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="ouvrirModalNouveauTemplate()">➕ Nouveau template</button>
+    </div>
+
+    <div class="card mb-16" style="background:var(--greenbg);border-color:rgba(74,140,82,0.2);">
+      <div style="font-size:12px;color:var(--green2);line-height:1.8;">
+        <b>Variables disponibles :</b>
+        <span class="variable-tag">{pseudo}</span>
+        <span class="variable-tag">{montant}</span>
+        <span class="variable-tag">{type}</span>
+        <span class="variable-tag">{date}</span>
+        <span class="variable-tag">{nb_vehicules}</span>
+        <span class="variable-tag">{duree}</span>
+        <br>
+        <b>Tags forum :</b> <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:11px;">[img]URL[/img]</code> pour les images
+      </div>
+    </div>
+
+    <div id="templates-list">
+      <div style="color:var(--text3);text-align:center;padding:30px;">Aucun template. Créez-en un avec le bouton ci-dessus.</div>
+    </div>
+  </div>
+
 </div><!-- /main -->
 
 <!-- MODAL CREATE COMPTE -->
@@ -1911,6 +2231,200 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
     <div class="modal-body" id="sync-result-body"></div>
     <div class="modal-footer">
       <button class="btn btn-primary" onclick="closeModal('modal-sync-result')">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IMPORT PERSONNEL -->
+<div class="modal-overlay hidden" id="modal-import-personnel">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-header">
+      <span class="modal-title">👤 Import personnel — Copier/Coller</span>
+      <button class="modal-close" onclick="closeModal('modal-import-personnel')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--greenbg);border:1px solid rgba(74,140,82,0.2);border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:11.5px;color:var(--green2);">
+        Format attendu : <code>N° &nbsp; Nom &nbsp; Poste &nbsp; Validité F.C.O. &nbsp; Formation</code><br>
+        Copiez directement depuis le tableau du jeu (tabulations). Les agents existants seront mis à jour.
+      </div>
+      <textarea class="form-textarea" id="personnel-paste" rows="14"
+        placeholder="800158	Hercule	Conduite	17/05/2029	-&#10;800159	Pénélope	Conduite	17/05/2029	-"
+        style="font-size:11px;font-family:'Fira Code',monospace;"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-import-personnel')">Annuler</button>
+      <button class="btn btn-primary" onclick="importerPersonnel()">📥 Importer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IMPORT FREQUENTATION -->
+<div class="modal-overlay hidden" id="modal-import-freq">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-header">
+      <span class="modal-title">📉 Import fréquentation — Copier/Coller</span>
+      <button class="modal-close" onclick="closeModal('modal-import-freq')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--greenbg);border:1px solid rgba(74,140,82,0.2);border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:11.5px;color:var(--green2);">
+        Format : <code>Ligne &nbsp; LU-VE Creuses &nbsp; LU-VE Pointes &nbsp; LU-VE Soir &nbsp; SA Creuses &nbsp; SA Pointes &nbsp; SA Soir &nbsp; DI&JF Creuses &nbsp; DI&JF Pointes</code>
+      </div>
+      <textarea class="form-textarea" id="freq-paste" rows="14"
+        placeholder="1	2200	3025	1200	1900	2400	1300	1150	1700&#10;2	950	1675	500	800	1200	600	500	725"
+        style="font-size:11px;font-family:'Fira Code',monospace;"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-import-freq')">Annuler</button>
+      <button class="btn btn-primary" onclick="importerFrequentation()">📥 Importer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IMPORT CSV -->
+<div class="modal-overlay hidden" id="modal-import-csv">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <span class="modal-title">📥 Import CSV</span>
+      <button class="modal-close" onclick="closeModal('modal-import-csv')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--yellowbg);border:1px solid rgba(201,134,10,0.2);border-radius:6px;padding:10px 12px;margin-bottom:14px;font-size:11.5px;color:var(--yellow);">
+        ⚠️ À utiliser uniquement en cas de défaillance de l'API. L'import CSV écrase les données existantes.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type d'import</label>
+        <select class="form-select" id="csv-type">
+          <option value="vehicules">🚌 Parc de véhicules (bus_XX.csv)</option>
+          <option value="compta">📊 Comptabilité (compta_XX.csv)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fichier CSV</label>
+        <input type="file" class="form-input" id="csv-file" accept=".csv" style="padding:6px;">
+      </div>
+      <div id="csv-preview" style="display:none;margin-top:10px;padding:8px 10px;background:var(--surface2);border-radius:6px;font-size:11px;color:var(--text2);"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-import-csv')">Annuler</button>
+      <button class="btn btn-primary" onclick="importerCSV()">📥 Importer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOUVEAU THEME -->
+<div class="modal-overlay hidden" id="modal-nouveau-theme">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-theme-title">➕ Nouveau thème</span>
+      <button class="modal-close" onclick="closeModal('modal-nouveau-theme')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="theme-edit-id">
+      <div class="form-group">
+        <label class="form-label">Nom du thème *</label>
+        <input type="text" class="form-input" id="theme-nom" placeholder="Ex: Recettes générales">
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select class="form-select" id="theme-type">
+            <option value="recette">📈 Recette</option>
+            <option value="depense">📉 Dépense</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Couleur</label>
+          <input type="color" class="form-input" id="theme-couleur" value="#10b981" style="height:40px;padding:4px;">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-nouveau-theme')">Annuler</button>
+      <button class="btn btn-primary" onclick="sauvegarderTheme()">✅ Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOUVELLE CATEGORIE -->
+<div class="modal-overlay hidden" id="modal-nouvelle-categorie">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-cat-title">➕ Nouvelle catégorie</span>
+      <button class="modal-close" onclick="closeModal('modal-nouvelle-categorie')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cat-theme-id">
+      <input type="hidden" id="cat-edit-id">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Nom de la catégorie *</label>
+          <input type="text" class="form-input" id="cat-nom" placeholder="Ex: Vente de titres">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Couleur</label>
+          <input type="color" class="form-input" id="cat-couleur" value="#00d4ff" style="height:40px;padding:4px;">
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="flex-between" style="margin-bottom:6px;">
+          <label class="form-label" style="margin-bottom:0;">Règles de matching</label>
+          <button class="btn btn-secondary btn-sm" onclick="ajouterRegleMatching()">+ Ajouter</button>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:8px;">* = wildcard. Ex: <code style="background:var(--surface2);padding:1px 5px;border-radius:3px;">*pub*</code> → contient "pub"</div>
+        <div id="cat-regles-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-nouvelle-categorie')">Annuler</button>
+      <button class="btn btn-primary" onclick="sauvegarderCategorie()">✅ Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOUVEAU TEMPLATE MESSAGE -->
+<div class="modal-overlay hidden" id="modal-nouveau-template">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-tpl-title">➕ Nouveau template</span>
+      <button class="modal-close" onclick="closeModal('modal-nouveau-template')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="tpl-edit-id">
+      <div class="form-group">
+        <label class="form-label">Nom du template *</label>
+        <input type="text" class="form-input" id="tpl-nom" placeholder="Ex: Remboursement révision">
+      </div>
+      <div class="form-group">
+        <label class="form-label">URL de l'asset (image)</label>
+        <input type="text" class="form-input" id="tpl-asset" placeholder="https://...image.png">
+        <div style="font-size:10px;color:var(--text3);margin-top:4px;">Sera inclus comme <code>[img]URL[/img]</code> dans le message</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">URL du forum (bouton ouvrir)</label>
+        <input type="text" class="form-input" id="tpl-forum-url" placeholder="https://forum.transport-manager.net/...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Corps du message</label>
+        <div style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:4px;">
+          <span class="variable-tag" onclick="insererVariable('{pseudo}')">+ {pseudo}</span>
+          <span class="variable-tag" onclick="insererVariable('{montant}')">+ {montant}</span>
+          <span class="variable-tag" onclick="insererVariable('{type}')">+ {type}</span>
+          <span class="variable-tag" onclick="insererVariable('{date}')">+ {date}</span>
+          <span class="variable-tag" onclick="insererVariable('{nb_vehicules}')">+ {nb_vehicules}</span>
+          <span class="variable-tag" onclick="insererVariable('{duree}')">+ {duree}</span>
+        </div>
+        <textarea class="form-textarea" id="tpl-corps" rows="8"
+          placeholder="Bonjour @{pseudo},&#10;&#10;Suite à ta demande, l'ADTEM te rembourse {montant}€ de {type}.&#10;&#10;Bonne journée"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Variables requises (noms, séparés par des virgules)</label>
+        <input type="text" class="form-input" id="tpl-variables" placeholder="pseudo, montant, type">
+        <div style="font-size:10px;color:var(--text3);margin-top:4px;">Ces champs seront proposés dans le formulaire de génération</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-nouveau-template')">Annuler</button>
+      <button class="btn btn-primary" onclick="sauvegarderTemplate()">✅ Enregistrer</button>
     </div>
   </div>
 </div>
@@ -2261,8 +2775,29 @@ function initFirebase() {
     }
   });
 
-  // Journal d'activité
-  db.ref('journal').orderByKey().limitToLast(30).on('value', snap => {
+  // Personnel
+  db.ref('personnel').on('value', snap => {
+    APP.personnel = snap.val() || {};
+    renderPersonnel();
+  });
+
+  // Fréquentation
+  db.ref('frequentation').on('value', snap => {
+    APP.frequentation = snap.val() || [];
+    renderFrequentation();
+  });
+
+  // Thèmes & Catégories
+  db.ref('themes').on('value', snap => {
+    APP.themes = snap.val() || [];
+    renderCategories();
+  });
+
+  // Templates messages
+  db.ref('templates').on('value', snap => {
+    APP.templates = snap.val() || [];
+    renderTemplates();
+  });
     if (snap.val()) {
       const entries = Object.values(snap.val()).reverse();
       renderJournal(entries);
@@ -2365,6 +2900,14 @@ function showPage(pageId) {
     rentabilite: ['Rentabilité membres', 'Analyse financière par membre'],
     sauvegarde: ['Sauvegarde', 'Export, import et gestion des données Firebase'],
     reinitialisation: ['Réinitialisation', 'Suppression partielle ou totale des données'],
+    personnel: ['Personnel / FCO', 'Suivi des agents et formations obligatoires'],
+    frequentation: ['Fréquentation lignes', 'Objectifs de fréquentation par créneau'],
+    'tableau-financier': ['Tableau financier', 'Recettes et dépenses par thème et catégorie'],
+    'messages-forum': ['Messages forum', 'Créateur de messages formatés'],
+    'cfg-financier': ['Configuration financière', 'Solde de départ et correction d\'écart'],
+    'cfg-categories': ['Thèmes & Catégories', 'Règles de matching pour la comptabilité'],
+    'cfg-messages': ['Templates messages', 'Modèles de messages forum'],
+    config: ['Configuration générale', 'Paramètres de l\'application']
   };
   if (titles[pageId]) {
     document.getElementById('page-title').innerHTML =
@@ -2380,6 +2923,13 @@ function showPage(pageId) {
   if (pageId === 'rentabilite') loadRentabilite();
   if (pageId === 'sauvegarde') loadSauvegardeStats();
   if (pageId === 'reinitialisation') loadResetStats();
+  if (pageId === 'personnel') renderPersonnel();
+  if (pageId === 'frequentation') renderFrequentation();
+  if (pageId === 'tableau-financier') renderBilan();
+  if (pageId === 'messages-forum') renderTemplates();
+  if (pageId === 'cfg-financier') loadCfgFinancier();
+  if (pageId === 'cfg-categories') renderCategories();
+  if (pageId === 'cfg-messages') renderTemplates();
 }
 
 document.querySelectorAll('.nav-item:not(.cfg-nav)').forEach(item => {
@@ -3587,11 +4137,10 @@ async function saveDevis(type) {
 function renderCompta() {
   const ops = APP.compta;
 
-  // INVERSION BUG JEU : "Dépenses" JSON = revenu réel, "Revenus" JSON = dépense réelle
   let totalRevenu = 0, totalDepense = 0, nbRev = 0, nbDep = 0;
   ops.forEach(op => {
-    const rev = parseFloat(op['Dépenses']) || 0;  // inversé
-    const dep = parseFloat(op['Revenus'])  || 0;  // inversé
+    const rev = parseFloat(op['Revenus'])  || 0;
+    const dep = parseFloat(op['Dépenses']) || 0;
     totalRevenu  += rev;
     totalDepense += dep;
     if (rev > 0) nbRev++;
@@ -3617,9 +4166,8 @@ function filterCompta() {
   let ops = APP.compta.filter(op => {
     const libelle = (op['Libellé de l\'opération'] || '').toLowerCase();
     if (search && !libelle.includes(search)) return false;
-    // INVERSION : "Dépenses" JSON = revenu réel
-    const isRevenu  = parseFloat(op['Dépenses']) > 0;
-    const isDepense = parseFloat(op['Revenus'])  > 0;
+    const isRevenu  = parseFloat(op['Revenus'])  > 0;
+    const isDepense = parseFloat(op['Dépenses']) > 0;
     if (typeFilter === 'revenu'  && !isRevenu)  return false;
     if (typeFilter === 'depense' && !isDepense) return false;
     return true;
@@ -3627,9 +4175,8 @@ function filterCompta() {
 
   const tbody = document.getElementById('compta-table-body');
   tbody.innerHTML = ops.map(op => {
-    // INVERSION : "Dépenses" JSON = revenu réel
-    const isRevenu = parseFloat(op['Dépenses']) > 0;
-    const montant  = isRevenu ? parseFloat(op['Dépenses']) : parseFloat(op['Revenus']);
+    const isRevenu = parseFloat(op['Revenus']) > 0;
+    const montant  = isRevenu ? parseFloat(op['Revenus']) : parseFloat(op['Dépenses']);
     return `<tr>
       <td style="font-size:11px;font-family:'Fira Code',monospace;white-space:nowrap;">${op['Date de l\'opération'] || ''}</td>
       <td>${op['Libellé de l\'opération'] || ''}</td>
@@ -3664,19 +4211,17 @@ document.getElementById('compta-month-select').addEventListener('change', async 
 
 function updateDashboardCompta() {
   let revMois = 0, depMois = 0;
-  // INVERSION BUG JEU : "Dépenses" JSON = revenu réel, "Revenus" JSON = dépense réelle
   APP.compta.forEach(op => {
-    revMois += parseFloat(op['Dépenses']) || 0;
-    depMois += parseFloat(op['Revenus'])  || 0;
+    revMois += parseFloat(op['Revenus'])  || 0;
+    depMois += parseFloat(op['Dépenses']) || 0;
   });
   document.getElementById('kpi-revenus').textContent  = revMois.toLocaleString('fr') + ' €';
   document.getElementById('kpi-depenses').textContent = depMois.toLocaleString('fr') + ' €';
 
-  // Dernières ops dashboard — INVERSION
   const last = APP.compta.slice(0, 8);
   document.getElementById('last-ops').innerHTML = last.map(op => {
-    const isRev = parseFloat(op['Dépenses']) > 0;  // "Dépenses" JSON = revenu réel
-    const m = isRev ? parseFloat(op['Dépenses']) : parseFloat(op['Revenus']);
+    const isRev = parseFloat(op['Revenus']) > 0;
+    const m = isRev ? parseFloat(op['Revenus']) : parseFloat(op['Dépenses']);
     const libelle = op['Libellé de l\'opération'] || '';
     return `<tr>
       <td style="font-size:10px;color:var(--text3);white-space:nowrap;">${(op['Date de l\'opération'] || '').split(' ')[0]}</td>
@@ -3691,10 +4236,9 @@ function updateDashboardCompta() {
 
 function exportCompta() {
   const rows = [['Date', 'Libellé', 'Type', 'Montant']];
-  // INVERSION BUG JEU : "Dépenses" JSON = revenu réel, "Revenus" JSON = dépense réelle
   APP.compta.forEach(op => {
-    const isRev = parseFloat(op['Dépenses']) > 0;
-    const montant = isRev ? op['Dépenses'] : op['Revenus'];
+    const isRev = parseFloat(op['Revenus']) > 0;
+    const montant = isRev ? op['Revenus'] : op['Dépenses'];
     rows.push([
       op['Date de l\'opération'] || '',
       `"${(op['Libellé de l\'opération'] || '').replace(/"/g,'""')}"`,
@@ -4194,6 +4738,13 @@ function loadConfigForm() {
   document.getElementById('cfg-duree-max').value          = APP.config.dureeMax || 12;
   document.getElementById('cfg-promo').value              = APP.config.promo    || '';
   document.getElementById('cfg-assets-url').value         = APP.config.assetsUrl|| '';
+
+  // Restaurer état bouton Import CSV
+  const csvChk = document.getElementById('cfg-show-import-csv');
+  if (csvChk) csvChk.checked = !!APP.config.showImportCSV;
+  const btnCsv = document.getElementById('btn-import-csv');
+  if (btnCsv) btnCsv.style.display = APP.config.showImportCSV ? '' : 'none';
+
   // Règles
   const regles = getRegles();
   const typeLabels = {
@@ -4339,7 +4890,11 @@ function removeRegle(i) {
   loadConfigForm();
 }
 
-function applyConfig() {
+function toggleImportCSVBtn(show) {
+  const btn = document.getElementById('btn-import-csv');
+  if (btn) btn.style.display = show ? '' : 'none';
+  db.ref('config/showImportCSV').set(show);
+}
   document.getElementById('dl-prix-sem') && (document.getElementById('dl-prix-sem').value = APP.config.prixSem || 1000);
   populateOptionSelects();
 }
@@ -4845,7 +5400,6 @@ function loadRentabilite() {
   }
 
   // Agrège par pseudo
-  // INVERSION : "Revenus" JSON = dépense réelle, "Dépenses" JSON = revenu réel
   const map = {};
 
   compta.forEach(op => {
@@ -4855,17 +5409,17 @@ function loadRentabilite() {
 
     if (!map[pseudo]) map[pseudo] = { pseudo, revenus: 0, depenses: 0, ops: [] };
 
-    // "Dépenses" JSON = revenu pour l'alliance (paiement de facture)
-    const rev = parseFloat(op['Dépenses']) || 0;
-    // "Revenus" JSON = dépense pour l'alliance (virement vers membre)
-    const dep = parseFloat(op['Revenus']) || 0;
+    // "Dépenses" JSON = dépense pour l'alliance (virement vers membre)
+    const dep = parseFloat(op['Dépenses']) || 0;
+    // "Revenus" JSON = revenu pour l'alliance (paiement de facture)
+    const rev = parseFloat(op['Revenus'])  || 0;
 
-    map[pseudo].revenus += rev;
+    map[pseudo].revenus  += rev;
     map[pseudo].depenses += dep;
     map[pseudo].ops.push({
       date: op['Date de l\'opération'] || '',
       libelle,
-      revenu: rev,
+      revenu:  rev,
       depense: dep
     });
   });
@@ -5381,8 +5935,907 @@ function loadResetStats() {
 }
 
 // ================================================================
-//  INIT
+//  9. LOGO + PUSH/LOAD FIREBASE (page sauvegarde améliorée)
 // ================================================================
+async function pushFirebase() {
+  if (!confirm('Pousser toutes les données vers Firebase ?\n\nCela écrasera les données distantes.')) return;
+  try {
+    toast('Envoi en cours...', 'info');
+    const snap = await db.ref('/').once('value');
+    // Firebase IS the remote — on rewrite everything from APP state
+    const payload = {
+      config:    APP.config,
+      membres:   Object.fromEntries(APP.membres.map(m => [m.id, {...m}])),
+      aides:     Object.fromEntries(APP.aides.map(a => [a.id, {...a}])),
+      vehicules: APP.vehicules,
+      compta:    { current: { comptabilite: APP.compta }, last: { comptabilite: APP.comptaLast || [] } },
+      personnel: APP.personnel || {},
+      frequentation: APP.frequentation || {},
+      themes:    APP.themes || [],
+      templates: APP.templates || []
+    };
+    await db.ref('/').update(payload);
+    journalLog('Push Firebase manuel effectué', 'ok');
+    toast('✅ Données envoyées vers Firebase', 'success');
+  } catch(e) {
+    toast('Erreur push : ' + e.message, 'error');
+  }
+}
+
+async function loadFirebase() {
+  if (!confirm('Charger les données depuis Firebase ?\n\nLes données locales seront remplacées.')) return;
+  if (!confirm('Dernière confirmation — cette action est irréversible.')) return;
+  try {
+    toast('Chargement depuis Firebase...', 'info');
+    const snap = await db.ref('/').once('value');
+    const data = snap.val() || {};
+    // Les listeners Firebase vont se déclencher et mettre à jour APP automatiquement
+    journalLog('Load Firebase manuel effectué', 'ok');
+    toast('✅ Données rechargées depuis Firebase', 'success');
+    setTimeout(() => location.reload(), 1500);
+  } catch(e) {
+    toast('Erreur load : ' + e.message, 'error');
+  }
+}
+
+// Ajouter boutons push/load dans la page sauvegarde au chargement
+document.addEventListener('DOMContentLoaded', () => {
+  // Bouton Import CSV topbar
+  const btnCsv = document.getElementById('btn-import-csv');
+  if (btnCsv) {
+    btnCsv.addEventListener('click', () => openModal('modal-import-csv'));
+    // Restaurer visibilité depuis config
+    db.ref('config/showImportCSV').once('value').then(snap => {
+      if (snap.val()) btnCsv.style.display = '';
+    });
+  }
+});
+
+// ================================================================
+//  3. IMPORT CSV
+// ================================================================
+function importerCSV() {
+  const type = document.getElementById('csv-type').value;
+  const file = document.getElementById('csv-file').files[0];
+  if (!file) { toast('Choisissez un fichier CSV', 'error'); return; }
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const text = e.target.result;
+    const lines = text.split('\n').filter(l => l.trim());
+    const sep = ';';
+
+    if (type === 'vehicules') {
+      // Format: ID;Numéro Parc;Patrimoine;Fin Location;Type Véhicule;Marque;Modèle;Type;BHNS;LE;Energie;...
+      const vehicules = [];
+      lines.slice(1).forEach(line => {
+        const cols = line.split(sep).map(c => c.replace(/^"|"$/g, '').trim());
+        if (cols.length < 10) return;
+        vehicules.push({
+          'ID': cols[0],
+          'Numéro Parc': cols[1],
+          'Patrimoine': cols[2],
+          'Fin Location': cols[3],
+          'Type Véhicule': cols[4],
+          'Marque': cols[5],
+          'Modèle': cols[6],
+          'Type': cols[7],
+          'Energie': cols[10] || '',
+          'Conso': cols[11] || '',
+          'Places': cols[12] || '',
+          'Statut': cols[19] || ''
+        });
+      });
+      await db.ref('vehicules').set(vehicules);
+      journalLog(`Import CSV véhicules : ${vehicules.length} véhicules`, 'ok');
+      toast(`✅ ${vehicules.length} véhicules importés depuis CSV`, 'success');
+      closeModal('modal-import-csv');
+
+    } else if (type === 'compta') {
+      // Format: DATE;Libellé;Dépenses;Revenus
+      const ops = [];
+      lines.slice(1).forEach(line => {
+        const cols = line.split(sep).map(c => c.replace(/^"|"$/g, '').trim());
+        if (cols.length < 4) return;
+        ops.push({
+          "Date de l'opération": cols[0],
+          "Libellé de l'opération": cols[1],
+          "Dépenses": parseFloat(cols[2]) || 0,
+          "Revenus":  parseFloat(cols[3]) || 0
+        });
+      });
+      await db.ref('compta/current').set({ comptabilite: ops });
+      journalLog(`Import CSV compta : ${ops.length} opérations`, 'ok');
+      toast(`✅ ${ops.length} opérations importées depuis CSV`, 'success');
+      closeModal('modal-import-csv');
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+// ================================================================
+//  7. PERSONNEL ADTEM / FCO
+// ================================================================
+APP.personnel = {};
+
+function openImportPersonnel() { openModal('modal-import-personnel'); }
+
+function importerPersonnel() {
+  const text = document.getElementById('personnel-paste').value.trim();
+  if (!text) { toast('Collez les données du jeu', 'error'); return; }
+
+  const lines = text.split('\n').filter(l => l.trim());
+  let added = 0, updated = 0;
+
+  lines.forEach(line => {
+    const parts = line.split('\t').map(p => p.trim());
+    if (parts.length < 4) return;
+    const matricule = parts[0];
+    if (!matricule || isNaN(parseInt(matricule))) return;
+
+    const agent = {
+      matricule,
+      nom:       parts[1] || '',
+      poste:     parts[2] || '',
+      fco:       parseDateFR(parts[3]),
+      formation: parts[4] || '—',
+      updatedAt: new Date().toISOString()
+    };
+
+    if (APP.personnel[matricule]) { updated++; } else { added++; }
+    APP.personnel[matricule] = agent;
+  });
+
+  db.ref('personnel').set(APP.personnel).then(() => {
+    journalLog(`Import personnel : ${added} ajouté(s), ${updated} mis à jour`, 'ok');
+    toast(`${added} ajouté(s), ${updated} mis à jour`, 'success');
+    closeModal('modal-import-personnel');
+    renderPersonnel();
+  });
+}
+
+function parseDateFR(str) {
+  if (!str || str === '—' || str === '-') return null;
+  const m = str.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!m) return null;
+  return `${m[3]}-${m[2]}-${m[1]}`;
+}
+
+function fcoStatut(dateISO) {
+  if (!dateISO) return { label: '—', cls: '', badge: '' };
+  const today = new Date();
+  const fco   = new Date(dateISO);
+  const diff  = Math.round((fco - today) / 86400000);
+  if (diff < 0)   return { label: `Expirée (${Math.abs(diff)}j)`, cls: 'fco-danger', badge: 'fco-badge-danger' };
+  if (diff < 30)  return { label: `< 30 jours`, cls: 'fco-warn', badge: 'fco-badge-warn' };
+  if (diff < 90)  return { label: `< 90 jours`, cls: 'fco-warn', badge: 'fco-badge-warn' };
+  return { label: `OK (${diff}j)`, cls: 'fco-ok', badge: 'fco-badge-ok' };
+}
+
+function renderPersonnel() {
+  const agents = Object.values(APP.personnel || {});
+  const search  = (document.getElementById('pers-search') || {value:''}).value.toLowerCase() || '';
+  const poste   = (document.getElementById('pers-filtre-poste') || {}).value || '';
+  const fcoF    = (document.getElementById('pers-filtre-fco') || {}).value || '';
+
+  // KPIs
+  const conduite = agents.filter(a => a.poste === 'Conduite').length;
+  const atelier  = agents.filter(a => a.poste === 'Atelier').length;
+  const alertes  = agents.filter(a => {
+    const s = fcoStatut(a.fco);
+    return s.badge.includes('danger') || s.badge.includes('warn');
+  }).length;
+  ['pers-kpi-total','pers-kpi-conduite','pers-kpi-atelier','pers-kpi-fco-alerte'].forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = [agents.length, conduite, atelier, alertes][i];
+  });
+
+  const filtered = agents.filter(a => {
+    if (search && !(a.nom||'').toLowerCase().includes(search) && !a.matricule.includes(search)) return false;
+    if (poste && a.poste !== poste) return false;
+    if (fcoF) {
+      const s = fcoStatut(a.fco);
+      if (fcoF === 'danger' && !s.badge.includes('danger')) return false;
+      if (fcoF === 'warn'   && !s.badge.includes('warn'))   return false;
+      if (fcoF === 'ok'     && !s.badge.includes('ok'))     return false;
+    }
+    return true;
+  }).sort((a,b) => (a.fco||'9999') < (b.fco||'9999') ? -1 : 1);
+
+  const tbody = document.getElementById('personnel-tbody');
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:30px;">Aucun résultat</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(a => {
+    const s   = fcoStatut(a.fco);
+    const fcoAff = a.fco ? a.fco.split('-').reverse().join('/') : '—';
+    return `<tr>
+      <td style="font-family:'Fira Code',monospace;font-size:11px;color:var(--text3);">${a.matricule}</td>
+      <td style="font-weight:600;">${a.nom}</td>
+      <td><span class="badge ${a.poste === 'Conduite' ? 'badge-blue' : 'badge-yellow'}">${a.poste}</span></td>
+      <td style="font-variant-numeric:tabular-nums;">${fcoAff}</td>
+      <td><span class="${s.badge}">${s.label}</span></td>
+      <td style="text-align:center;">
+        <button class="btn btn-secondary btn-sm" onclick="prolongerFCO('${a.matricule}')" title="Repousser FCO de 6 mois">🎓 +6 mois</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterPersonnel() { renderPersonnel(); }
+
+async function prolongerFCO(matricule) {
+  const agent = APP.personnel[matricule];
+  if (!agent) return;
+  const fcoActuel = agent.fco ? new Date(agent.fco) : new Date();
+  fcoActuel.setMonth(fcoActuel.getMonth() + 6);
+  const newFco = fcoActuel.toISOString().slice(0, 10);
+
+  await db.ref('personnel/' + matricule + '/fco').set(newFco);
+  APP.personnel[matricule].fco = newFco;
+
+  journalLog(`FCO prolongée +6 mois : ${agent.nom} (${matricule}) → ${newFco.split('-').reverse().join('/')}`, 'ok');
+  toast(`FCO de ${agent.nom} prolongée → ${newFco.split('-').reverse().join('/')}`, 'success');
+  renderPersonnel();
+}
+
+// ================================================================
+//  2. FREQUENTATION LIGNES
+// ================================================================
+APP.frequentation = [];
+
+function openImportFreq() { openModal('modal-import-freq'); }
+
+function importerFrequentation() {
+  const text = document.getElementById('freq-paste').value.trim();
+  if (!text) { toast('Collez les données', 'error'); return; }
+
+  const lines = text.split('\n').filter(l => l.trim());
+  const data  = [];
+
+  lines.forEach(line => {
+    const parts = line.split('\t').map(p => p.trim().replace(/\s/g, '').replace('—', '0'));
+    if (parts.length < 2 || isNaN(parseInt(parts[0]))) return;
+    data.push({
+      ligne: parts[0],
+      luveCreuses:  parseInt(parts[1]) || 0,
+      luvePointes:  parseInt(parts[2]) || 0,
+      luveSoir:     parseInt(parts[3]) || 0,
+      saCreuses:    parseInt(parts[4]) || 0,
+      saPointes:    parseInt(parts[5]) || 0,
+      saSoir:       parseInt(parts[6]) || 0,
+      dijfCreuses:  parseInt(parts[7]) || 0,
+      dijfPointes:  parseInt(parts[8]) || 0
+    });
+  });
+
+  db.ref('frequentation').set(data).then(() => {
+    APP.frequentation = data;
+    journalLog(`Import fréquentation : ${data.length} lignes`, 'ok');
+    toast(`${data.length} lignes importées`, 'success');
+    closeModal('modal-import-freq');
+    renderFrequentation();
+  });
+}
+
+function renderFrequentation() {
+  const tbody = document.getElementById('freq-tbody');
+  if (!tbody) return;
+  const data = APP.frequentation || [];
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:30px;">Aucune donnée.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.map(r => `<tr>
+    <td style="font-weight:700;">Ligne ${r.ligne}</td>
+    <td class="col-num">${(r.luveCreuses||0).toLocaleString('fr')}</td>
+    <td class="col-num">${(r.luvePointes||0).toLocaleString('fr')}</td>
+    <td class="col-num">${(r.luveSoir||0).toLocaleString('fr')}</td>
+    <td class="col-num">${(r.saCreuses||0).toLocaleString('fr')}</td>
+    <td class="col-num">${(r.saPointes||0).toLocaleString('fr')}</td>
+    <td class="col-num">${(r.saSoir||0).toLocaleString('fr')}</td>
+    <td class="col-num">${(r.dijfCreuses||0).toLocaleString('fr')}</td>
+    <td class="col-num">${(r.dijfPointes||0).toLocaleString('fr')}</td>
+  </tr>`).join('');
+}
+
+// ================================================================
+//  4. ECART FINANCIER
+// ================================================================
+function getSoldeCalcule() {
+  const argentDepart = APP.config.argentDepart || 0;
+  const rev = APP.compta.reduce((s, op) => s + (parseFloat(op['Revenus']) || 0), 0);
+  const dep = APP.compta.reduce((s, op) => s + (parseFloat(op['Dépenses']) || 0), 0);
+  return argentDepart + rev - dep;
+}
+
+function previewEcart() {
+  const val = parseFloat(document.getElementById('cfg-ecart').value);
+  const preview = document.getElementById('cfg-ecart-preview');
+  if (isNaN(val)) { preview.style.display = 'none'; return; }
+  const soldeCalc = getSoldeCalcule();
+  const ecart = val - soldeCalc;
+  const signe = ecart >= 0 ? '+' : '';
+  preview.style.display = 'block';
+  preview.style.color = ecart >= 0 ? 'var(--green2)' : 'var(--red)';
+  preview.innerHTML = `Solde calculé : <b>${soldeCalc.toLocaleString('fr')} €</b> → Écart : <b>${signe}${ecart.toLocaleString('fr')} €</b>`;
+}
+
+function appliquerEcart() {
+  const val = parseFloat(document.getElementById('cfg-ecart').value);
+  if (isNaN(val)) { toast('Entrez le solde réel du jeu', 'error'); return; }
+  const soldeCalc = getSoldeCalcule();
+  const ecart = val - soldeCalc;
+  APP.config.ecartFinancier = ecart;
+  db.ref('config/ecartFinancier').set(ecart).then(() => {
+    const el = document.getElementById('cfg-ecart-actuel');
+    if (el) { el.textContent = (ecart >= 0 ? '+' : '') + ecart.toLocaleString('fr') + ' €'; el.style.color = ecart >= 0 ? 'var(--green2)' : 'var(--red)'; }
+    document.getElementById('cfg-ecart').value = '';
+    document.getElementById('cfg-ecart-preview').style.display = 'none';
+    journalLog(`Correction écart appliquée : ${(ecart>=0?'+':'')}${ecart.toLocaleString('fr')} €`, 'ok');
+    toast('Écart appliqué', 'success');
+  });
+}
+
+function resetEcart() {
+  APP.config.ecartFinancier = 0;
+  db.ref('config/ecartFinancier').set(0).then(() => {
+    const el = document.getElementById('cfg-ecart-actuel');
+    if (el) { el.textContent = '0 €'; el.style.color = 'var(--blue)'; }
+    toast('Écart réinitialisé', 'success');
+  });
+}
+
+function sauvegarderArgentDepart() {
+  const val = parseFloat(document.getElementById('cfg-argent-depart').value) || 0;
+  APP.config.argentDepart = val;
+  db.ref('config/argentDepart').set(val).then(() => {
+    const el = document.getElementById('cfg-argent-actuel');
+    if (el) el.textContent = val.toLocaleString('fr') + ' €';
+    toast('Argent de départ enregistré', 'success');
+  });
+}
+
+function loadCfgFinancier() {
+  const el1 = document.getElementById('cfg-argent-depart');
+  if (el1) el1.value = APP.config.argentDepart || '';
+  const el2 = document.getElementById('cfg-argent-actuel');
+  if (el2) el2.textContent = (APP.config.argentDepart || 0).toLocaleString('fr') + ' €';
+  const el3 = document.getElementById('cfg-solde-calcule');
+  if (el3) el3.textContent = getSoldeCalcule().toLocaleString('fr') + ' €';
+  const el4 = document.getElementById('cfg-ecart-actuel');
+  const ecart = APP.config.ecartFinancier || 0;
+  if (el4) { el4.textContent = (ecart >= 0 ? '+' : '') + ecart.toLocaleString('fr') + ' €'; el4.style.color = ecart >= 0 ? 'var(--blue)' : 'var(--red)'; }
+}
+
+// ================================================================
+//  5. THEMES & CATEGORIES
+// ================================================================
+APP.themes = [];
+
+function genId() { return '_' + Math.random().toString(36).substr(2, 9); }
+
+function matchLibelle(libelle, regles) {
+  return (regles || []).some(r => {
+    if (!r || !r.trim()) return false;
+    const pattern = r.trim().replace(/\*/g, '.*').toLowerCase();
+    return new RegExp('^' + pattern + '$').test(libelle.toLowerCase());
+  });
+}
+
+function majToutesOps() {
+  if (!APP.compta.length) { toast('Aucune opération en base', 'info'); return; }
+  let matched = 0;
+  const newCompta = APP.compta.map(op => {
+    const libelle = op["Libellé de l'opération"] || '';
+    let theme = '', cat = '';
+    for (const th of APP.themes) {
+      for (const c of (th.categories || [])) {
+        if (matchLibelle(libelle, c.regles)) {
+          theme = th.nom; cat = c.nom; matched++;
+          break;
+        }
+      }
+      if (theme) break;
+    }
+    return { ...op, theme, cat };
+  });
+  APP.compta = newCompta;
+  db.ref('compta/current').set({ comptabilite: newCompta }).then(() => {
+    toast(`${matched} opération(s) catégorisée(s)`, 'success');
+    journalLog(`MAJ catégories : ${matched} opérations matchées`, 'ok');
+    renderBilan();
+  });
+}
+
+function renderCategories() {
+  const list = document.getElementById('themes-list');
+  if (!list) return;
+  const themes = APP.themes || [];
+  if (!themes.length) {
+    list.innerHTML = `<div style="text-align:center;padding:32px;color:var(--text3);">
+      <div style="font-size:32px;margin-bottom:8px;">🏷️</div>
+      Aucun thème. Cliquez sur <b>+ Nouveau thème</b>.
+    </div>`;
+    return;
+  }
+  list.innerHTML = themes.map(theme => {
+    const typeColor = theme.type === 'recette' ? 'var(--green2)' : 'var(--red)';
+    const cats = theme.categories || [];
+    return `<div class="theme-card">
+      <div class="theme-card-header" style="background:${theme.couleur||'#10b981'}18;border-bottom:1px solid var(--border);">
+        <span class="theme-color-dot" style="background:${theme.couleur||'#10b981'};"></span>
+        <b style="font-size:14px;flex:1;">${theme.nom}</b>
+        <span style="font-size:11px;color:${typeColor};background:${typeColor}18;padding:2px 8px;border-radius:10px;">${theme.type === 'recette' ? '📈 Recette' : '📉 Dépense'}</span>
+        <span style="font-size:11px;color:var(--text3);">${cats.length} catégorie(s)</span>
+        <button class="btn btn-secondary btn-sm" onclick="ouvrirModalNouvelleCategorie('${theme.id}')">+ Cat.</button>
+        <button class="btn btn-secondary btn-icon btn-sm" onclick="editerTheme('${theme.id}')">✏️</button>
+        <button class="btn btn-danger btn-icon btn-sm" onclick="supprimerTheme('${theme.id}')">🗑️</button>
+      </div>
+      ${cats.length ? cats.map(cat => `
+        <div class="cat-row">
+          <span style="width:8px;height:8px;border-radius:50%;background:${cat.couleur||'var(--blue)'};display:inline-block;flex-shrink:0;"></span>
+          <span style="font-weight:600;min-width:180px;">${cat.nom}</span>
+          <span style="flex:1;">${(cat.regles||[]).filter(r=>r.trim()).map(r=>`<span class="rule-tag">${r}</span>`).join(' ')}</span>
+          <span style="font-size:11px;color:var(--blue);">
+            ${compterOpsMatcheesCategorie(cat)} ops
+          </span>
+          <button class="btn btn-secondary btn-icon btn-sm" onclick="editerCategorie('${theme.id}','${cat.id}')">✏️</button>
+          <button class="btn btn-danger btn-icon btn-sm" onclick="supprimerCategorie('${theme.id}','${cat.id}')">🗑️</button>
+        </div>`) .join('') : `<div style="padding:10px 14px;color:var(--text3);font-size:12px;font-style:italic;">Aucune catégorie</div>`}
+    </div>`;
+  }).join('');
+}
+
+function compterOpsMatcheesCategorie(cat) {
+  return APP.compta.filter(op => op.cat === cat.nom).length;
+}
+
+function ouvrirModalNouveauTheme() {
+  ['theme-nom','theme-edit-id'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  document.getElementById('theme-type').value = 'recette';
+  document.getElementById('theme-couleur').value = '#10b981';
+  document.getElementById('modal-theme-title').textContent = '➕ Nouveau thème';
+  openModal('modal-nouveau-theme');
+}
+
+function editerTheme(id) {
+  const t = (APP.themes||[]).find(x => x.id === id);
+  if (!t) return;
+  document.getElementById('theme-nom').value = t.nom;
+  document.getElementById('theme-type').value = t.type;
+  document.getElementById('theme-couleur').value = t.couleur || '#10b981';
+  document.getElementById('theme-edit-id').value = id;
+  document.getElementById('modal-theme-title').textContent = '✏️ Modifier le thème';
+  openModal('modal-nouveau-theme');
+}
+
+function sauvegarderTheme() {
+  const nom = document.getElementById('theme-nom').value.trim();
+  if (!nom) { toast('Nom requis', 'error'); return; }
+  const type    = document.getElementById('theme-type').value;
+  const couleur = document.getElementById('theme-couleur').value;
+  const editId  = document.getElementById('theme-edit-id').value;
+  if (!APP.themes) APP.themes = [];
+  if (editId) {
+    const t = APP.themes.find(x => x.id === editId);
+    if (t) { t.nom = nom; t.type = type; t.couleur = couleur; }
+  } else {
+    APP.themes.push({ id: genId(), nom, type, couleur, categories: [] });
+  }
+  db.ref('themes').set(APP.themes).then(() => {
+    closeModal('modal-nouveau-theme');
+    renderCategories();
+    toast(`Thème "${nom}" ${editId ? 'modifié' : 'créé'}`, 'success');
+  });
+}
+
+function supprimerTheme(id) {
+  const t = (APP.themes||[]).find(x => x.id === id);
+  if (!t || !confirm(`Supprimer le thème "${t.nom}" et toutes ses catégories ?`)) return;
+  APP.themes = APP.themes.filter(x => x.id !== id);
+  db.ref('themes').set(APP.themes).then(() => { renderCategories(); toast('Thème supprimé', 'info'); });
+}
+
+function ouvrirModalNouvelleCategorie(themeId) {
+  document.getElementById('cat-theme-id').value = themeId;
+  document.getElementById('cat-edit-id').value = '';
+  document.getElementById('cat-nom').value = '';
+  document.getElementById('cat-couleur').value = '#00d4ff';
+  document.getElementById('cat-regles-list').innerHTML = '';
+  document.getElementById('modal-cat-title').textContent = '➕ Nouvelle catégorie';
+  ajouterRegleMatching();
+  openModal('modal-nouvelle-categorie');
+}
+
+function editerCategorie(themeId, catId) {
+  const theme = (APP.themes||[]).find(t => t.id === themeId);
+  const cat   = theme ? (theme.categories||[]).find(c => c.id === catId) : null;
+  if (!cat) return;
+  document.getElementById('cat-theme-id').value = themeId;
+  document.getElementById('cat-edit-id').value  = catId;
+  document.getElementById('cat-nom').value    = cat.nom;
+  document.getElementById('cat-couleur').value = cat.couleur || '#00d4ff';
+  const list = document.getElementById('cat-regles-list');
+  list.innerHTML = '';
+  (cat.regles || []).forEach(r => ajouterRegleMatching(r));
+  if (!cat.regles || !cat.regles.length) ajouterRegleMatching();
+  document.getElementById('modal-cat-title').textContent = '✏️ Modifier la catégorie';
+  openModal('modal-nouvelle-categorie');
+}
+
+function ajouterRegleMatching(val = '') {
+  const list = document.getElementById('cat-regles-list');
+  const div = document.createElement('div');
+  div.style.cssText = 'display:flex;gap:6px;align-items:center;';
+  div.innerHTML = `
+    <input type="text" class="form-input" value="${val}" placeholder="*mot-clé*" style="flex:1;font-family:'Fira Code',monospace;font-size:11px;">
+    <button class="btn btn-danger btn-icon btn-sm" onclick="this.parentElement.remove()">✕</button>`;
+  list.appendChild(div);
+}
+
+function sauvegarderCategorie() {
+  const themeId = document.getElementById('cat-theme-id').value;
+  const editId  = document.getElementById('cat-edit-id').value;
+  const nom     = document.getElementById('cat-nom').value.trim();
+  const couleur = document.getElementById('cat-couleur').value;
+  if (!nom) { toast('Nom requis', 'error'); return; }
+
+  const regles = [...document.querySelectorAll('#cat-regles-list input')].map(i => i.value.trim()).filter(Boolean);
+  const theme = (APP.themes||[]).find(t => t.id === themeId);
+  if (!theme) return;
+
+  if (editId) {
+    const cat = (theme.categories||[]).find(c => c.id === editId);
+    if (cat) { cat.nom = nom; cat.couleur = couleur; cat.regles = regles; }
+  } else {
+    if (!theme.categories) theme.categories = [];
+    theme.categories.push({ id: genId(), nom, couleur, regles });
+  }
+
+  db.ref('themes').set(APP.themes).then(() => {
+    closeModal('modal-nouvelle-categorie');
+    renderCategories();
+    toast(`Catégorie "${nom}" ${editId ? 'modifiée' : 'créée'}`, 'success');
+  });
+}
+
+function supprimerCategorie(themeId, catId) {
+  const theme = (APP.themes||[]).find(t => t.id === themeId);
+  if (!theme) return;
+  const cat = (theme.categories||[]).find(c => c.id === catId);
+  if (!cat || !confirm(`Supprimer la catégorie "${cat.nom}" ?`)) return;
+  theme.categories = theme.categories.filter(c => c.id !== catId);
+  db.ref('themes').set(APP.themes).then(() => { renderCategories(); toast('Catégorie supprimée', 'info'); });
+}
+
+// ================================================================
+//  6. TABLEAU FINANCIER (BILAN)
+// ================================================================
+function renderBilan() {
+  const ops    = APP.compta || [];
+  const themes = APP.themes || [];
+  const anneeEl = document.getElementById('bilan-annee');
+  const sc       = document.getElementById('bilan-stat-cards');
+  const container= document.getElementById('bilan-table-container');
+  if (!anneeEl || !container) return;
+
+  // Sélecteur d'années
+  const annees = [...new Set(ops.map(o => {
+    const d = o["Date de l'opération"] || '';
+    const m = d.match(/\d{2}\/\d{2}\/(\d{4})/);
+    return m ? m[1] : null;
+  }).filter(Boolean))].sort().reverse();
+  if (!annees.length) annees.push(new Date().getFullYear().toString());
+  const curAnnee = anneeEl.value || annees[0];
+  anneeEl.innerHTML = annees.map(a => `<option value="${a}" ${a===curAnnee?'selected':''}>${a}</option>`).join('');
+
+  const moisLabels = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+  const moisKeys   = Array.from({length:12}, (_,i) => String(i+1).padStart(2,'0'));
+
+  // Parser la date des ops
+  const parseOpDate = op => {
+    const d = op["Date de l'opération"] || '';
+    const m = d.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+    return m ? { annee: m[3], mois: m[2] } : null;
+  };
+
+  const opsAnnee = ops.filter(op => { const d = parseOpDate(op); return d && d.annee === curAnnee; });
+
+  const sumMoisCat = (type, catNom) =>
+    moisKeys.map(mk =>
+      opsAnnee.filter(op => {
+        const d = parseOpDate(op);
+        return d && d.mois === mk && op.cat === catNom &&
+          (type === 'recette' ? parseFloat(op['Revenus']) > 0 : parseFloat(op['Dépenses']) > 0);
+      }).reduce((s, op) => s + (parseFloat(type === 'recette' ? op['Revenus'] : op['Dépenses']) || 0), 0)
+    );
+
+  const sumArr = arr => arr.reduce((a,b) => a+b, 0);
+  const moyArr = arr => { const nz = arr.filter(v=>v>0); return nz.length ? Math.round(sumArr(nz)/nz.length) : 0; };
+  const fmt2 = v => v ? v.toLocaleString('fr') + ' €' : '';
+
+  const totalRecMois = moisKeys.map(mk => opsAnnee.filter(o => { const d = parseOpDate(o); return d && d.mois === mk; }).reduce((s,o) => s + (parseFloat(o['Revenus']) || 0), 0));
+  const totalDepMois = moisKeys.map(mk => opsAnnee.filter(o => { const d = parseOpDate(o); return d && d.mois === mk; }).reduce((s,o) => s + (parseFloat(o['Dépenses']) || 0), 0));
+  const totalRec = sumArr(totalRecMois), totalDep = sumArr(totalDepMois), soldeNet = totalRec - totalDep;
+
+  // KPIs
+  if (sc) sc.innerHTML = `
+    <div class="kpi-card green"><div class="kpi-label">Total recettes ${curAnnee}</div><div class="kpi-value green">${totalRec.toLocaleString('fr')} €</div></div>
+    <div class="kpi-card red"><div class="kpi-label">Total dépenses ${curAnnee}</div><div class="kpi-value red">${totalDep.toLocaleString('fr')} €</div></div>
+    <div class="kpi-card ${soldeNet>=0?'green':'red'}"><div class="kpi-label">Solde net ${curAnnee}</div><div class="kpi-value ${soldeNet>=0?'green':'red'}">${(soldeNet>=0?'+':'')}${soldeNet.toLocaleString('fr')} €</div></div>
+    <div class="kpi-card blue"><div class="kpi-label">Mois avec données</div><div class="kpi-value blue">${moisKeys.filter(mk=>opsAnnee.some(o=>{ const d=parseOpDate(o); return d&&d.mois===mk; })).length}/12</div></div>`;
+
+  if (!themes.length) {
+    container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3);">
+      <div style="font-size:32px;margin-bottom:8px;">🏷️</div>
+      Configurez d'abord les <b>Thèmes & Catégories</b> en mode configuration.
+    </div>`;
+    return;
+  }
+
+  const buildBlock = (themeList, type) => {
+    let html = '';
+    themeList.forEach(theme => {
+      const cats = (theme.categories || []);
+      const themeVals = moisKeys.map((mk, i) =>
+        cats.reduce((s, cat) => s + sumMoisCat(type, cat.nom)[i], 0)
+      );
+      if (!sumArr(themeVals)) return;
+      const cls = type === 'recette' ? 'bilan-theme-recette' : 'bilan-theme-depense';
+      html += `<tr class="${cls}">
+        <td>${theme.nom}</td>
+        ${themeVals.map(v => `<td class="num">${fmt2(v)}</td>`).join('')}
+        <td class="num col-total">${fmt2(sumArr(themeVals))}</td>
+        <td class="num col-moy">${fmt2(moyArr(themeVals))}</td>
+      </tr>`;
+      cats.forEach(cat => {
+        const vals = sumMoisCat(type, cat.nom);
+        if (!sumArr(vals)) return;
+        html += `<tr class="bilan-cat-row">
+          <td><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${cat.couleur||'var(--blue)'};margin-right:6px;"></span>${cat.nom}</td>
+          ${vals.map(v => v ? `<td class="num">${fmt2(v)}</td>` : `<td class="zero"></td>`).join('')}
+          <td class="num col-total">${fmt2(sumArr(vals))}</td>
+          <td class="num col-moy">${fmt2(moyArr(vals))}</td>
+        </tr>`;
+      });
+    });
+    const totVals = type === 'recette' ? totalRecMois : totalDepMois;
+    html += `<tr class="${type==='recette'?'bilan-total-recettes':'bilan-total-depenses'}">
+      <td>${type==='recette'?'📈 TOTAL RECETTES':'📉 TOTAL DÉPENSES'}</td>
+      ${totVals.map(v=>`<td class="num">${fmt2(v)}</td>`).join('')}
+      <td class="num col-total">${fmt2(sumArr(totVals))}</td>
+      <td class="num col-moy">${fmt2(moyArr(totVals))}</td>
+    </tr>`;
+    return html;
+  };
+
+  const recThemes = themes.filter(t => t.type === 'recette');
+  const depThemes = themes.filter(t => t.type === 'depense');
+
+  container.innerHTML = `<table class="bilan-table">
+    <thead>
+      <tr><th class="th-annee" colspan="${14}">${curAnnee}</th></tr>
+      <tr>
+        <th></th>
+        ${moisLabels.map((m,i) => `<th>${m}</th>`).join('')}
+        <th class="col-total">Total</th><th class="col-moy">Moy./mois</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${buildBlock(recThemes, 'recette')}
+      <tr class="bilan-separator"><td colspan="15"></td></tr>
+      ${buildBlock(depThemes, 'depense')}
+      <tr class="bilan-solde-row">
+        <td>💰 SOLDE NET</td>
+        ${moisKeys.map((_,i) => `<td class="num" style="color:${totalRecMois[i]-totalDepMois[i]>=0?'var(--green2)':'var(--red)'};">${fmt2(totalRecMois[i]-totalDepMois[i])}</td>`).join('')}
+        <td class="num col-total" style="color:${soldeNet>=0?'var(--green2)':'var(--red)'};">${fmt2(soldeNet)}</td>
+        <td class="num col-moy">—</td>
+      </tr>
+    </tbody>
+  </table>`;
+}
+
+function exportBilanCSV() {
+  const anneeEl = document.getElementById('bilan-annee');
+  const annee = anneeEl ? anneeEl.value : new Date().getFullYear().toString();
+  const moisH = ['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec'];
+  let csv = `Thème;Catégorie;${moisH.join(';')};Total\n`;
+  (APP.themes||[]).forEach(t => {
+    (t.categories||[]).forEach(cat => {
+      const vals = Array.from({length:12}, (_,i) => {
+        const mk = String(i+1).padStart(2,'0');
+        return APP.compta.filter(o => {
+          const d = o["Date de l'opération"] || '';
+          const m = d.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+          return m && m[3] === annee && m[2] === mk && o.cat === cat.nom;
+        }).reduce((s,o) => s + (parseFloat(o['Revenus']) || parseFloat(o['Dépenses']) || 0), 0);
+      });
+      csv += `${t.nom};${cat.nom};${vals.join(';')};${vals.reduce((a,b)=>a+b,0)}\n`;
+    });
+  });
+  const blob = new Blob(['\ufeff' + csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `bilan_${annee}.csv`; a.click();
+  toast('Export CSV téléchargé', 'success');
+}
+
+// ================================================================
+//  8. TEMPLATES MESSAGES FORUM
+// ================================================================
+APP.templates = [];
+let _msgTemplateActuel = null;
+let _msgForumUrl = '';
+
+function renderTemplates() {
+  const list = document.getElementById('templates-list');
+  if (!list) return;
+  if (!APP.templates.length) {
+    list.innerHTML = `<div style="color:var(--text3);text-align:center;padding:30px;">Aucun template.</div>`;
+    return;
+  }
+  list.innerHTML = APP.templates.map(t => `
+    <div class="template-card">
+      <div class="flex-between mb-8">
+        <div style="font-weight:700;font-size:13px;">${t.nom}</div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-secondary btn-sm" onclick="editerTemplate('${t.id}')">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="supprimerTemplate('${t.id}')">🗑️</button>
+        </div>
+      </div>
+      ${t.asset ? `<div style="font-size:10px;color:var(--text3);margin-bottom:6px;">🖼️ ${t.asset.substring(0,60)}...</div>` : ''}
+      ${t.forumUrl ? `<div style="font-size:10px;color:var(--blue);margin-bottom:6px;">🌐 ${t.forumUrl.substring(0,60)}</div>` : ''}
+      <div class="template-preview">${t.corps || '—'}</div>
+    </div>
+  `).join('');
+
+  // Mettre à jour le select dans la page messages
+  const sel = document.getElementById('msg-template-select');
+  if (sel) {
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">— Sélectionner —</option>' +
+      APP.templates.map(t => `<option value="${t.id}">${t.nom}</option>`).join('');
+    if (cur) sel.value = cur;
+  }
+}
+
+function ouvrirModalNouveauTemplate() {
+  ['tpl-nom','tpl-asset','tpl-forum-url','tpl-corps','tpl-variables'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('tpl-edit-id').value = '';
+  document.getElementById('modal-tpl-title').textContent = '➕ Nouveau template';
+  openModal('modal-nouveau-template');
+}
+
+function editerTemplate(id) {
+  const t = (APP.templates||[]).find(x => x.id === id);
+  if (!t) return;
+  document.getElementById('tpl-nom').value       = t.nom || '';
+  document.getElementById('tpl-asset').value     = t.asset || '';
+  document.getElementById('tpl-forum-url').value = t.forumUrl || '';
+  document.getElementById('tpl-corps').value     = t.corps || '';
+  document.getElementById('tpl-variables').value = (t.variables||[]).join(', ');
+  document.getElementById('tpl-edit-id').value   = id;
+  document.getElementById('modal-tpl-title').textContent = '✏️ Modifier le template';
+  openModal('modal-nouveau-template');
+}
+
+function sauvegarderTemplate() {
+  const nom      = document.getElementById('tpl-nom').value.trim();
+  if (!nom) { toast('Nom requis', 'error'); return; }
+  const asset    = document.getElementById('tpl-asset').value.trim();
+  const forumUrl = document.getElementById('tpl-forum-url').value.trim();
+  const corps    = document.getElementById('tpl-corps').value;
+  const varsStr  = document.getElementById('tpl-variables').value;
+  const variables= varsStr.split(',').map(v => v.trim()).filter(Boolean);
+  const editId   = document.getElementById('tpl-edit-id').value;
+
+  if (!APP.templates) APP.templates = [];
+  if (editId) {
+    const t = APP.templates.find(x => x.id === editId);
+    if (t) Object.assign(t, { nom, asset, forumUrl, corps, variables });
+  } else {
+    APP.templates.push({ id: genId(), nom, asset, forumUrl, corps, variables });
+  }
+
+  db.ref('templates').set(APP.templates).then(() => {
+    closeModal('modal-nouveau-template');
+    renderTemplates();
+    toast(`Template "${nom}" ${editId ? 'modifié' : 'créé'}`, 'success');
+  });
+}
+
+function supprimerTemplate(id) {
+  const t = (APP.templates||[]).find(x => x.id === id);
+  if (!t || !confirm(`Supprimer "${t.nom}" ?`)) return;
+  APP.templates = APP.templates.filter(x => x.id !== id);
+  db.ref('templates').set(APP.templates).then(() => { renderTemplates(); toast('Template supprimé', 'info'); });
+}
+
+function insererVariable(v) {
+  const ta = document.getElementById('tpl-corps');
+  if (!ta) return;
+  const pos = ta.selectionStart;
+  ta.value = ta.value.slice(0, pos) + v + ta.value.slice(ta.selectionEnd);
+  ta.selectionStart = ta.selectionEnd = pos + v.length;
+  ta.focus();
+}
+
+function loadTemplate() {
+  const id = document.getElementById('msg-template-select').value;
+  const t  = (APP.templates||[]).find(x => x.id === id);
+  _msgTemplateActuel = t || null;
+  _msgForumUrl = t ? (t.forumUrl || '') : '';
+
+  const card = document.getElementById('msg-variables-card');
+  const form = document.getElementById('msg-variables-form');
+  const btnForum = document.getElementById('msg-open-forum-btn');
+
+  if (!t) { if (card) card.style.display = 'none'; return; }
+  if (card) card.style.display = '';
+
+  const vars = t.variables || [];
+  if (form) {
+    form.innerHTML = vars.map(v => `
+      <div class="form-group">
+        <label class="form-label">${v}</label>
+        <input type="text" class="form-input" id="msg-var-${v}" placeholder="${v}">
+      </div>`).join('');
+  }
+
+  if (btnForum) btnForum.style.display = _msgForumUrl ? '' : 'none';
+  document.getElementById('msg-preview').innerHTML = '<span style="color:var(--text3);font-style:italic;">Remplissez les variables et cliquez sur Générer</span>';
+  document.getElementById('msg-actions').style.display = 'none';
+}
+
+function genererMessage() {
+  const t = _msgTemplateActuel;
+  if (!t) { toast('Sélectionnez un template', 'error'); return; }
+
+  let corps = t.corps || '';
+  (t.variables || []).forEach(v => {
+    const el  = document.getElementById('msg-var-' + v);
+    const val = el ? el.value : '';
+    corps = corps.replace(new RegExp('\\{' + v + '\\}', 'g'), val);
+  });
+
+  let message = '';
+  if (t.asset) message += `[img]${t.asset}[/img]\n\n`;
+  message += corps;
+
+  const preview = document.getElementById('msg-preview');
+  if (preview) {
+    preview.innerHTML = '';
+    preview.style.cssText = '';
+    preview.className = 'template-preview';
+    preview.textContent = message;
+  }
+
+  const actions = document.getElementById('msg-actions');
+  if (actions) actions.style.display = 'flex';
+  const btnForum = document.getElementById('msg-open-forum-btn');
+  if (btnForum) btnForum.style.display = _msgForumUrl ? '' : 'none';
+
+  APP._lastMessage = message;
+}
+
+function copierMessage() {
+  const msg = APP._lastMessage || '';
+  navigator.clipboard.writeText(msg).then(() => toast('Message copié !', 'success'))
+    .catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = msg; ta.style.position = 'fixed'; ta.style.top = '-9999px';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta); toast('Message copié !', 'success');
+    });
+}
+
+function ouvrirForumMsg() {
+  if (_msgForumUrl) window.open(_msgForumUrl, '_blank');
+  else window.open('https://forum.transport-manager.net/forum-255.html', '_blank');
+}
 function init() {
   // Dates par défaut
   const today = new Date().toISOString().slice(0,10);
