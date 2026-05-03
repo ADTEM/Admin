@@ -861,7 +861,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V10</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V15</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -1232,12 +1232,9 @@ body.mode-config #page-title { color: var(--cfg-green); }
               <input type="text" class="form-input" id="dl-niveau" placeholder="Ex: Niveau 1">
             </div>
             <div class="form-group">
-              <label class="form-label">Option</label>
-              <select class="form-select" id="dl-option">
-                <option value="aucune">Aucune</option>
-                <option value="ami_comptable">L'ami du comptable</option>
-                <option value="totale">Totale</option>
-                <option value="autre">Autre</option>
+              <label class="form-label">Option souscrite</label>
+              <select class="form-select" id="dl-option" onchange="updateCalcLocation()">
+                <option value="">Aucune</option>
               </select>
             </div>
           </div>
@@ -1295,28 +1292,15 @@ body.mode-config #page-title { color: var(--cfg-green); }
 
         <div class="card mb-16">
           <div class="card-title"><span class="icon">💰</span> Tarification</div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">Prix/sem./bus (€)</label>
-              <input type="number" class="form-input" id="dl-prix-sem" value="1000">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Remise options (€)</label>
-              <input type="number" class="form-input" id="dl-remise" value="0" placeholder="Ex: 500">
-            </div>
-          </div>
-          <div style="background:var(--surface3);border-radius:6px;padding:12px;margin-top:4px;">
-            <div class="flex-between" style="margin-bottom:4px;">
-              <span style="font-size:12px;color:var(--text2);">Coût initial (par sem.) :</span>
-              <span style="font-weight:700;" id="calc-sem">—</span>
-            </div>
-            <div class="flex-between" style="margin-bottom:4px;">
-              <span style="font-size:12px;color:var(--text2);">Remise totale :</span>
-              <span style="font-weight:700;color:var(--yellow);" id="calc-remise-total">—</span>
-            </div>
-            <div class="flex-between">
-              <span style="font-size:13px;font-weight:700;">Total sur durée :</span>
-              <span style="font-size:16px;font-weight:800;color:var(--green);" id="calc-total">—</span>
+          <!-- Résumé calcul avec détail remises options -->
+          <div style="background:var(--surface2);border-radius:8px;padding:12px;margin-top:4px;" id="calc-detail-box">
+            <div id="calc-detail-lines" style="margin-bottom:8px;font-size:11.5px;color:var(--text2);"></div>
+            <div style="border-top:1px solid var(--border);padding-top:8px;">
+              <div class="flex-between">
+                <span style="font-size:13px;font-weight:700;">Total sur durée :</span>
+                <span style="font-size:16px;font-weight:800;color:var(--green2);" id="calc-total">—</span>
+              </div>
+              <div id="calc-economie" style="font-size:10px;color:var(--green2);text-align:right;margin-top:2px;"></div>
             </div>
           </div>
         </div>
@@ -1337,6 +1321,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
             <button class="btn btn-primary btn-sm" onclick="exportDevisImage('devis-loc-content')">📥 Export PNG</button>
             <button class="btn btn-yellow btn-sm" onclick="publierDevis('devis-loc-content','location')">☁️ Publier</button>
             <button class="btn btn-secondary btn-sm" onclick="saveDevis('location')">💾 Sauvegarder</button>
+            <button class="btn btn-secondary btn-sm" onclick="window.open('https://forum.transport-manager.net/forum-255.html','_blank')">🌐 Ouvrir le forum</button>
           </div>
           <div id="devis-location-url" style="display:none;"></div>
         </div>
@@ -1467,6 +1452,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
             <button class="btn btn-primary btn-sm" onclick="exportDevisImage('devis-ae-content')">📥 Export PNG</button>
             <button class="btn btn-yellow btn-sm" onclick="publierDevis('devis-ae-content','ae')">☁️ Publier</button>
             <button class="btn btn-secondary btn-sm" onclick="saveDevis('ae')">💾 Sauvegarder</button>
+            <button class="btn btn-secondary btn-sm" onclick="window.open('https://forum.transport-manager.net/forum-255.html','_blank')">🌐 Ouvrir le forum</button>
           </div>
           <div id="devis-ae-url" style="display:none;"></div>
         </div>
@@ -1630,11 +1616,12 @@ body.mode-config #page-title { color: var(--cfg-green); }
 
       <div>
         <div class="config-group">
-          <div class="config-group-title">🏷️ Options des membres (avec prix mensuel)</div>
-          <div id="options-list" style="margin-bottom:12px;">
-            <!-- Dynamique -->
-          </div>
-          <button class="btn btn-secondary btn-sm" onclick="addOption()">➕ Ajouter une option</button>
+          <div class="config-group-title">⚡ Règles & options des membres</div>
+          <p style="font-size:11.5px;color:var(--text3);margin-bottom:12px;line-height:1.5;">
+            Définissez les avantages accordés automatiquement au calcul du devis selon l'option souscrite par le membre.
+          </p>
+          <div id="regles-list"><!-- Dynamique --></div>
+          <button class="btn btn-secondary btn-sm" onclick="addRegle()">➕ Ajouter une règle</button>
         </div>
 
         <div class="config-group">
@@ -2968,24 +2955,298 @@ function calcDureeAE() {
   }
 }
 
-function updateCalcLocation() {
-  const n = APP.devisLocation.vehiculesSelectionnes.length;
-  const duree = parseInt(document.getElementById('dl-duree').value) || 1;
-  const prix = parseInt(document.getElementById('dl-prix-sem').value) || APP.config.prixSem;
-  const remise = parseInt(document.getElementById('dl-remise').value) || 0;
+// ================================================================
+//  RÈGLES DE REMISE PAR OPTION
+// ================================================================
 
-  const semBrut = n * prix;
-  const remiseTotal = remise * duree;
-  const total = Math.max(0, semBrut * duree - remiseTotal);
+// Règles par défaut ADTEM (modifiables dans la config)
+const REGLES_DEFAUT = [
+  {
+    id: 'regle_vert_pas_cher',
+    option: "Vert et pas cher",
+    type: 'prix_reduit',
+    prixMensuel: 5000,
+    label: "Prix réduit location",
+    prixSem: 700,
+    description: "700€/véhicule/semaine (au lieu du tarif standard)"
+  },
+  {
+    id: 'regle_ami_comptable_gratuit',
+    option: "L'ami du comptable",
+    type: 'gratuit_quota',
+    prixMensuel: 7500,
+    label: "Véhicules gratuits",
+    nbGratuits: 4,
+    semGratuites: 3,
+    prixApres: 750,
+    description: "4 véhicules × 3 semaines gratuits/mois, reste à 750€/sem"
+  },
+  {
+    id: 'regle_ami_comptable_reduit',
+    option: "L'ami du comptable",
+    type: 'prix_reduit',
+    prixMensuel: 0,
+    label: "Prix réduit hors quota",
+    prixSem: 750,
+    description: "750€/véhicule/semaine (hors quota gratuit)"
+  },
+  {
+    id: 'regle_employe_gratuit',
+    option: "Notre employé c'est le meilleur",
+    type: 'employes_gratuits',
+    prixMensuel: 7000,
+    label: "Salariés gratuits",
+    nbGratuits: 10,
+    dureeJours: 90,
+    periodicite: 'bimensuel',
+    description: "10 salariés gratuits × 90 jours (1×/2 mois)"
+  },
+  {
+    id: 'regle_atelier',
+    option: "L'as de l'atelier",
+    type: 'bourse',
+    prixMensuel: 7500,
+    label: "Bourse réparations",
+    plafond: 10000,
+    periodicite: 'mensuel',
+    description: "10.000€/mois remboursés pour réparations"
+  },
+  {
+    id: 'regle_super_renov',
+    option: "Super Rénov",
+    type: 'bourse',
+    prixMensuel: 30000,
+    label: "Bourse rénovation",
+    plafond: 50000,
+    periodicite: 'mensuel',
+    description: "50.000€/mois pour rénovations"
+  },
+  {
+    id: 'regle_maxi_renov',
+    option: "Maxi Rénov",
+    type: 'bourse',
+    prixMensuel: 60000,
+    label: "Bourse rénovation",
+    plafond: 100000,
+    periodicite: 'mensuel',
+    description: "100.000€/mois pour rénovations"
+  },
+  {
+    id: 'regle_ultra_renov',
+    option: "Ultra Rénov",
+    type: 'bourse',
+    prixMensuel: 240000,
+    label: "Bourse rénovation",
+    plafond: 400000,
+    periodicite: 'mensuel',
+    description: "400.000€/mois pour rénovations"
+  },
+  {
+    id: 'regle_option_elec',
+    option: "Option élec",
+    type: 'bourse',
+    prixMensuel: 20000,
+    label: "Accès primes élec",
+    plafond: 0,
+    description: "Accès aux primes élec et Prime Time (20.000€/mois)"
+  }
+];
 
-  document.getElementById('calc-sem').textContent = n > 0 ? `${semBrut.toLocaleString('fr')} €` : '—';
-  document.getElementById('calc-remise-total').textContent = remiseTotal > 0 ? `- ${remiseTotal.toLocaleString('fr')} €` : '—';
-  document.getElementById('calc-total').textContent = n > 0 ? `${total.toLocaleString('fr')} €` : '—';
+function getRegles() {
+  return APP.config.regles || REGLES_DEFAUT;
 }
 
-['dl-prix-sem', 'dl-remise', 'dl-duree'].forEach(id => {
-  document.getElementById(id).addEventListener('input', updateCalcLocation);
+function getReglesForOption(optionNom) {
+  return getRegles().filter(r => r.option === optionNom);
+}
+
+/**
+ * Calcule le prix d'une location selon les règles de l'option
+ * @param {number} nbBus
+ * @param {number} duree - semaines
+ * @param {string} optionNom
+ * @param {number} prixStandard
+ * @returns { total, detail: [{label, montant, type}], economie }
+ */
+function calculerPrixAvecOptions(nbBus, duree, optionNom, prixStandard) {
+  if (!nbBus || !duree) return { total: 0, detail: [], economie: 0 };
+
+  const regles = getReglesForOption(optionNom);
+  const detail = [];
+  let total = 0;
+  const prixSansOption = nbBus * duree * prixStandard;
+
+  // Pas d'option → tarif standard
+  if (!optionNom || !regles.length) {
+    detail.push({
+      label: `${nbBus} véhicule(s) × ${duree} sem. × ${prixStandard.toLocaleString('fr')} €`,
+      montant: prixSansOption,
+      type: 'standard'
+    });
+    return { total: prixSansOption, detail, economie: 0 };
+  }
+
+  // Chercher la règle gratuit_quota
+  const regleGratuit = regles.find(r => r.type === 'gratuit_quota');
+  // Chercher la règle prix_reduit
+  const reglePrix = regles.find(r => r.type === 'prix_reduit');
+
+  if (regleGratuit) {
+    // L'ami du comptable : 4 véhicules × 3 semaines gratuits
+    const nbGratuits  = regleGratuit.nbGratuits  || 4;
+    const semGratuites = regleGratuit.semGratuites || 3;
+    const prixApres   = regleGratuit.prixApres    || prixStandard;
+
+    // Calculer les véhicules/semaines gratuits
+    // Total véhicules*semaines = nbBus * duree
+    // Gratuit = min(nbBus, nbGratuits) * min(duree, semGratuites)
+    const busGratuits = Math.min(nbBus, nbGratuits);
+    const semGrat     = Math.min(duree, semGratuites);
+    const uniteGratuites = busGratuits * semGrat;
+
+    // Unités payantes = total - gratuites
+    const total_unites  = nbBus * duree;
+    const unitePayantes = total_unites - uniteGratuites;
+
+    if (uniteGratuites > 0) {
+      detail.push({
+        label: `${busGratuits} véhicule(s) × ${semGrat} sem. — GRATUIT (${regleGratuit.option})`,
+        montant: 0,
+        type: 'gratuit'
+      });
+    }
+
+    if (unitePayantes > 0) {
+      // Calculer les unités payantes : bus supplémentaires + semaines supplémentaires
+      let montantPayant = 0;
+
+      // Bus supplémentaires (au-delà du quota) sur toute la durée
+      const busSup = Math.max(0, nbBus - nbGratuits);
+      if (busSup > 0) {
+        montantPayant += busSup * duree * prixApres;
+        detail.push({
+          label: `${busSup} véhicule(s) suppl. × ${duree} sem. × ${prixApres.toLocaleString('fr')} €`,
+          montant: busSup * duree * prixApres,
+          type: 'payant'
+        });
+      }
+
+      // Semaines supplémentaires (au-delà du quota) pour les bus dans le quota
+      const semSup = Math.max(0, duree - semGratuites);
+      if (semSup > 0 && busGratuits > 0) {
+        montantPayant += busGratuits * semSup * prixApres;
+        detail.push({
+          label: `${busGratuits} véhicule(s) × ${semSup} sem. suppl. × ${prixApres.toLocaleString('fr')} €`,
+          montant: busGratuits * semSup * prixApres,
+          type: 'payant'
+        });
+      }
+
+      total = montantPayant;
+    } else {
+      total = 0;
+    }
+
+  } else if (reglePrix) {
+    // Option prix réduit simple (Vert et pas cher)
+    const prixReduit = reglePrix.prixSem || prixStandard;
+    const montant = nbBus * duree * prixReduit;
+    detail.push({
+      label: `${nbBus} véhicule(s) × ${duree} sem. × ${prixReduit.toLocaleString('fr')} € (tarif ${optionNom})`,
+      montant,
+      type: 'reduit'
+    });
+    total = montant;
+  } else {
+    // Règle non applicable au calcul location
+    total = prixSansOption;
+    detail.push({
+      label: `${nbBus} véhicule(s) × ${duree} sem. × ${prixStandard.toLocaleString('fr')} €`,
+      montant: prixSansOption,
+      type: 'standard'
+    });
+  }
+
+  const economie = Math.max(0, prixSansOption - total);
+  return { total, detail, economie };
+}
+
+// ================================================================
+//  MISE À JOUR DU SELECT OPTIONS (depuis la config)
+// ================================================================
+function populateOptionSelects() {
+  // Pour les devis location/AE : uniquement les options qui impactent le calcul
+  const typesActifs = ['prix_reduit', 'gratuit_quota', 'employes_gratuits'];
+  const regles = getRegles();
+
+  // Options avec au moins une règle de type actif
+  const optionsPertinentes = [...new Set(
+    regles
+      .filter(r => typesActifs.includes(r.type) && r.option)
+      .map(r => r.option)
+  )];
+
+  const selects = ['dl-option', 'ae-option'];
+  selects.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const currentVal = sel.value;
+    sel.innerHTML = '<option value="">Aucune</option>';
+    optionsPertinentes.forEach(nom => {
+      const opt = document.createElement('option');
+      opt.value = nom;
+      opt.textContent = nom;
+      sel.appendChild(opt);
+    });
+    if (currentVal) sel.value = currentVal;
+  });
+}
+
+function updateCalcLocation() {
+  const n      = APP.devisLocation.vehiculesSelectionnes.length;
+  const duree  = parseInt(document.getElementById('dl-duree').value) || 1;
+  const prix   = APP.config.prixSem || 1000;
+  const option = document.getElementById('dl-option').value;
+
+  if (!n) {
+    document.getElementById('calc-total').textContent = '—';
+    document.getElementById('calc-detail-lines').innerHTML = '';
+    document.getElementById('calc-economie').textContent = '';
+    return;
+  }
+
+  const { total, detail, economie } = calculerPrixAvecOptions(n, duree, option, prix);
+
+  // Afficher le détail ligne par ligne
+  const colors = { gratuit: 'var(--green2)', reduit: 'var(--blue)', payant: 'var(--text2)', standard: 'var(--text2)' };
+  const icons  = { gratuit: '🎁', reduit: '💚', payant: '💶', standard: '💶' };
+
+  document.getElementById('calc-detail-lines').innerHTML = detail.map(d => `
+    <div class="flex-between" style="margin-bottom:5px;">
+      <span style="color:${colors[d.type] || 'var(--text2)'};">${icons[d.type] || ''} ${d.label}</span>
+      <span style="font-weight:700;color:${d.montant === 0 ? 'var(--green2)' : 'var(--text)'};">
+        ${d.montant === 0 ? 'GRATUIT' : d.montant.toLocaleString('fr') + ' €'}
+      </span>
+    </div>
+  `).join('');
+
+  document.getElementById('calc-total').textContent = total.toLocaleString('fr') + ' €';
+
+  const econEl = document.getElementById('calc-economie');
+  if (economie > 0) {
+    econEl.textContent = `🎉 Économie : ${economie.toLocaleString('fr')} € grâce à l'option "${option}"`;
+  } else {
+    econEl.textContent = '';
+  }
+}
+
+['dl-duree', 'dl-option'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', updateCalcLocation);
 });
+
+// Supprimer l'ancien listener dl-remise qui n'existe plus
+// Garder dl-prix-sem pour rétrocompat interne si besoin
 
 // ================================================================
 //  GÉNÉRATION DEVIS LOCATION
@@ -2993,36 +3254,37 @@ function updateCalcLocation() {
 function genererDevisLocation() {
   const v = APP.devisLocation.vehiculesSelectionnes;
   if (!v.length) { toast('Sélectionnez au moins un véhicule', 'error'); return; }
-  const pseudo = document.getElementById('dl-pseudo').value || '—';
+
+  const pseudo      = document.getElementById('dl-pseudo').value || '—';
   const pseudoForum = document.getElementById('dl-pseudo-forum').value || pseudo;
-  const niveau = document.getElementById('dl-niveau').value || '—';
-  const option = document.getElementById('dl-option').options[document.getElementById('dl-option').selectedIndex].text;
+  const niveau      = document.getElementById('dl-niveau').value || '—';
+  const optionNom   = document.getElementById('dl-option').value || '';
+  const optionLabel = optionNom || 'Aucune';
   const dateDemande = formatDateFR(document.getElementById('dl-date-demande').value);
-  const dateCreation = formatDateFR(document.getElementById('dl-date-creation').value);
-  const debut = formatDateFR(document.getElementById('dl-debut').value);
-  const duree = parseInt(document.getElementById('dl-duree').value) || 1;
-  const finDate = calcFinDate(document.getElementById('dl-debut').value, duree);
-  const busRemplaces = document.getElementById('dl-bus-remplaces').value;
-  const prix = parseInt(document.getElementById('dl-prix-sem').value) || APP.config.prixSem;
-  const remise = parseInt(document.getElementById('dl-remise').value) || 0;
+  const dateCreation= formatDateFR(document.getElementById('dl-date-creation').value);
+  const debut       = formatDateFR(document.getElementById('dl-debut').value);
+  const duree       = parseInt(document.getElementById('dl-duree').value) || 1;
+  const finDate     = calcFinDate(document.getElementById('dl-debut').value, duree);
+  const busRemplaces= document.getElementById('dl-bus-remplaces').value;
+  const prixStd     = APP.config.prixSem || 1000;
 
-  const nbBus = v.length;
+  const nbBus       = v.length;
   const totalPlaces = v.reduce((s, x) => s + parseInt(x['Places'] || 0), 0);
-  const energies = [...new Set(v.map(x => x['Energie']))].join(', ');
-  const types = [...new Set(v.map(x => x['Type']))].join(', ');
-  const marques = [...new Set(v.map(x => x['Marque']))].join(', ');
-  const modeles = [...new Set(v.map(x => x['Modèle']))].join(', ');
-  const numParcs = v.map(x => x['Numéro Parc']).join(', ');
+  const energies    = [...new Set(v.map(x => x['Energie']))].join(', ');
+  const types       = [...new Set(v.map(x => x['Type']))].join(', ');
+  const marques     = [...new Set(v.map(x => x['Marque']))].join(', ');
+  const modeles     = [...new Set(v.map(x => x['Modèle']))].join(', ');
+  const numParcs    = v.map(x => x['Numéro Parc']).join(', ');
 
-  const semBrut = nbBus * prix;
-  const remiseTotal = remise * duree;
-  const total = Math.max(0, semBrut * duree - remiseTotal);
+  // Calcul avec moteur de règles
+  const { total, detail, economie } = calculerPrixAvecOptions(nbBus, duree, optionNom, prixStd);
+  const prixSansOption = nbBus * duree * prixStd;
 
   const html = buildDevisLocationHTML({
-    pseudo, pseudoForum, niveau, option, dateDemande, dateCreation,
+    pseudo, pseudoForum, niveau, option: optionLabel, dateDemande, dateCreation,
     debut, fin: finDate, busRemplaces,
     nbBus, totalPlaces, energies, types, marques, modeles, numParcs,
-    duree, semBrut, remiseTotal, total
+    duree, detail, total, economie, prixSansOption, prixStd
   });
 
   const preview = document.getElementById('devis-location-preview');
@@ -3030,29 +3292,44 @@ function genererDevisLocation() {
   preview.style.height = `${794 * 0.55 * 1.5}px`;
   preview.style.overflow = 'hidden';
 
-  const actions = document.getElementById('devis-location-actions');
-  actions.style.display = 'flex';
-
+  document.getElementById('devis-location-actions').style.display = 'flex';
   toast('Devis généré !', 'success');
 }
 
 function buildDevisLocationHTML(d) {
-  const cgv = (APP.config.cgv || document.getElementById('cfg-cgv').value).replace(/\n/g, '<br>');
-  const nbSem = d.duree;
-  const colTitre = nbSem > 1 ? `Pour 1 semaine` : '';
-  const colTotal = `Sur la durée de location (${nbSem}sem)`;
+  const cgv    = (APP.config.cgv || document.getElementById('cfg-cgv').value).replace(/\n/g, '<br>');
+  const nbSem  = d.duree;
+  const colTotal = `Sur la durée de location (${nbSem} sem.)`;
+
+  // Tableau de tarification avec détail des remises
+  const lignesTarif = (d.detail || []).map(ligne => `
+    <tr ${ligne.type === 'gratuit' ? 'style="background:#e8f5e9;"' : ''}>
+      <td style="padding:7px 12px;border-top:1px solid #e0e0e0;font-size:10.5px;color:#2e7d32;font-weight:600;">
+        ${ligne.type === 'gratuit' ? '🎁 ' : ''}${ligne.label}
+      </td>
+      <td style="text-align:center;padding:7px 12px;border-top:1px solid #e0e0e0;font-size:11px;font-weight:700;color:${ligne.montant === 0 ? '#2e7d32' : '#1a1a1a'};">
+        ${ligne.montant === 0 ? 'GRATUIT' : ligne.montant.toLocaleString('fr') + ' €'}
+      </td>
+    </tr>`).join('');
+
+  const ligneEconomie = d.economie > 0 ? `
+    <tr style="background:#fff9e6;">
+      <td colspan="2" style="padding:6px 12px;border-top:1px solid #e0e0e0;font-size:10px;color:#b77c00;font-style:italic;">
+        🎉 Économie totale grâce à l'option "${d.option}" : <b>${d.economie.toLocaleString('fr')} €</b>
+        (tarif standard sans option : ${d.prixSansOption ? d.prixSansOption.toLocaleString('fr') + ' €' : '—'})
+      </td>
+    </tr>` : '';
 
   return `<div id="devis-loc-content" style="background:white;color:#1a1a1a;font-family:'Exo 2',sans-serif;width:794px;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:16px 24px 14px;border-bottom:3px solid #2e7d32;background:#f9fafb;">
-    <div>
-      <div style="font-size:22px;font-weight:900;color:#1a1a1a;line-height:1.1;">TRANSPORT<br>MANAGER</div>
-      <div style="font-size:9px;color:#666;letter-spacing:1px;">🚌 Transport Manager Alliance</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/Logo%20Alliance.png"
+        style="height:60px;width:auto;object-fit:contain;" crossorigin="anonymous"
+        onerror="this.style.display='none'">
     </div>
     <div style="text-align:right;">
-      <div style="font-size:20px;font-weight:900;color:#2e7d32;letter-spacing:2px;">ADTEM</div>
-      <div style="font-size:9px;color:#666;letter-spacing:0.5px;">Group</div>
-      <div style="font-style:italic;font-size:10px;color:#444;max-width:200px;text-align:right;margin-top:4px;">Aiguisons les limites et développons la mobilité de demain</div>
-      <div style="margin-top:8px;font-size:10px;color:#333;">
+      <div style="font-style:italic;font-size:10px;color:#444;max-width:200px;text-align:right;margin-bottom:8px;">Aiguisons les limites et développons la mobilité de demain</div>
+      <div style="font-size:10px;color:#333;">
         <div>Date de demande : <b>${d.dateDemande}</b></div>
         <div>Date de création : <b>${d.dateCreation}</b></div>
       </div>
@@ -3072,45 +3349,32 @@ function buildDevisLocationHTML(d) {
     ${d.nbBus} ${d.types} ${d.energies} pour un total de ${d.totalPlaces} places
   </div>
 
-  <div style="display:grid;grid-template-columns:180px 1fr;padding:0 24px;position:relative;">
+  <div style="display:grid;grid-template-columns:180px 1fr;padding:0 24px;">
     ${devisRow('Type :', d.types)}
     ${devisRow('Motorisation :', d.energies)}
     ${devisRow('Marque(s) :', d.marques)}
     ${devisRow('Modèle(s) :', d.modeles)}
     ${devisRow('Numéro(s) de parc :', d.numParcs)}
-    <div style="grid-column:1/-1;height:60px;"></div>
     ${devisRow('Début de location :', d.debut)}
     ${devisRow('Fin de location :', d.fin)}
     ${devisRow('Bus remplacé(s) :', d.busRemplaces || '—')}
-    <div style="grid-column:1/-1;height:16px;"></div>
+    <div style="grid-column:1/-1;height:10px;"></div>
   </div>
 
-  <div style="float:right;margin:-220px 24px 0 0;width:90px;height:90px;background:#4caf50;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:40px;">🍃</div>
-
-  <div style="clear:both;margin:12px 24px;border:2px solid #2e7d32;border-radius:4px;overflow:hidden;">
+  <div style="margin:12px 24px;border:2px solid #2e7d32;border-radius:4px;overflow:hidden;">
     <table style="width:100%;border-collapse:collapse;">
       <thead>
         <tr>
-          <th style="text-align:left;padding:8px 12px;background:#2e7d32;color:white;font-size:11px;font-weight:700;width:200px;"></th>
-          ${d.duree > 1 ? `<th style="text-align:center;padding:8px 12px;background:#2e7d32;color:white;font-size:11px;font-weight:700;">Pour 1 semaine</th>` : ''}
-          <th style="text-align:center;padding:8px 12px;background:#2e7d32;color:white;font-size:11px;font-weight:700;">${colTotal}</th>
+          <th style="text-align:left;padding:8px 12px;background:#2e7d32;color:white;font-size:11px;font-weight:700;">${colTotal}</th>
+          <th style="text-align:center;padding:8px 12px;background:#2e7d32;color:white;font-size:11px;font-weight:700;width:140px;">Montant</th>
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td style="padding:8px 12px;border-top:1px solid #e0e0e0;font-size:11px;font-weight:700;color:#2e7d32;">Coût initial :</td>
-          ${d.duree > 1 ? `<td style="text-align:center;padding:8px 12px;border-top:1px solid #e0e0e0;font-size:11px;font-weight:600;">${d.semBrut.toLocaleString('fr')} €</td>` : ''}
-          <td style="text-align:center;padding:8px 12px;border-top:1px solid #e0e0e0;font-size:11px;font-weight:600;">${(d.semBrut * d.duree).toLocaleString('fr')} €</td>
-        </tr>
-        ${d.remiseTotal > 0 ? `<tr>
-          <td style="padding:8px 12px;border-top:1px solid #e0e0e0;font-size:11px;font-weight:700;color:#2e7d32;">Remise lié aux options</td>
-          ${d.duree > 1 ? `<td style="text-align:center;padding:8px 12px;border-top:1px solid #e0e0e0;font-size:11px;font-weight:600;">${(d.remiseTotal/d.duree).toLocaleString('fr')}€</td>` : ''}
-          <td style="text-align:center;padding:8px 12px;border-top:1px solid #e0e0e0;font-size:11px;font-weight:600;">${d.remiseTotal.toLocaleString('fr')}€</td>
-        </tr>` : ''}
+        ${lignesTarif}
+        ${ligneEconomie}
         <tr style="background:#e8f5e9;">
-          <td style="padding:8px 12px;border-top:1px solid #e0e0e0;font-size:13px;font-weight:900;color:#2e7d32;">Montant Total :</td>
-          ${d.duree > 1 ? `<td style="text-align:center;padding:8px 12px;border-top:1px solid #e0e0e0;font-size:13px;font-weight:900;color:#2e7d32;">${(d.total/d.duree).toLocaleString('fr')} €</td>` : ''}
-          <td style="text-align:center;padding:8px 12px;border-top:1px solid #e0e0e0;font-size:14px;font-weight:900;color:#2e7d32;">${d.total.toLocaleString('fr')} €</td>
+          <td style="padding:8px 12px;border-top:2px solid #2e7d32;font-size:14px;font-weight:900;color:#2e7d32;">Montant Total :</td>
+          <td style="text-align:center;padding:8px 12px;border-top:2px solid #2e7d32;font-size:15px;font-weight:900;color:#2e7d32;">${d.total.toLocaleString('fr')} €</td>
         </tr>
       </tbody>
     </table>
@@ -3128,6 +3392,7 @@ function buildDevisLocationHTML(d) {
     ${cgv}
   </div>
 </div>`;
+
 }
 
 function clientLine(label, value) {
@@ -3185,15 +3450,14 @@ function buildDevisAEHTML(d) {
   const cgv = (APP.config.cgv || document.getElementById('cfg-cgv').value).replace(/\n/g, '<br>');
   return `<div style="background:white;color:#1a1a1a;font-family:'Exo 2',sans-serif;width:794px;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:16px 24px 14px;border-bottom:3px solid #2e7d32;background:#f9fafb;">
-    <div>
-      <div style="font-size:22px;font-weight:900;color:#1a1a1a;line-height:1.1;">TRANSPORT<br>MANAGER</div>
-      <div style="font-size:9px;color:#666;letter-spacing:1px;">🚌 Transport Manager Alliance</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/Logo%20Alliance.png"
+        style="height:60px;width:auto;object-fit:contain;" crossorigin="anonymous"
+        onerror="this.style.display='none'">
     </div>
     <div style="text-align:right;">
-      <div style="font-size:20px;font-weight:900;color:#2e7d32;letter-spacing:2px;">ADTEM</div>
-      <div style="font-size:9px;color:#666;">Group</div>
-      <div style="font-style:italic;font-size:10px;color:#444;max-width:200px;text-align:right;margin-top:4px;">Aiguisons les limites et développons la mobilité de demain</div>
-      <div style="margin-top:8px;font-size:10px;color:#333;">
+      <div style="font-style:italic;font-size:10px;color:#444;max-width:200px;text-align:right;margin-bottom:8px;">Aiguisons les limites et développons la mobilité de demain</div>
+      <div style="font-size:10px;color:#333;">
         <div>Date de demande : <b>${d.dateDemande}</b></div>
         <div>Date de création : <b>${d.dateCreation}</b></div>
       </div>
@@ -3452,27 +3716,46 @@ function exportCompta() {
 // ================================================================
 //  MEMBRES — OPTIONS PAR DÉFAUT
 // ================================================================
+// OPTIONS_DEFAUT avec prixMensuel intégré dans les règles par défaut
 const OPTIONS_DEFAUT = [
-  { nom: "Vert et pas cher",                   prix: 5000   },
-  { nom: "L'ami du comptable",                  prix: 7500   },
-  { nom: "Notre employé c'est le meilleur",     prix: 7000   },
-  { nom: "L'as de l'atelier",                   prix: 7500   },
-  { nom: "Super Rénov",                         prix: 30000  },
-  { nom: "Maxi Rénov",                          prix: 60000  },
-  { nom: "Ultra Rénov",                         prix: 240000 },
-  { nom: "Option élec",                         prix: 20000  }
+  { nom: "Vert et pas cher",                 prix: 5000   },
+  { nom: "L'ami du comptable",               prix: 7500   },
+  { nom: "Notre employé c'est le meilleur",  prix: 7000   },
+  { nom: "L'as de l'atelier",               prix: 7500   },
+  { nom: "Super Rénov",                      prix: 30000  },
+  { nom: "Maxi Rénov",                       prix: 60000  },
+  { nom: "Ultra Rénov",                      prix: 240000 },
+  { nom: "Option élec",                      prix: 20000  }
 ];
 
+/**
+ * Reconstruit la liste {nom, prix} depuis les règles.
+ * Le prixMensuel est lu sur la première règle de chaque option.
+ * Fallback sur OPTIONS_DEFAUT si aucune règle configurée.
+ */
 function getOptions() {
-  // Fusionne options config Firebase avec défauts
-  const cfg = APP.config.options || [];
-  if (!cfg.length) return OPTIONS_DEFAUT;
-  // Si options stockées en base avec prix
-  if (typeof cfg[0] === 'object') return cfg;
-  // Ancien format (tableau de strings) → enrichir avec prix
-  return cfg.map(nom => {
-    const found = OPTIONS_DEFAUT.find(o => o.nom === nom);
-    return found || { nom, prix: 0 };
+  const regles = getRegles();
+  if (!regles || !regles.length) return OPTIONS_DEFAUT;
+
+  // Grouper par option, prendre le prixMensuel de la première règle
+  const map = {};
+  regles.forEach(r => {
+    if (!r.option) return;
+    if (!map[r.option]) {
+      map[r.option] = { nom: r.option, prix: r.prixMensuel || 0 };
+    }
+  });
+
+  const fromRegles = Object.values(map);
+  if (!fromRegles.length) return OPTIONS_DEFAUT;
+
+  // Compléter le prix depuis OPTIONS_DEFAUT si non renseigné
+  return fromRegles.map(o => {
+    if (!o.prix) {
+      const found = OPTIONS_DEFAUT.find(d => d.nom === o.nom);
+      if (found) o.prix = found.prix;
+    }
+    return o;
   });
 }
 
@@ -3546,7 +3829,7 @@ function renderMembres() {
       <td style="text-align:center;">
         <div style="display:flex;gap:4px;justify-content:center;">
           <button class="btn btn-secondary btn-icon btn-sm" onclick="openEditMembre('${m.id}')" title="Modifier">✏️</button>
-          <button class="btn btn-secondary btn-icon btn-sm" onclick="createDevisForMembre('${m.pseudo}')" title="Créer un devis">📄</button>
+          <button class="btn btn-secondary btn-icon btn-sm" onclick="createDevisForMembre('${m.id}')" title="Créer un devis">📄</button>
           <button class="btn btn-danger btn-icon btn-sm" onclick="deleteMembre('${m.id}')" title="Supprimer">🗑️</button>
         </div>
       </td>
@@ -3824,9 +4107,30 @@ async function saveEditMembre() {
   closeModal('modal-edit-membre');
 }
 
-function createDevisForMembre(pseudo) {
-  document.getElementById('dl-pseudo').value = pseudo;
-  document.getElementById('dl-pseudo-forum').value = pseudo;
+function createDevisForMembre(id) {
+  // Chercher par id ou par pseudo (rétrocompat)
+  const m = APP.membres.find(x => x.id === id) || APP.membres.find(x => x.pseudo === id);
+  if (!m) { showPage('devis-location'); return; }
+
+  document.getElementById('dl-pseudo').value       = m.pseudo || '';
+  document.getElementById('dl-pseudo-forum').value  = m.pseudo || '';
+  document.getElementById('dl-niveau').value        = m.niveau ? 'Niveau ' + m.niveau : '';
+
+  // Pré-sélectionner l'option dans le select
+  const optEl = document.getElementById('dl-option');
+  if (m.options && m.options.length > 0) {
+    const opt = m.options[0];
+    // Chercher dans les options du select
+    for (let i = 0; i < optEl.options.length; i++) {
+      if (optEl.options[i].text.toLowerCase().includes(opt.toLowerCase().substring(0, 8))) {
+        optEl.selectedIndex = i;
+        break;
+      }
+    }
+  } else {
+    optEl.selectedIndex = 0;
+  }
+
   showPage('devis-location');
 }
 
@@ -3890,45 +4194,107 @@ function loadConfigForm() {
   document.getElementById('cfg-duree-max').value          = APP.config.dureeMax || 12;
   document.getElementById('cfg-promo').value              = APP.config.promo    || '';
   document.getElementById('cfg-assets-url').value         = APP.config.assetsUrl|| '';
-  if (APP.config.cgv) document.getElementById('cfg-cgv').value = APP.config.cgv;
-
-  // Options avec prix
-  const opts = getOptions();
-  const container = document.getElementById('options-list');
-  container.innerHTML = opts.map((o, i) => `
-    <div class="flex-between" style="margin-bottom:6px;gap:8px;" id="opt-row-${i}">
-      <input type="text" class="form-input" style="flex:2;" value="${o.nom}" id="opt-nom-${i}"
-        placeholder="Nom de l'option">
-      <input type="number" class="form-input" style="width:120px;flex-shrink:0;" value="${o.prix}" id="opt-prix-${i}"
-        placeholder="Prix €/mois">
-      <button class="btn btn-danger btn-sm" onclick="removeOption(${i})">🗑️</button>
-    </div>
-  `).join('');
-}
-
-function addOption() {
-  const opts = getOptions();
-  opts.push({ nom: 'Nouvelle option', prix: 0 });
-  APP.config.options = opts;
-  loadConfigForm();
-}
-
-function removeOption(i) {
-  const opts = getOptions();
-  opts.splice(i, 1);
-  APP.config.options = opts;
-  loadConfigForm();
+  // Règles
+  const regles = getRegles();
+  const typeLabels = {
+    prix_reduit: '💚 Prix réduit',
+    gratuit_quota: '🎁 Gratuité quota',
+    bourse: '💰 Bourse',
+    employes_gratuits: '👷 Employés gratuits'
+  };
+  const reglesContainer = document.getElementById('regles-list');
+  if (reglesContainer) {
+    reglesContainer.innerHTML = regles.map((r, i) => `
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span class="badge badge-green" style="flex-shrink:0;">${typeLabels[r.type] || r.type}</span>
+          <span style="font-weight:600;font-size:12px;flex:1;">${r.option}</span>
+          ${r.prixMensuel ? `<span style="font-size:11px;color:var(--text3);">${r.prixMensuel.toLocaleString('fr')} €/mois</span>` : ''}
+          <button class="btn btn-danger btn-sm" onclick="removeRegle(${i})">🗑️</button>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-style:italic;">${r.description || ''}</div>
+        <div class="form-grid" style="gap:8px;">
+          <div>
+            <label class="form-label" style="font-size:10px;">Nom de l'option (libre)</label>
+            <input type="text" class="form-input" id="regle-option-${i}"
+              value="${r.option || ''}"
+              list="datalist-options-${i}"
+              placeholder="Ex: Vert et pas cher"
+              style="font-size:11px;padding:5px 8px;">
+            <datalist id="datalist-options-${i}">
+              ${[...new Set(getRegles().map(r2 => r2.option).filter(Boolean))].map(nom => `<option value="${nom}">`).join('')}
+            </datalist>
+          </div>
+          <div>
+            <label class="form-label" style="font-size:10px;">Type de règle</label>
+            <select class="form-select" id="regle-type-${i}" style="font-size:11px;padding:5px 8px;">
+              <option value="prix_reduit"     ${r.type==='prix_reduit'     ?'selected':''}>💚 Prix réduit</option>
+              <option value="gratuit_quota"   ${r.type==='gratuit_quota'   ?'selected':''}>🎁 Gratuité quota</option>
+              <option value="bourse"          ${r.type==='bourse'          ?'selected':''}>💰 Bourse</option>
+              <option value="employes_gratuits" ${r.type==='employes_gratuits'?'selected':''}>👷 Employés gratuits</option>
+            </select>
+          </div>
+          ${r.type === 'prix_reduit' ? `
+            <div><label class="form-label" style="font-size:10px;">Prix/sem (€)</label>
+            <input type="number" class="form-input" id="regle-prixSem-${i}" value="${r.prixSem||0}" style="font-size:11px;padding:5px 8px;"></div>
+          ` : ''}
+          ${r.type === 'gratuit_quota' ? `
+            <div><label class="form-label" style="font-size:10px;">Nb gratuits</label>
+            <input type="number" class="form-input" id="regle-nbGratuits-${i}" value="${r.nbGratuits||4}" style="font-size:11px;padding:5px 8px;"></div>
+            <div><label class="form-label" style="font-size:10px;">Sem. gratuites</label>
+            <input type="number" class="form-input" id="regle-semGratuites-${i}" value="${r.semGratuites||3}" style="font-size:11px;padding:5px 8px;"></div>
+            <div><label class="form-label" style="font-size:10px;">Prix après quota (€)</label>
+            <input type="number" class="form-input" id="regle-prixApres-${i}" value="${r.prixApres||750}" style="font-size:11px;padding:5px 8px;"></div>
+          ` : ''}
+          ${r.type === 'bourse' ? `
+            <div><label class="form-label" style="font-size:10px;">Plafond (€)</label>
+            <input type="number" class="form-input" id="regle-plafond-${i}" value="${r.plafond||0}" style="font-size:11px;padding:5px 8px;"></div>
+          ` : ''}
+          ${r.type === 'employes_gratuits' ? `
+            <div><label class="form-label" style="font-size:10px;">Nb gratuits</label>
+            <input type="number" class="form-input" id="regle-nbGratuits-${i}" value="${r.nbGratuits||10}" style="font-size:11px;padding:5px 8px;"></div>
+            <div><label class="form-label" style="font-size:10px;">Durée (jours)</label>
+            <input type="number" class="form-input" id="regle-dureeJours-${i}" value="${r.dureeJours||90}" style="font-size:11px;padding:5px 8px;"></div>
+          ` : ''}
+          <div style="grid-column:1/-1;">
+            <label class="form-label" style="font-size:10px;">Description</label>
+            <input type="text" class="form-input" id="regle-desc-${i}" value="${r.description||''}" style="font-size:11px;padding:5px 8px;">
+          </div>
+          <div>
+            <label class="form-label" style="font-size:10px;">💳 Prix mensuel souscription (€)</label>
+            <input type="number" class="form-input" id="regle-prixMensuel-${i}" value="${r.prixMensuel||0}"
+              style="font-size:11px;padding:5px 8px;"
+              title="Coût mensuel que paie le membre pour cette option">
+          </div>
+        </div>
+      </div>
+    `).join('') || '<div style="color:var(--text3);font-size:12px;">Aucune règle définie — utilisation des règles par défaut ADTEM.</div>';
+  }
 }
 
 function saveConfig() {
-  // Récupère les options avec prix
-  const opts = [];
-  let i = 0;
-  while (document.getElementById('opt-nom-' + i)) {
-    const nom  = (document.getElementById('opt-nom-'  + i).value || '').trim();
-    const prix = parseInt(document.getElementById('opt-prix-' + i).value) || 0;
-    if (nom) opts.push({ nom, prix });
-    i++;
+  // Règles (incluent désormais prixMensuel → source unique pour les options)
+  const regles = [];
+  let ri = 0;
+  while (document.getElementById('regle-option-' + ri)) {
+    const opt  = document.getElementById('regle-option-' + ri).value;
+    const type = document.getElementById('regle-type-'   + ri).value;
+    const desc = document.getElementById('regle-desc-'   + ri).value;
+    const prixMensuel = parseInt((document.getElementById('regle-prixMensuel-' + ri) || {}).value) || 0;
+    const regle = { id: 'regle_' + ri, option: opt, type, description: desc, prixMensuel };
+    if (type === 'prix_reduit')       regle.prixSem      = parseInt(document.getElementById('regle-prixSem-'      + ri).value) || 0;
+    if (type === 'gratuit_quota') {
+      regle.nbGratuits   = parseInt(document.getElementById('regle-nbGratuits-'   + ri).value) || 4;
+      regle.semGratuites = parseInt(document.getElementById('regle-semGratuites-' + ri).value) || 3;
+      regle.prixApres    = parseInt(document.getElementById('regle-prixApres-'    + ri).value) || 750;
+    }
+    if (type === 'bourse')            regle.plafond      = parseInt(document.getElementById('regle-plafond-'      + ri).value) || 0;
+    if (type === 'employes_gratuits') {
+      regle.nbGratuits  = parseInt(document.getElementById('regle-nbGratuits-'  + ri).value) || 10;
+      regle.dureeJours  = parseInt(document.getElementById('regle-dureeJours-'  + ri).value) || 90;
+    }
+    regles.push(regle);
+    ri++;
   }
 
   const config = {
@@ -3941,19 +4307,41 @@ function saveConfig() {
     promo:            document.getElementById('cfg-promo').value,
     assetsUrl:        document.getElementById('cfg-assets-url').value,
     cgv:              document.getElementById('cfg-cgv').value,
-    options:          opts
+    regles
   };
 
   db.ref('config').set(config).then(() => {
     Object.assign(APP.config, config);
+    populateOptionSelects();
     toast('Configuration sauvegardée', 'success');
-    document.getElementById('dl-prix-sem').value = config.prixSem;
     journalLog('Configuration sauvegardée', 'ok');
   });
 }
 
+function addRegle() {
+  const regles = getRegles();
+  regles.push({
+    id: 'regle_' + Date.now(),
+    option: '',
+    type: 'prix_reduit',
+    prixMensuel: 0,
+    prixSem: 0,
+    description: ''
+  });
+  APP.config.regles = regles;
+  loadConfigForm();
+}
+
+function removeRegle(i) {
+  const regles = getRegles();
+  regles.splice(i, 1);
+  APP.config.regles = regles;
+  loadConfigForm();
+}
+
 function applyConfig() {
-  document.getElementById('dl-prix-sem').value = APP.config.prixSem || 1000;
+  document.getElementById('dl-prix-sem') && (document.getElementById('dl-prix-sem').value = APP.config.prixSem || 1000);
+  populateOptionSelects();
 }
 
 // ================================================================
@@ -4655,19 +5043,29 @@ async function publierDevis(contentId, type) {
     const data = await resp.json();
     const imageUrl = data.secure_url;
 
-    // 5. Afficher l'URL
+    // Récupérer le pseudo forum
+    const pseudoForum = document.getElementById(type === 'location' ? 'dl-pseudo-forum' : 'ae-pseudo-forum').value || pseudo;
+
+    // 5. Afficher l'URL + bouton copier message forum
     const urlBox = document.getElementById(`devis-${type === 'location' ? 'location' : 'ae'}-url`);
     if (urlBox) {
       urlBox.style.display = 'block';
       urlBox.innerHTML = `
-        <div class="url-box">
-          <a href="${imageUrl}" target="_blank">🔗 ${imageUrl}</a>
-          <button class="url-copy-btn" onclick="copyUrl('${imageUrl}')">📋 Copier</button>
+        <div class="url-box" style="flex-direction:column;align-items:flex-start;">
+          <div style="display:flex;align-items:center;gap:8px;width:100%;">
+            <a href="${imageUrl}" target="_blank" style="flex:1;">🔗 ${imageUrl}</a>
+            <button class="url-copy-btn" onclick="copyUrl('${imageUrl}')">📋 URL</button>
+          </div>
+          <button class="url-copy-btn" style="width:100%;text-align:center;padding:6px 12px;margin-top:4px;
+            background:var(--greenbg);border-color:rgba(74,140,82,0.3);color:var(--green2);font-size:11px;"
+            onclick="copyMsgForum('${pseudoForum}', '${imageUrl}')">
+            💬 Copier le message forum pour @${pseudoForum}
+          </button>
         </div>`;
     }
 
     // 6. Stocker l'URL avec le devis si sauvegardé
-    APP._lastDevisUrl = imageUrl;
+    APP._lastDevisUrl  = imageUrl;
     APP._lastDevisType = type;
 
     journalLog(`Devis ${type.toUpperCase()} publié pour ${pseudo}`, 'ok');
@@ -4681,6 +5079,23 @@ async function publierDevis(contentId, type) {
 
 function copyUrl(url) {
   navigator.clipboard.writeText(url).then(() => toast('URL copiée !', 'success'));
+}
+
+function copyMsgForum(pseudo, imageUrl) {
+  const msg = `Bonjour @${pseudo},\nvoici ton devis :\n[img]${imageUrl}[/img]\n\nCordialement,`;
+  navigator.clipboard.writeText(msg).then(() => {
+    toast('Message forum copié dans le presse-papier !', 'success');
+  }).catch(() => {
+    // Fallback si clipboard API non disponible
+    const ta = document.createElement('textarea');
+    ta.value = msg;
+    ta.style.position = 'fixed'; ta.style.top = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('Message forum copié !', 'success');
+  });
 }
 
 // ================================================================
@@ -4975,6 +5390,9 @@ function init() {
   document.getElementById('dl-date-creation').value = today;
   document.getElementById('ae-date-demande').value = today;
   document.getElementById('ae-date-creation').value = today;
+
+  // Peupler les selects options
+  populateOptionSelects();
 
   // Firebase
   initFirebase();
