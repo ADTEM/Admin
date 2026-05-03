@@ -2449,7 +2449,7 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
       </div>
       <div class="form-group">
         <label class="form-label">Coller le JSON ici</label>
-        <textarea class="form-textarea" id="import-json" rows="12" placeholder='{"comptabilite": [...]}' style="font-family:"Fira Code",monospace;font-size:11px;"></textarea>
+        <textarea class="form-textarea" id="import-json" rows="12" placeholder="{&quot;comptabilite&quot;: [...]}" style="font-family:'Fira Code',monospace;font-size:11px;"></textarea>
       </div>
     </div>
     <div class="modal-footer">
@@ -2476,15 +2476,13 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
         <div class="form-group">
           <label class="form-label">📋 Zone membres (Pseudo / Entreprise / Niveau / Solde / Statut…)</label>
           <textarea class="form-textarea" id="membres-paste" rows="12"
-            placeholder="Thomasre	Besac Mobilty	4	2 533 924 €	Président	Suivi	Modifier
-rorolpb69	Mobily'T	5	6 533 000 €	Vice-Président	..."
+            placeholder="Thomasre&#9;Besac Mobilty&#9;4&#9;2 533 924 &#8364;&#9;Pr&#233;sident&#9;Suivi&#9;Modifier&#10;rorolpb69&#9;Mobily T&#9;5&#9;6 533 000 &#8364;&#9;Vice-Pr&#233;sident..."
             style="font-size:11px;font-family:'Fira Code',monospace;"></textarea>
         </div>
         <div class="form-group">
           <label class="form-label">📋 Zone contrats (Joueur / Offres / Total mensuel…)</label>
           <textarea class="form-textarea" id="contrats-paste" rows="12"
-            placeholder="BlueTrans	Notre employé c'est le meilleur	7 000 €	Modifier
-Kevin_49	Ultra Rénov, Option élec	287 000 €	..."
+            placeholder="BlueTrans&#9;Notre employ&#233; c&#039;est le meilleur&#9;7 000 &#8364;&#9;Modifier&#10;Kevin_49&#9;Ultra R&#233;nov, Option &#233;lec&#9;287 000 &#8364;..."
             style="font-size:11px;font-family:'Fira Code',monospace;"></textarea>
         </div>
       </div>
@@ -2798,6 +2796,9 @@ function initFirebase() {
     APP.templates = snap.val() || [];
     renderTemplates();
   });
+
+  // Journal d'activité
+  db.ref('journal').orderByKey().limitToLast(30).on('value', snap => {
     if (snap.val()) {
       const entries = Object.values(snap.val()).reverse();
       renderJournal(entries);
@@ -2967,7 +2968,7 @@ document.querySelectorAll('.modal-overlay').forEach(m => {
 // ================================================================
 //  IMPORT JSON
 // ================================================================
-document.getElementById('btn-import-data').addEventListener('click', () => openModal('modal-import'));
+// Import CSV button géré dans init() via btn-import-csv
 
 function importJSON() {
   const type = document.getElementById('import-type').value;
@@ -2998,7 +2999,8 @@ function importJSON() {
 // ================================================================
 //  SYNC DONNÉES (via URL API)
 // ================================================================
-document.getElementById('btn-sync-data').addEventListener('click', async () => {
+const _btnSync = document.getElementById('btn-sync-data');
+if (_btnSync) _btnSync.addEventListener('click', async () => {
   // Vérifier URLs
   const urls = {
     vehicules:    APP.config.apiVehicules     || 'https://transport-manager.net/api/api_vehicules.php?key=95080a1958d89045a251862c0bd84ab7',
@@ -3482,14 +3484,16 @@ function addVehiculeToDevis(v, type) {
 
 // Listeners dévis location
 ['dl-debut', 'dl-duree', 'dl-filtre-energie', 'dl-filtre-type'].forEach(id => {
-  document.getElementById(id).addEventListener('change', () => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', () => {
     renderVehiculesDisponibles('vehicules-disponibles', APP.devisLocation.vehiculesSelectionnes, 'location');
     updateCalcLocation();
   });
 });
 
 ['ae-debut', 'ae-fin', 'ae-filtre-energie', 'ae-filtre-type'].forEach(id => {
-  document.getElementById(id).addEventListener('change', () => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', () => {
     calcDureeAE();
     renderVehiculesDisponibles('ae-vehicules-disponibles', APP.devisAE.vehiculesSelectionnes, 'ae');
   });
@@ -4192,11 +4196,15 @@ function filterCompta() {
 }
 
 ['compta-search', 'compta-type-filter'].forEach(id => {
-  document.getElementById(id).addEventListener('input', filterCompta);
-  document.getElementById(id).addEventListener('change', filterCompta);
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('input', filterCompta);
+    el.addEventListener('change', filterCompta);
+  }
 });
 
-document.getElementById('compta-month-select').addEventListener('change', async () => {
+const _comtaMonthSel = document.getElementById('compta-month-select');
+if (_comtaMonthSel) _comtaMonthSel.addEventListener('change', async () => {
   const month = document.getElementById('compta-month-select').value;
   const snap = await db.ref(`compta/${month}`).once('value');
   if (snap.val() && snap.val().comptabilite) {
@@ -4724,7 +4732,8 @@ function deleteAide(id) {
   db.ref('aides/' + id).remove();
 }
 
-document.getElementById('aides-type-filter').addEventListener('change', renderAides);
+const _aidesFilter = document.getElementById('aides-type-filter');
+if (_aidesFilter) _aidesFilter.addEventListener('change', renderAides);
 
 // ================================================================
 //  CONFIG
@@ -4895,7 +4904,10 @@ function toggleImportCSVBtn(show) {
   if (btn) btn.style.display = show ? '' : 'none';
   db.ref('config/showImportCSV').set(show);
 }
-  document.getElementById('dl-prix-sem') && (document.getElementById('dl-prix-sem').value = APP.config.prixSem || 1000);
+
+function applyConfig() {
+  const el = document.getElementById('dl-prix-sem');
+  if (el) el.value = APP.config.prixSem || 1000;
   populateOptionSelects();
 }
 
@@ -5052,7 +5064,8 @@ async function doResetPassword() {
 }
 
 // Login avec Enter
-document.getElementById('login-mdp').addEventListener('keydown', e => {
+const _loginMdp = document.getElementById('login-mdp');
+if (_loginMdp) _loginMdp.addEventListener('keydown', e => {
   if (e.key === 'Enter') doLogin();
 });
 
@@ -5540,7 +5553,8 @@ function showRentaDetail(pseudo) {
   openModal('modal-renta-detail');
 }
 
-document.getElementById('renta-month-select').addEventListener('change', loadRentabilite);
+const _rentaMonth = document.getElementById('renta-month-select');
+if (_rentaMonth) _rentaMonth.addEventListener('change', loadRentabilite);
 
 // ================================================================
 //  CLOUDINARY CONFIG
