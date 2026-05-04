@@ -905,7 +905,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V21</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V25</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -2023,13 +2023,24 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
         <div class="section-subtitle">Recettes et dépenses par thème et catégorie</div>
       </div>
       <div class="flex gap-8">
-        <select class="form-select" id="bilan-annee" onchange="renderBilan()" style="width:120px;"></select>
+        <select class="form-select" id="bilan-annee" onchange="renderBilan()" style="width:120px;">
+          <option value="2026">2026</option>
+        </select>
         <button class="btn btn-secondary btn-sm" onclick="exportBilanCSV()">📤 Export CSV</button>
       </div>
     </div>
-    <div class="kpi-grid mb-20" id="bilan-stat-cards"></div>
-    <div class="card" style="padding:0;overflow-x:auto;max-width:100%;">
-      <div id="bilan-table-container" style="overflow-x:auto;"></div>
+    <div class="kpi-grid mb-20" id="bilan-stat-cards">
+      <div class="kpi-card green"><div class="kpi-label">Total recettes</div><div class="kpi-value green" id="bilan-kpi-rec">—</div></div>
+      <div class="kpi-card red"><div class="kpi-label">Total dépenses</div><div class="kpi-value red" id="bilan-kpi-dep">—</div></div>
+      <div class="kpi-card blue"><div class="kpi-label">Solde net</div><div class="kpi-value blue" id="bilan-kpi-solde">—</div></div>
+      <div class="kpi-card yellow"><div class="kpi-label">Mois avec données</div><div class="kpi-value yellow" id="bilan-kpi-mois">—</div></div>
+    </div>
+    <div class="card" style="padding:0;overflow-x:auto;">
+      <div id="bilan-table-container">
+        <div style="text-align:center;padding:40px;color:var(--text3);">
+          🏷️ Configurez d'abord les <b>Thèmes &amp; Catégories</b> en mode configuration.
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2073,7 +2084,7 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
           <div id="msg-preview" style="color:var(--text3);font-size:12px;font-style:italic;padding:20px 0;text-align:center;">
             Sélectionnez un template et remplissez les variables
           </div>
-          <div id="msg-actions" style="display:none;margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+          <div id="msg-actions" style="display:none;margin-top:12px;gap:8px;flex-wrap:wrap;">
             <button class="btn btn-primary btn-sm" onclick="copierMessage()">📋 Copier le message</button>
             <button class="btn btn-secondary btn-sm" id="msg-open-forum-btn" style="display:none;" onclick="ouvrirForumMsg()">🌐 Ouvrir le forum</button>
           </div>
@@ -2132,7 +2143,12 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
         <button class="btn btn-primary btn-sm" onclick="ouvrirModalNouveauTheme()">➕ Nouveau thème</button>
       </div>
     </div>
-    <div id="themes-list"></div>
+    <div id="themes-list">
+      <div style="text-align:center;padding:32px;color:var(--text3);">
+        <div style="font-size:32px;margin-bottom:8px;">🏷️</div>
+        Aucun thème. Cliquez sur <b>+ Nouveau thème</b>.
+      </div>
+    </div>
   </div>
 
   <!-- ====== CONFIG TEMPLATES MESSAGES ====== -->
@@ -2876,17 +2892,41 @@ document.addEventListener('DOMContentLoaded', () => {
 //  NAVIGATION
 // ================================================================
 function showPage(pageId) {
+  // 1. Cacher toutes les pages et nav
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  // 2. Rendus JS EN PREMIER (page encore invisible)
+  if (pageId === 'parc') renderParc();
+  if (pageId === 'locations') renderLocations();
+  if (pageId === 'compta') renderCompta();
+  if (pageId === 'config') loadConfigForm();
+  if (pageId === 'comptes') loadComptes();
+  if (pageId === 'rentabilite') loadRentabilite();
+  if (pageId === 'sauvegarde') loadSauvegardeStats();
+  if (pageId === 'reinitialisation') loadResetStats();
+  if (pageId === 'personnel') renderPersonnel();
+  if (pageId === 'frequentation') renderFrequentation();
+  if (pageId === 'tableau-financier') renderBilan();
+  if (pageId === 'messages-forum') renderTemplates();
+  if (pageId === 'cfg-financier') loadCfgFinancier();
+  if (pageId === 'cfg-categories') renderCategories();
+  if (pageId === 'cfg-messages') renderTemplates();
+
+  // 3. Afficher la page
   const page = document.getElementById('page-' + pageId);
   if (page) page.classList.add('active');
-  // Active dans le bon menu (normal ou config)
+
+  // 4. Scroll en haut
+  window.scrollTo(0, 0);
+
+  // 4. Nav active
   const navNormal = document.querySelector(`#sidebar-menu-normal .nav-item[data-page="${pageId}"]`);
   const navConfig = document.querySelector(`#sidebar-menu-config .nav-item[data-page="${pageId}"]`);
   if (navNormal) navNormal.classList.add('active');
   if (navConfig) navConfig.classList.add('active');
 
-  // Update topbar
+  // 5. Update topbar
   const titles = {
     dashboard: ['Tableau de bord', 'Vue générale de l\'alliance'],
     compta: ['Comptabilité', 'Opérations financières de l\'alliance'],
@@ -2913,30 +2953,6 @@ function showPage(pageId) {
     document.getElementById('page-title').innerHTML =
       `${titles[pageId][0]} <small>${titles[pageId][1]}</small>`;
   }
-
-  // Actions spécifiques
-  if (pageId === 'parc') renderParc();
-  if (pageId === 'locations') renderLocations();
-  if (pageId === 'compta') renderCompta();
-  if (pageId === 'config') loadConfigForm();
-  if (pageId === 'comptes') loadComptes();
-  if (pageId === 'rentabilite') loadRentabilite();
-  if (pageId === 'sauvegarde') loadSauvegardeStats();
-  if (pageId === 'reinitialisation') loadResetStats();
-  if (pageId === 'personnel') renderPersonnel();
-  if (pageId === 'frequentation') renderFrequentation();
-  if (pageId === 'tableau-financier') renderBilan();
-  if (pageId === 'messages-forum') renderTemplates();
-  if (pageId === 'cfg-financier') loadCfgFinancier();
-  if (pageId === 'cfg-categories') renderCategories();
-  if (pageId === 'cfg-messages') renderTemplates();
-
-  // Scroll en haut APRÈS les rendus JS
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-  }));
 }
 
 document.querySelectorAll('.nav-item:not(.cfg-nav)').forEach(item => {
@@ -6580,12 +6596,18 @@ function renderBilan() {
   const totalDepMois = moisKeys.map(mk => opsAnnee.filter(o => { const d = parseOpDate(o); return d && d.mois === mk; }).reduce((s,o) => s + (parseFloat(o['Dépenses']) || 0), 0));
   const totalRec = sumArr(totalRecMois), totalDep = sumArr(totalDepMois), soldeNet = totalRec - totalDep;
 
-  // KPIs
-  if (sc) sc.innerHTML = `
-    <div class="kpi-card green"><div class="kpi-label">Total recettes ${curAnnee}</div><div class="kpi-value green">${totalRec.toLocaleString('fr')} €</div></div>
-    <div class="kpi-card red"><div class="kpi-label">Total dépenses ${curAnnee}</div><div class="kpi-value red">${totalDep.toLocaleString('fr')} €</div></div>
-    <div class="kpi-card ${soldeNet>=0?'green':'red'}"><div class="kpi-label">Solde net ${curAnnee}</div><div class="kpi-value ${soldeNet>=0?'green':'red'}">${(soldeNet>=0?'+':'')}${soldeNet.toLocaleString('fr')} €</div></div>
-    <div class="kpi-card blue"><div class="kpi-label">Mois avec données</div><div class="kpi-value blue">${moisKeys.filter(mk=>opsAnnee.some(o=>{ const d=parseOpDate(o); return d&&d.mois===mk; })).length}/12</div></div>`;
+  // KPIs statiques
+  const kpiRec = document.getElementById('bilan-kpi-rec');
+  const kpiDep = document.getElementById('bilan-kpi-dep');
+  const kpiSolde = document.getElementById('bilan-kpi-solde');
+  const kpiMois = document.getElementById('bilan-kpi-mois');
+  if (kpiRec) kpiRec.textContent = totalRec.toLocaleString('fr') + ' €';
+  if (kpiDep) kpiDep.textContent = totalDep.toLocaleString('fr') + ' €';
+  if (kpiSolde) { kpiSolde.textContent = (soldeNet>=0?'+':'') + soldeNet.toLocaleString('fr') + ' €'; kpiSolde.className = 'kpi-value ' + (soldeNet>=0?'green':'red'); }
+  const nbMoisData = moisKeys.filter(mk=>opsAnnee.some(o=>{ const d=parseOpDate(o); return d&&d.mois===mk; })).length;
+  if (kpiMois) kpiMois.textContent = nbMoisData + '/12';
+
+  if (sc) sc.innerHTML = '';
 
   if (!themes.length) {
     container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3);">
