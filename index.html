@@ -3354,7 +3354,7 @@ function renderEnergieStats() {
   });
   const total = APP.vehicules.length;
   const colors = { Hybride: 'green', GNV: 'blue', Electrique: 'yellow', Diesel: 'gray' };
-  const icons = { Hybride: '🌿', GNV: '💧', Electrique: '⚡', Diesel: '🔵' };
+  const icons = { Hybride: '💧', GNV: '🌿', Electrique: '⚡', Diesel: '🔵' };
 
   const energiesPropres = (counts['Hybride'] || 0) + (counts['GNV'] || 0) + (counts['Electrique'] || 0);
   const pct = total ? Math.round(energiesPropres / total * 100) : 0;
