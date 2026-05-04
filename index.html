@@ -189,15 +189,24 @@ body::before {
 /* === MAIN === */
 #main {
   margin-left: var(--sidebar-w);
-  padding-top: calc(var(--header-h) + 20px);
-  padding-bottom: 40px;
-  min-height: 100vh;
-  position: relative; z-index: 1;
+  padding-top: calc(var(--header-h) + 24px);
+  padding-bottom: 60px;
+  min-height: calc(100vh - var(--header-h));
+  overflow-x: hidden;
+  min-width: 0;
+  box-sizing: border-box;
 }
-.page { display: none; padding: 0 24px; }
-.page.active { display: block; animation: fadeIn 0.3s ease; }
+.page {
+  display: none;
+  padding: 0 24px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.page.active {
+  display: block;
+}
 
-@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 
 /* === CARDS === */
 .card {
@@ -222,8 +231,16 @@ body::before {
 
 /* === KPI GRID === */
 .kpi-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
   margin-bottom: 20px;
+  width: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+}
+.kpi-grid:empty {
+  display: none;
 }
 .kpi-card {
   background: var(--surface);
@@ -538,7 +555,7 @@ tr:hover td { background: var(--surface2); }
 ::-webkit-scrollbar-thumb:hover { background: var(--green3); }
 
 /* === BILAN FINANCIER === */
-.bilan-table { width:100%; border-collapse:collapse; font-size:11px; }
+.bilan-table { width:100%; min-width:700px; border-collapse:collapse; font-size:11px; }
 .bilan-table th, .bilan-table td { padding:5px 8px; white-space:nowrap; border-bottom:1px solid var(--border); }
 .bilan-table thead th { background:var(--surface3); color:var(--text2); text-align:center; font-weight:700; position:sticky; top:0; z-index:2; font-size:10px; text-transform:uppercase; letter-spacing:1px; }
 .bilan-table thead th:first-child { text-align:left; position:sticky; left:0; z-index:3; min-width:200px; }
@@ -905,7 +922,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V17</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V18</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -921,6 +938,9 @@ body.mode-config #page-title { color: var(--cfg-green); }
       <div class="nav-section-title">Finances</div>
       <div class="nav-item" data-page="compta">
         <span class="nav-icon">📊</span> Comptabilité
+      </div>
+      <div class="nav-item" data-page="tableau-financier">
+        <span class="nav-icon">🧾</span> Tableau financier
       </div>
     </div>
 
@@ -960,16 +980,6 @@ body.mode-config #page-title { color: var(--cfg-green); }
       <div class="nav-item" data-page="personnel">
         <span class="nav-icon">👤</span> Personnel / FCO
       </div>
-      <div class="nav-item" data-page="frequentation">
-        <span class="nav-icon">📉</span> Fréquentation lignes
-      </div>
-    </div>
-
-    <div class="nav-section">
-      <div class="nav-section-title">Finance</div>
-      <div class="nav-item" data-page="tableau-financier">
-        <span class="nav-icon">🧾</span> Tableau financier
-      </div>
     </div>
 
     <div class="nav-section">
@@ -992,6 +1002,9 @@ body.mode-config #page-title { color: var(--cfg-green); }
       </div>
       <div class="nav-item cfg-nav" data-page="cfg-categories">
         <span class="nav-icon">🏷️</span> Thèmes & Catégories
+      </div>
+      <div class="nav-item cfg-nav" data-page="frequentation">
+        <span class="nav-icon">📉</span> Fréquentation lignes
       </div>
       <div class="nav-item cfg-nav" data-page="cfg-messages">
         <span class="nav-icon">💬</span> Templates messages
@@ -2032,8 +2045,8 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
       </div>
     </div>
     <div class="kpi-grid mb-20" id="bilan-stat-cards"></div>
-    <div class="card" style="padding:0;overflow-x:auto;">
-      <div id="bilan-table-container" style="min-width:800px;"></div>
+    <div class="card" style="padding:0;overflow-x:auto;max-width:100%;">
+      <div id="bilan-table-container" style="overflow-x:auto;"></div>
     </div>
   </div>
 
@@ -2886,6 +2899,8 @@ function showPage(pageId) {
   const navConfig = document.querySelector(`#sidebar-menu-config .nav-item[data-page="${pageId}"]`);
   if (navNormal) navNormal.classList.add('active');
   if (navConfig) navConfig.classList.add('active');
+  // Scroll en haut
+  window.scrollTo(0, 0);
 
   // Update topbar
   const titles = {
@@ -5998,10 +6013,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCsv = document.getElementById('btn-import-csv');
   if (btnCsv) {
     btnCsv.addEventListener('click', () => openModal('modal-import-csv'));
-    // Restaurer visibilité depuis config
-    db.ref('config/showImportCSV').once('value').then(snap => {
-      if (snap.val()) btnCsv.style.display = '';
-    });
+    // Visibilité restaurée dans loadConfigForm après connexion
   }
 });
 
