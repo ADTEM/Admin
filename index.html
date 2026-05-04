@@ -2899,8 +2899,12 @@ function showPage(pageId) {
   const navConfig = document.querySelector(`#sidebar-menu-config .nav-item[data-page="${pageId}"]`);
   if (navNormal) navNormal.classList.add('active');
   if (navConfig) navConfig.classList.add('active');
-  // Scroll en haut
-  window.scrollTo(0, 0);
+  // Forcer scroll en haut après rendu complet
+  requestAnimationFrame(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  });
 
   // Update topbar
   const titles = {
