@@ -4917,7 +4917,9 @@ function removeRegle(i) {
 function toggleImportCSVBtn(show) {
   const btn = document.getElementById('btn-import-csv');
   if (btn) btn.style.display = show ? '' : 'none';
-  db.ref('config/showImportCSV').set(show);
+  // Sauvegarder dans la config globale (évite permission_denied sur /config/showImportCSV)
+  APP.config.showImportCSV = show;
+  db.ref('config').update({ showImportCSV: show });
 }
 
 function applyConfig() {
