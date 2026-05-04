@@ -5358,6 +5358,7 @@ async function loadComptes() {
           </div>
         `).join('')}
       </div>`;
+  }
 
   // ── SECTION COMPTES ACTIFS ──
   if (!actifs.length) {
@@ -5510,8 +5511,10 @@ async function supprimerDefinitivement(uid) {
   toast(`Compte "${pseudo}" supprimé de la base`, 'info');
   loadComptes();
 }
+async function changerRole(uid, newRole) {
   await db.ref('users/' + uid + '/role').set(newRole);
   toast('Rôle mis à jour', 'success');
+  loadComptes();
 }
 
 async function toggleActif(uid, currentActif) {
