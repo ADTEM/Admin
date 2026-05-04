@@ -189,22 +189,13 @@ body::before {
 /* === MAIN === */
 #main {
   margin-left: var(--sidebar-w);
-  padding-top: calc(var(--header-h) + 24px);
-  padding-bottom: 60px;
-  min-height: calc(100vh - var(--header-h));
-  overflow-x: hidden;
-  min-width: 0;
-  box-sizing: border-box;
+  padding-top: calc(var(--header-h) + 20px);
+  padding-bottom: 40px;
+  min-height: 100vh;
+  position: relative; z-index: 1;
 }
-.page {
-  display: none;
-  padding: 0 24px;
-  min-width: 0;
-  box-sizing: border-box;
-}
-.page.active {
-  display: block;
-}
+.page { display: none; padding: 0 24px; }
+.page.active { display: block; }
 
 @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 
@@ -231,16 +222,8 @@ body::before {
 
 /* === KPI GRID === */
 .kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 14px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px;
   margin-bottom: 20px;
-  width: 100%;
-  min-height: 0;
-  box-sizing: border-box;
-}
-.kpi-grid:empty {
-  display: none;
 }
 .kpi-card {
   background: var(--surface);
@@ -557,9 +540,9 @@ tr:hover td { background: var(--surface2); }
 /* === BILAN FINANCIER === */
 .bilan-table { width:100%; min-width:700px; border-collapse:collapse; font-size:11px; }
 .bilan-table th, .bilan-table td { padding:5px 8px; white-space:nowrap; border-bottom:1px solid var(--border); }
-.bilan-table thead th { background:var(--surface3); color:var(--text2); text-align:center; font-weight:700; position:sticky; top:0; z-index:2; font-size:10px; text-transform:uppercase; letter-spacing:1px; }
-.bilan-table thead th:first-child { text-align:left; position:sticky; left:0; z-index:3; min-width:200px; }
-.bilan-table td:first-child { position:sticky; left:0; background:var(--surface); z-index:1; }
+.bilan-table thead th { background:var(--surface3); color:var(--text2); text-align:center; font-weight:700; font-size:10px; text-transform:uppercase; letter-spacing:1px; }
+.bilan-table thead th:first-child { text-align:left; min-width:160px; }
+.bilan-table td:first-child { background:var(--surface); font-weight:500; }
 .bilan-table .bilan-theme-recette td { font-weight:700; font-size:12px; background:rgba(74,140,82,0.12); color:var(--green2); border-top:2px solid rgba(74,140,82,0.3); }
 .bilan-table .bilan-theme-depense td { font-weight:700; font-size:12px; background:rgba(192,57,43,0.08); color:var(--red); border-top:2px solid rgba(192,57,43,0.2); }
 .bilan-table .bilan-cat-row td { background:var(--surface); }
@@ -922,7 +905,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V18</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V21</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -2789,25 +2772,28 @@ function initFirebase() {
   // Personnel
   db.ref('personnel').on('value', snap => {
     APP.personnel = snap.val() || {};
-    renderPersonnel();
+    // Rendu différé — uniquement si la page est active
+    if (document.getElementById('page-personnel').classList.contains('active')) renderPersonnel();
   });
 
   // Fréquentation
   db.ref('frequentation').on('value', snap => {
     APP.frequentation = snap.val() || [];
-    renderFrequentation();
+    if (document.getElementById('page-frequentation').classList.contains('active')) renderFrequentation();
   });
 
   // Thèmes & Catégories
   db.ref('themes').on('value', snap => {
     APP.themes = snap.val() || [];
-    renderCategories();
+    if (document.getElementById('page-cfg-categories').classList.contains('active')) renderCategories();
+    if (document.getElementById('page-tableau-financier').classList.contains('active')) renderBilan();
   });
 
   // Templates messages
   db.ref('templates').on('value', snap => {
     APP.templates = snap.val() || [];
-    renderTemplates();
+    if (document.getElementById('page-cfg-messages').classList.contains('active')) renderTemplates();
+    if (document.getElementById('page-messages-forum').classList.contains('active')) renderTemplates();
   });
 
   // Journal d'activité
@@ -2899,12 +2885,6 @@ function showPage(pageId) {
   const navConfig = document.querySelector(`#sidebar-menu-config .nav-item[data-page="${pageId}"]`);
   if (navNormal) navNormal.classList.add('active');
   if (navConfig) navConfig.classList.add('active');
-  // Forcer scroll en haut après rendu complet
-  requestAnimationFrame(() => {
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-  });
 
   // Update topbar
   const titles = {
@@ -2950,6 +2930,13 @@ function showPage(pageId) {
   if (pageId === 'cfg-financier') loadCfgFinancier();
   if (pageId === 'cfg-categories') renderCategories();
   if (pageId === 'cfg-messages') renderTemplates();
+
+  // Scroll en haut APRÈS les rendus JS
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }));
 }
 
 document.querySelectorAll('.nav-item:not(.cfg-nav)').forEach(item => {
