@@ -885,7 +885,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
     </div>
 
     <div style="text-align:center;margin-top:20px;font-size:10px;color:var(--text4);">
-      ADTEM · Transport Manager · <span id="login-version">V1.4</span>
+      ADTEM · Transport Manager · <span id="login-version">V1.5</span>
     </div>
   </div>
 </div>
@@ -928,7 +928,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.4</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.5</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -2837,6 +2837,38 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
   </div>
 </div>
 
+<!-- MODAL RÉSERVATION MANUELLE -->
+<div class="modal-overlay hidden" id="modal-reserver-manuellement">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <span class="modal-title">🔒 Réserver manuellement</span>
+      <button class="modal-close" onclick="closeModal('modal-reserver-manuellement')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:16px;">
+        Bus <b id="res-man-bus-id"></b>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label class="form-label">Pseudo (pour qui ?)</label>
+        <input type="text" class="form-input" id="res-man-pseudo" placeholder="ex: Nesta" list="res-man-pseudo-list">
+        <datalist id="res-man-pseudo-list"></datalist>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label class="form-label">Date de fin de réservation</label>
+        <input type="date" class="form-input" id="res-man-date-fin">
+      </div>
+      <div>
+        <label class="form-label">Motif <span style="color:var(--text4);font-weight:400;">(optionnel)</span></label>
+        <input type="text" class="form-input" id="res-man-motif" placeholder="ex: Entretien prévu, réservé pour tournée...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-reserver-manuellement')">Annuler</button>
+      <button class="btn btn-primary" onclick="confirmerReservationManuelle()">🔒 Réserver</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ================================================================
 //  SUPABASE CONFIG
@@ -3587,7 +3619,13 @@ function renderParc() {
       : '—';
     const res = getReservationBus(v['Numéro Parc']);
     const resBadge = res ? `<span class="badge-reserved" style="margin-left:4px;">🔒 ${res.devis_id}</span>` : '';
-    const leverBtn = res ? `<button class="btn btn-icon btn-sm" style="background:rgba(201,134,10,0.12);color:var(--yellow);border:1px solid rgba(201,134,10,0.3);" title="Lever la réservation" onclick="ouvrirLeverReservation('${v['Numéro Parc']}')">🔓</button>` : '';
+    const leverBtn = res
+      ? `<button class="btn btn-icon btn-sm" style="background:rgba(201,134,10,0.12);color:var(--yellow);border:1px solid rgba(201,134,10,0.3);" title="Lever la réservation" onclick="ouvrirLeverReservation('${v['Numéro Parc']}')">🔓</button>`
+      : '';
+    const isDispo = !res && (v['Patrimoine'] === 'SUR PARC LOCATION' || v['Patrimoine'] === 'ADTEM');
+    const reserverBtn = isDispo
+      ? `<button class="btn btn-icon btn-sm" style="background:rgba(201,134,10,0.10);color:var(--yellow);border:1px solid rgba(201,134,10,0.25);" title="Réserver manuellement" onclick="ouvrirReservationManuelle('${v['Numéro Parc']}')">🔒</button>`
+      : '';
     return `<tr>
       <td style="font-family:'Fira Code',monospace;font-size:11px;">${v['Numéro Parc'] || '—'}</td>
       <td><b>${v['Marque'] || ''}</b> ${v['Modèle'] || ''}</td>
@@ -3605,6 +3643,7 @@ function renderParc() {
         <div style="display:flex;gap:4px;">
           <button class="btn btn-secondary btn-icon btn-sm" title="Détail" onclick='showVehiculeDetail(${JSON.stringify(v).replace(/'/g,"&#39;")})'>👁️</button>
           ${leverBtn}
+          ${reserverBtn}
         </div>
       </td>
     </tr>`;
@@ -4861,6 +4900,51 @@ async function confirmerLeverReservation() {
     toast(`Réservation du bus ${busId} levée`, 'info');
   }
   closeModal('modal-lever-reservation');
+  renderParc();
+  renderVehiculesDisponibles('vehicules-disponibles', APP.devisLocation.vehiculesSelectionnes, 'location');
+  renderVehiculesDisponibles('ae-vehicules-disponibles', APP.devisAE.vehiculesSelectionnes, 'ae');
+}
+
+/** Ouvre le modal de réservation manuelle depuis la page Parc */
+function ouvrirReservationManuelle(busId) {
+  document.getElementById('res-man-bus-id').textContent = busId;
+  document.getElementById('res-man-pseudo').value = '';
+  document.getElementById('res-man-date-fin').value = '';
+  document.getElementById('res-man-motif').value = '';
+  document.getElementById('modal-reserver-manuellement').dataset.busId = busId;
+  // Alimenter la datalist avec les pseudos membres
+  const dl = document.getElementById('res-man-pseudo-list');
+  dl.innerHTML = (APP.membres || []).map(m => `<option value="${m.pseudo}">`).join('');
+  openModal('modal-reserver-manuellement');
+}
+
+async function confirmerReservationManuelle() {
+  const busId   = document.getElementById('modal-reserver-manuellement').dataset.busId;
+  const pseudo  = document.getElementById('res-man-pseudo').value.trim();
+  const dateFin = document.getElementById('res-man-date-fin').value;
+  const motif   = document.getElementById('res-man-motif').value.trim();
+
+  if (!pseudo)  { toast('Saisissez un pseudo', 'error'); return; }
+  if (!dateFin) { toast('Saisissez une date de fin', 'error'); return; }
+
+  const resId   = genId();
+  const devisId = `MANUEL-${pseudo}-${Date.now().toString(36).toUpperCase()}`;
+  const resData = {
+    id: resId,
+    bus_id: busId,
+    devis_id: devisId,
+    pseudo,
+    date_fin: dateFin,
+    statut: 'accepte',
+    motif: motif || null
+  };
+
+  await sbInsert('reservations', resData);
+  APP.reservations.push({ _id: resId, ...resData });
+
+  journalLog(`Réservation manuelle : ${busId} → ${pseudo} jusqu'au ${dateFin.split('-').reverse().join('/')}${motif ? ' — ' + motif : ''}`, 'ok');
+  toast(`Bus ${busId} réservé pour ${pseudo}`, 'success');
+  closeModal('modal-reserver-manuellement');
   renderParc();
   renderVehiculesDisponibles('vehicules-disponibles', APP.devisLocation.vehiculesSelectionnes, 'location');
   renderVehiculesDisponibles('ae-vehicules-disponibles', APP.devisAE.vehiculesSelectionnes, 'ae');
