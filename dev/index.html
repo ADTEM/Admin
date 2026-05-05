@@ -274,6 +274,24 @@ td {
 }
 tr:hover td { background: var(--surface2); }
 
+/* === SORTABLE TABLES === */
+th.sortable { cursor: pointer; user-select: none; position: relative; padding-right: 22px; }
+th.sortable:hover { color: var(--green2); background: rgba(74,140,82,0.06); }
+th.sortable::after {
+  content: '⇅'; position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  font-size: 10px; color: var(--text4); opacity: 0.5;
+}
+th.sort-asc::after  { content: '↑'; opacity: 1; color: var(--green2); }
+th.sort-desc::after { content: '↓'; opacity: 1; color: var(--green2); }
+
+/* === RESERVATIONS === */
+.badge-reserved { background: rgba(201,134,10,0.15); color: var(--yellow); border: 1px solid rgba(201,134,10,0.3); border-radius: 4px; font-size: 9px; font-weight: 700; padding: 2px 6px; font-family: 'Fira Code', monospace; white-space: nowrap; }
+.veh-reserved-card { border-color: var(--yellow) !important; background: rgba(201,134,10,0.05) !important; cursor: not-allowed !important; opacity: 0.8; }
+.devis-statut-badge { display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:700; padding:3px 8px; border-radius:4px; }
+.devis-statut-attente  { background:rgba(201,134,10,0.15); color:var(--yellow); }
+.devis-statut-accepte  { background:rgba(74,140,82,0.15);  color:var(--green2); }
+.devis-statut-refuse   { background:rgba(192,57,43,0.12);  color:var(--red); }
+
 /* === BADGES === */
 .badge {
   display: inline-block; padding: 2px 8px; border-radius: 20px;
@@ -867,7 +885,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
     </div>
 
     <div style="text-align:center;margin-top:20px;font-size:10px;color:var(--text4);">
-      ADTEM · Transport Manager · <span id="login-version">V1.3</span>
+      ADTEM · Transport Manager · <span id="login-version">V1.4</span>
     </div>
   </div>
 </div>
@@ -910,7 +928,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.3</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.4</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -1228,10 +1246,17 @@ body.mode-config #page-title { color: var(--cfg-green); }
     <div class="card" style="padding:0;">
       <div class="table-wrap">
         <table>
-          <thead><tr>
-            <th>N° Parc</th><th>Marque / Modèle</th><th>Type</th><th>Énergie</th>
-            <th>Patrimoine</th><th>Fin loc.</th><th>Places</th>
-            <th>Révision</th><th>CT</th><th>Actions</th>
+          <thead><tr id="parc-thead">
+            <th class="sortable" data-table="parc" data-col="Numéro Parc">N° Parc</th>
+            <th class="sortable" data-table="parc" data-col="Marque">Marque / Modèle</th>
+            <th class="sortable" data-table="parc" data-col="Type">Type</th>
+            <th class="sortable" data-table="parc" data-col="Energie">Énergie</th>
+            <th class="sortable" data-table="parc" data-col="Patrimoine">Patrimoine</th>
+            <th class="sortable" data-table="parc" data-col="Fin Location">Fin loc.</th>
+            <th class="sortable" data-table="parc" data-col="Places">Places</th>
+            <th class="sortable" data-table="parc" data-col="Revision">Révision</th>
+            <th class="sortable" data-table="parc" data-col="CT">CT</th>
+            <th>Actions</th>
           </tr></thead>
           <tbody id="parc-table-body">
             <tr><td colspan="10" style="text-align:center;color:var(--text3);padding:30px;">Chargement...</td></tr>
@@ -1269,9 +1294,15 @@ body.mode-config #page-title { color: var(--cfg-green); }
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>N° Parc</th><th>Marque / Modèle</th><th>Énergie</th>
-            <th>Locataire</th><th>Fin location</th><th>Échéance</th>
-            <th>Révision</th><th>CT</th><th>Actions</th>
+            <th class="sortable" data-table="locations" data-col="Numéro Parc">N° Parc</th>
+            <th class="sortable" data-table="locations" data-col="Marque">Marque / Modèle</th>
+            <th class="sortable" data-table="locations" data-col="Energie">Énergie</th>
+            <th class="sortable" data-table="locations" data-col="_locataire">Locataire</th>
+            <th class="sortable" data-table="locations" data-col="Fin Location">Fin location</th>
+            <th>Échéance</th>
+            <th class="sortable" data-table="locations" data-col="Revision">Révision</th>
+            <th class="sortable" data-table="locations" data-col="CT">CT</th>
+            <th>Actions</th>
           </tr></thead>
           <tbody id="locations-table-body">
             <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:30px;">Chargement...</td></tr>
@@ -1605,11 +1636,11 @@ body.mode-config #page-title { color: var(--cfg-green); }
       <div class="table-wrap">
         <table id="membres-table">
           <thead><tr>
-            <th>Pseudo</th>
-            <th>Entreprise</th>
-            <th style="text-align:center;">Niv.</th>
+            <th class="sortable" data-table="membres" data-col="pseudo">Pseudo</th>
+            <th class="sortable" data-table="membres" data-col="entreprise">Entreprise</th>
+            <th class="sortable" data-table="membres" data-col="niveau" style="text-align:center;">Niv.</th>
             <th>Options souscrites</th>
-            <th style="text-align:right;">Total/mois</th>
+            <th class="sortable" data-table="membres" data-col="totalMensuel" style="text-align:right;">Total/mois</th>
             <th style="text-align:center;">Actions</th>
           </tr></thead>
           <tbody id="membres-tbody">
@@ -1642,7 +1673,12 @@ body.mode-config #page-title { color: var(--cfg-green); }
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Date</th><th>Membre</th><th>Type</th><th>Description</th><th>Montant</th><th>Image</th><th>Actions</th>
+            <th class="sortable" data-table="aides" data-col="date">Date</th>
+            <th class="sortable" data-table="aides" data-col="pseudo">Membre</th>
+            <th class="sortable" data-table="aides" data-col="type">Type</th>
+            <th>Description</th>
+            <th class="sortable" data-table="aides" data-col="montant">Montant</th>
+            <th>Image</th><th>Actions</th>
           </tr></thead>
           <tbody id="aides-table-body">
             <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:30px;">Aucune aide enregistrée</td></tr>
@@ -1672,7 +1708,13 @@ body.mode-config #page-title { color: var(--cfg-green); }
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>N° Devis</th><th>Date</th><th>Membre</th><th>Type</th><th>Montant</th><th>Véhicules</th><th>Image</th><th>Actions</th>
+            <th class="sortable" data-table="devis-sauv" data-col="numero">N° Devis</th>
+            <th class="sortable" data-table="devis-sauv" data-col="date">Date</th>
+            <th class="sortable" data-table="devis-sauv" data-col="pseudo">Membre</th>
+            <th class="sortable" data-table="devis-sauv" data-col="type">Type</th>
+            <th class="sortable" data-table="devis-sauv" data-col="montant">Montant</th>
+            <th class="sortable" data-table="devis-sauv" data-col="statut">Statut</th>
+            <th>Véhicules</th><th>Image</th><th>Actions</th>
           </tr></thead>
           <tbody id="devis-sauv-table-body">
             <tr><td colspan="8" style="text-align:center;color:var(--text3);padding:30px;">Aucun devis sauvegardé</td></tr>
@@ -2029,7 +2071,12 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Matricule</th><th>Nom</th><th>Poste</th><th>Validité FCO</th><th>Statut FCO</th><th style="text-align:center;">Actions</th>
+            <th class="sortable" data-table="personnel" data-col="matricule">Matricule</th>
+            <th class="sortable" data-table="personnel" data-col="nom">Nom</th>
+            <th class="sortable" data-table="personnel" data-col="poste">Poste</th>
+            <th class="sortable" data-table="personnel" data-col="fco">Validité FCO</th>
+            <th>Statut FCO</th>
+            <th style="text-align:center;">Actions</th>
           </tr></thead>
           <tbody id="personnel-tbody">
             <tr><td colspan="6" style="text-align:center;color:var(--text3);padding:30px;">Aucun agent. Importez depuis le copier/coller du jeu.</td></tr>
@@ -2740,6 +2787,56 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
   </div>
 </div>
 
+<!-- MODAL PROLONGER LOCATION -->
+<div class="modal-overlay hidden" id="modal-prolonger-location">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <span class="modal-title">⏳ Prolonger la location</span>
+      <button class="modal-close" onclick="closeModal('modal-prolonger-location')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:16px;">
+        Bus <b id="prolonger-bus-id"></b> — Locataire : <b id="prolonger-locataire"></b>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label class="form-label">Prolonger de X semaines</label>
+        <input type="number" class="form-input" id="prolonger-semaines" min="1" max="52" placeholder="ex: 4" style="width:120px;">
+      </div>
+      <div style="margin-bottom:4px;font-size:11px;color:var(--text3);text-align:center;">— ou —</div>
+      <div>
+        <label class="form-label">Nouvelle date de fin de location</label>
+        <input type="date" class="form-input" id="prolonger-date">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-prolonger-location')">Annuler</button>
+      <button class="btn btn-primary" onclick="confirmerProlongation()">✅ Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LEVER RESERVATION -->
+<div class="modal-overlay hidden" id="modal-lever-reservation">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <span class="modal-title">⚠️ Lever la réservation</span>
+      <button class="modal-close" onclick="closeModal('modal-lever-reservation')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:rgba(192,57,43,0.08);border:1px solid rgba(192,57,43,0.2);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--red);">
+        ⚠️ <b>Attention :</b> Cette action lèvera la réservation du bus et le remettra disponible pour de nouveaux devis. À n'utiliser qu'en cas de bug ou d'erreur.
+      </div>
+      <div style="font-size:12px;color:var(--text2);">
+        Bus <b id="lever-res-bus-id"></b> — Devis : <b id="lever-res-devis-id"></b>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-lever-reservation')">Annuler</button>
+      <button class="btn btn-danger" onclick="confirmerLeverReservation()">🗑️ Lever la réservation</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ================================================================
 //  SUPABASE CONFIG
@@ -2813,6 +2910,8 @@ const APP = {
   comptaLast: [],
   membres: [],
   aides: [],
+  reservations: [],
+  devisCompteurs: {},
   config: {
     prixSem: 1000,
     dureeMax: 12,
@@ -2986,6 +3085,16 @@ async function loadAllData() {
     // Devis sauvegardés
     const devisRows = await sbGet('devis_sauvegardes', { order: ['created_at', { ascending: false }] });
     APP.devisSauvegardes = (devisRows || []).map(r => ({ _id: r.id, ...r.data }));
+
+    // Réservations
+    const resRows = await sbGet('reservations');
+    APP.reservations = (resRows || []).map(r => ({ _id: r.id, ...r }));
+    await nettoyerReservationsExpirees();
+
+    // Compteurs devis
+    const cptRows = await sbGet('devis_compteurs');
+    APP.devisCompteurs = {};
+    (cptRows || []).forEach(r => { APP.devisCompteurs[r.pseudo] = r.compteur; });
 
     // Journal
     const jRows = await sbGet('journal', { order: ['created_at', { ascending: false }], limit: 30 });
@@ -3415,6 +3524,8 @@ function afterVehiculesLoaded() {
   renderLocations();
   renderEnergieStats();
   renderLocationsSoon();
+  // Sync dates réservations ↔ dates fin de location réelles
+  syncReservationsParc();
 }
 
 const ENERGIE_ICONS = {
@@ -3457,6 +3568,12 @@ function renderParc() {
     return true;
   });
 
+  // Tri
+  filtered = applySortState('parc', filtered, (v, col) => {
+    if (col === 'Places') return parseInt(v[col]) || 0;
+    return v[col] ?? '';
+  });
+
   const tbody = document.getElementById('parc-table-body');
   if (!filtered.length) {
     tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px;">Aucun véhicule</td></tr>`;
@@ -3468,6 +3585,9 @@ function renderParc() {
     const locataire = v['Patrimoine'] && v['Patrimoine'].startsWith('EN LOCATION')
       ? v['Patrimoine'].replace('EN LOCATION (', '').replace(')', '')
       : '—';
+    const res = getReservationBus(v['Numéro Parc']);
+    const resBadge = res ? `<span class="badge-reserved" style="margin-left:4px;">🔒 ${res.devis_id}</span>` : '';
+    const leverBtn = res ? `<button class="btn btn-icon btn-sm" style="background:rgba(201,134,10,0.12);color:var(--yellow);border:1px solid rgba(201,134,10,0.3);" title="Lever la réservation" onclick="ouvrirLeverReservation('${v['Numéro Parc']}')">🔓</button>` : '';
     return `<tr>
       <td style="font-family:'Fira Code',monospace;font-size:11px;">${v['Numéro Parc'] || '—'}</td>
       <td><b>${v['Marque'] || ''}</b> ${v['Modèle'] || ''}</td>
@@ -3475,13 +3595,17 @@ function renderParc() {
       <td>${getEnergieBadge(v['Energie'])}</td>
       <td>${getPatrimoineBadge(v['Patrimoine'])}
         ${locataire !== '—' ? `<span style="font-size:10px;color:var(--text3);margin-left:4px;">${locataire}</span>` : ''}
+        ${resBadge}
       </td>
       <td style="font-size:11px;color:${isDateSoon(v['Fin Location']) ? 'var(--yellow)' : 'var(--text2)'};">${v['Fin Location'] || '—'}</td>
       <td>${v['Places'] || '—'}</td>
       <td style="font-size:11px;color:${isDateSoon(v['Revision']) ? 'var(--red)' : 'var(--text2)'};">${v['Revision'] || '—'}</td>
       <td style="font-size:11px;color:${isDateSoon(v['CT']) ? 'var(--red)' : 'var(--text2)'};">${v['CT'] || '—'}</td>
       <td>
-        <button class="btn btn-secondary btn-icon btn-sm" title="Détail" onclick='showVehiculeDetail(${JSON.stringify(v).replace(/'/g,"&#39;")})'>👁️</button>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-secondary btn-icon btn-sm" title="Détail" onclick='showVehiculeDetail(${JSON.stringify(v).replace(/'/g,"&#39;")})'>👁️</button>
+          ${leverBtn}
+        </div>
       </td>
     </tr>`;
   }).join('');
@@ -3516,7 +3640,7 @@ function parseDateFR(s) {
 //  LOCATIONS ACTIVES
 // ================================================================
 function renderLocations() {
-  const locs = APP.vehicules.filter(v => v['Patrimoine'] && v['Patrimoine'].startsWith('EN LOCATION'));
+  let locs = APP.vehicules.filter(v => v['Patrimoine'] && v['Patrimoine'].startsWith('EN LOCATION'));
   const now = new Date();
 
   let soon = 0, overdue = 0;
@@ -3530,10 +3654,23 @@ function renderLocations() {
     return;
   }
 
-  tbody.innerHTML = locs.map(v => {
-    const locataire = v['Patrimoine'].replace(/^EN LOCATION \(/, '').replace(/\)$/, '');
+  // Enrichir avec locataire calculé pour tri
+  let locsEnriched = locs.map(v => ({
+    ...v,
+    _locataire: v['Patrimoine'].replace(/^EN LOCATION \(/, '').replace(/\)$/, '')
+  }));
+
+  // Tri
+  locsEnriched = applySortState('locations', locsEnriched, (v, col) => {
+    if (col === 'Fin Location') return parseDateFR(v[col])?.getTime() || 0;
+    return v[col] ?? '';
+  });
+
+  tbody.innerHTML = locsEnriched.map(v => {
+    const locataire = v._locataire;
     const finDate = parseDateFR(v['Fin Location']);
     const diffDays = (finDate && !isNaN(finDate)) ? Math.ceil((finDate - now) / 86400000) : null;
+    const finIso = finDate && !isNaN(finDate) ? finDate.toISOString().split('T')[0] : '';
 
     let statusBadge = '';
     if (diffDays === null) statusBadge = `<span class="badge badge-gray">Inconnue</span>`;
@@ -3551,7 +3688,10 @@ function renderLocations() {
       <td style="font-size:11px;color:${isDateSoon(v['Revision']) ? 'var(--red)' : 'var(--text2)'};">${v['Revision'] || '—'}</td>
       <td style="font-size:11px;color:${isDateSoon(v['CT']) ? 'var(--red)' : 'var(--text2)'};">${v['CT'] || '—'}</td>
       <td>
-        <button class="btn btn-secondary btn-icon btn-sm" title="Détail" onclick='showVehiculeDetail(${JSON.stringify(v).replace(/'/g,"&#39;")})'>👁️</button>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-secondary btn-icon btn-sm" title="Détail" onclick='showVehiculeDetail(${JSON.stringify(v).replace(/'/g,"&#39;")})'>👁️</button>
+          <button class="btn btn-sm" style="background:rgba(74,140,82,0.12);color:var(--green2);border:1px solid rgba(74,140,82,0.3);font-size:10px;padding:3px 7px;" title="Prolonger la location" onclick="ouvrirProlongation('${v['Numéro Parc']}','${locataire}','${finIso}')">⏳ Prolonger</button>
+        </div>
       </td>
     </tr>`;
   }).join('');
@@ -3699,6 +3839,14 @@ function getVehiculesDisponibles(dateDebutStr, semaines, filterEnergie, filterTy
     if (filterEnergie && v['Energie'] !== filterEnergie) return false;
     if (filterType && v['Type'] !== filterType) return false;
 
+    // Vérifier si le bus a une réservation active qui chevauche la période
+    const res = getReservationBus(v['Numéro Parc']);
+    if (res) {
+      const resDateFin = res.date_fin ? new Date(res.date_fin) : null;
+      // Si la réservation couvre la période demandée → indisponible
+      if (!resDateFin || resDateFin >= dateDebut) return false;
+    }
+
     // Disponible si sur parc location
     if (v['Patrimoine'] === 'SUR PARC LOCATION') return true;
 
@@ -3721,22 +3869,55 @@ function renderVehiculesDisponibles(containerId, selectedArr, type) {
   const filterEnergie = document.getElementById(type === 'location' ? 'dl-filtre-energie' : 'ae-filtre-energie').value;
   const filterType = document.getElementById(type === 'location' ? 'dl-filtre-type' : 'ae-filtre-type').value;
 
+  // Bus disponibles (sans réservation bloquante)
   const dispo = getVehiculesDisponibles(debut, duree, filterEnergie, filterType);
+
+  // Bus réservés (on les montre mais grisés)
+  let [yD, mD, dD] = debut ? debut.split('-') : [];
+  const dateDebut = debut ? new Date(yD, mD-1, dD) : null;
+  const reservesVisibles = debut ? APP.vehicules.filter(v => {
+    if (filterEnergie && v['Energie'] !== filterEnergie) return false;
+    if (filterType && v['Type'] !== filterType) return false;
+    if (dispo.some(d => d['Numéro Parc'] === v['Numéro Parc'])) return false; // Déjà dans dispo
+    // Seulement ceux sur parc location (éligibles au fond)
+    if (!['SUR PARC LOCATION','ADTEM'].includes(v['Patrimoine']) && !(v['Patrimoine']||'').startsWith('EN LOCATION')) return false;
+    const res = getReservationBus(v['Numéro Parc']);
+    return !!res;
+  }) : [];
+
   const container = document.getElementById(containerId);
 
   if (!debut) {
     container.innerHTML = `<div style="color:var(--text3);font-size:12px;">Sélectionnez une date de début</div>`;
     return;
   }
-  if (!dispo.length) {
+  if (!dispo.length && !reservesVisibles.length) {
     container.innerHTML = `<div style="color:var(--text3);font-size:12px;">Aucun véhicule disponible pour ces critères</div>`;
     return;
   }
 
   const energieIcon = { Hybride: '<img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/hybride.png" style="height:13px;vertical-align:middle">', GNV: '<img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/gnv.png" style="height:13px;vertical-align:middle">', Electrique: '<img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/electrique.png" style="height:13px;vertical-align:middle">', Diesel: '🔵' };
 
-  container.innerHTML = dispo.map(v => {
+  const renderCard = (v, isReserved) => {
     const selected = selectedArr.some(s => s['Numéro Parc'] === v['Numéro Parc']);
+    const res = isReserved ? getReservationBus(v['Numéro Parc']) : null;
+    const finRes = res && res.date_fin ? res.date_fin.split('-').reverse().join('/') : '—';
+    if (isReserved) {
+      return `
+        <div class="flex-between veh-reserved-card" style="padding:8px;border-radius:6px;border:1px solid var(--yellow);
+          background:rgba(201,134,10,0.05);margin-bottom:6px;opacity:0.7;" title="Bus réservé — non disponible">
+          <div>
+            <div style="font-size:12px;font-weight:700;">${v['Numéro Parc']}</div>
+            <div style="font-size:10px;color:var(--text3);">${v['Marque']} ${v['Modèle']} · ${v['Places']} pl.</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+            <span style="font-size:13px;">${energieIcon[v['Energie']] || '🚌'}</span>
+            <span class="badge badge-gray">${v['Type']}</span>
+            <span class="badge-reserved">🔒 ${res.devis_id}</span>
+            <span style="font-size:9px;color:var(--yellow);">jusqu'au ${finRes}</span>
+          </div>
+        </div>`;
+    }
     return `
       <div class="flex-between" style="padding:8px;border-radius:6px;border:1px solid ${selected ? 'var(--green)' : 'var(--border)'};
         background:${selected ? 'rgba(76,175,80,0.1)' : 'var(--surface2)'};margin-bottom:6px;cursor:pointer;transition:all 0.15s;"
@@ -3751,7 +3932,14 @@ function renderVehiculesDisponibles(containerId, selectedArr, type) {
           ${selected ? '<span style="color:var(--green);font-size:16px;">✓</span>' : ''}
         </div>
       </div>`;
-  }).join('');
+  };
+
+  let html = dispo.map(v => renderCard(v, false)).join('');
+  if (reservesVisibles.length) {
+    html += `<div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text4);margin:10px 0 6px;font-weight:700;">🔒 Réservés — non disponibles</div>`;
+    html += reservesVisibles.map(v => renderCard(v, true)).join('');
+  }
+  container.innerHTML = html;
 }
 
 function toggleVehiculeDevis(numParc, type) {
@@ -4424,11 +4612,17 @@ async function exportDevisImage(contentId) {
 // ================================================================
 //  SAUVEGARDER DEVIS
 // ================================================================
-function genNumeroDevis(type) {
-  const prefix = type === 'location' ? 'DL' : 'DAE';
-  const now = new Date();
-  const ts = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
-  return `${prefix}-${ts}`;
+async function genNumeroDevis(type, pseudo) {
+  if (!pseudo) pseudo = 'ADTEM';
+  const key = pseudo.trim();
+  // Lire le compteur actuel
+  let compteur = APP.devisCompteurs[key] || 0;
+  compteur++;
+  APP.devisCompteurs[key] = compteur;
+  // Persister en Supabase
+  await sbUpsert('devis_compteurs', { pseudo: key, compteur }, { onConflict: 'pseudo' });
+  const suffix = type === 'ae' ? `-AE` : '';
+  return `${key}-${compteur}${suffix}`;
 }
 
 async function saveDevis(type) {
@@ -4438,22 +4632,65 @@ async function saveDevis(type) {
     ? parseInt(document.getElementById('calc-total').textContent.replace(/\s|€/g,'')) || 0
     : parseInt(document.getElementById('ae-montant').value) || 0;
 
-  const numero = genNumeroDevis(type);
+  if (!pseudo) { toast('Saisissez un pseudo membre', 'error'); return; }
+
+  // Calculer date de fin présumée
+  let dateFin = null;
+  if (type === 'location') {
+    const debut = document.getElementById('dl-debut').value;
+    const duree = parseInt(document.getElementById('dl-duree').value) || 1;
+    if (debut) {
+      const d = new Date(debut);
+      d.setDate(d.getDate() + duree * 7);
+      dateFin = d.toISOString().split('T')[0];
+    }
+  } else {
+    dateFin = document.getElementById('ae-fin').value || null;
+  }
+
+  const numero = await genNumeroDevis(type, pseudo);
   const devis  = {
     numero, type, pseudo,
     date: new Date().toISOString(),
     vehicules: v.map(x => x['Numéro Parc']),
     montant,
+    dateFin,
+    statut: 'en_attente',
     imageUrl: APP._lastDevisUrl && APP._lastDevisType === type ? APP._lastDevisUrl : null
   };
   const id = genId();
   await sbInsert('devis_sauvegardes', { id, numero, type, pseudo, data: devis });
+  APP.devisSauvegardes = APP.devisSauvegardes || [];
+  APP.devisSauvegardes.unshift({ _id: id, ...devis });
+
+  // Créer les réservations pour chaque bus sélectionné
+  if (v.length && dateFin) {
+    for (const veh of v) {
+      const resId = genId();
+      const resData = {
+        id: resId,
+        bus_id: veh['Numéro Parc'],
+        devis_id: numero,
+        pseudo,
+        date_fin: dateFin,
+        statut: 'en_attente'
+      };
+      await sbInsert('reservations', resData);
+      APP.reservations.push({ _id: resId, ...resData });
+    }
+    renderVehiculesDisponibles(
+      type === 'location' ? 'vehicules-disponibles' : 'ae-vehicules-disponibles',
+      type === 'location' ? APP.devisLocation.vehiculesSelectionnes : APP.devisAE.vehiculesSelectionnes,
+      type
+    );
+  }
 
   // Afficher le numéro sur le devis
   _afficherNumeroDevis(type, numero);
 
   journalLog(`Devis ${numero} sauvegardé pour ${pseudo} — ${montant.toLocaleString('fr')} €`, 'ok');
   toast(`Devis ${numero} sauvegardé`, 'success');
+  renderDevisSauvegardes();
 }
 
 function _afficherNumeroDevis(type, numero) {
@@ -4471,6 +4708,225 @@ function _afficherNumeroDevis(type, numero) {
   el.appendChild(badge);
 }
 
+// ================================================================
+//  RESERVATIONS — Fonctions principales
+// ================================================================
+
+/** Retourne la réservation active (non refusée) pour un bus donné */
+function getReservationBus(busId) {
+  return (APP.reservations || []).find(r => r.bus_id === busId && r.statut !== 'refuse');
+}
+
+/** Nettoyage au chargement : supprime les réservations expirées si le bus n'est plus en location */
+async function nettoyerReservationsExpirees() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const aSupprimer = [];
+  for (const r of (APP.reservations || [])) {
+    if (r.statut === 'refuse') { aSupprimer.push(r); continue; }
+    const df = r.date_fin ? new Date(r.date_fin) : null;
+    if (!df || df >= today) continue; // Pas encore expirée
+    // Expirée — vérifier si le bus est toujours en location
+    const veh = APP.vehicules.find(v => v['Numéro Parc'] === r.bus_id);
+    if (veh && veh['Patrimoine'] && veh['Patrimoine'].startsWith('EN LOCATION')) {
+      // Toujours en location : mettre à jour date_fin avec la fin de location réelle
+      const finLoc = parseDateFR(veh['Fin Location']);
+      if (finLoc && !isNaN(finLoc)) {
+        const newFin = finLoc.toISOString().split('T')[0];
+        r.date_fin = newFin;
+        await sbUpdate('reservations', { date_fin: newFin }, { id: r._id });
+      }
+      // Si fin de loc = today ou passée ET bus encore en location → on laisse, prochaine vérif à l'import
+    } else {
+      aSupprimer.push(r);
+    }
+  }
+  for (const r of aSupprimer) {
+    await sbDelete('reservations', { id: r._id });
+  }
+  APP.reservations = (APP.reservations || []).filter(r => !aSupprimer.includes(r));
+}
+
+/** Sync réservations ↔ données véhicules (appelé après import/actualisation parc) */
+async function syncReservationsParc() {
+  for (const r of (APP.reservations || [])) {
+    if (r.statut === 'refuse') continue;
+    const veh = APP.vehicules.find(v => v['Numéro Parc'] === r.bus_id);
+    if (!veh) continue;
+    const finLoc = parseDateFR(veh['Fin Location']);
+    if (!finLoc || isNaN(finLoc)) continue;
+    const finRes = r.date_fin ? new Date(r.date_fin) : null;
+    // Si fin de location réelle > date de réservation → on met à jour
+    if (!finRes || finLoc > finRes) {
+      const newFin = finLoc.toISOString().split('T')[0];
+      r.date_fin = newFin;
+      await sbUpdate('reservations', { date_fin: newFin }, { id: r._id });
+    }
+  }
+}
+
+/** Marque un devis accepté ou refusé */
+async function changerStatutDevis(devisId, statut) {
+  const label = statut === 'accepte' ? 'accepté' : 'refusé';
+  if (!confirm(`Marquer le devis ${devisId} comme ${label} ?`)) return;
+
+  // Mettre à jour le devis sauvegardé
+  const devis = (APP.devisSauvegardes || []).find(d => d.numero === devisId);
+  if (devis) {
+    devis.statut = statut;
+    await sbUpdate('devis_sauvegardes', { data: { ...devis } }, { numero: devisId });
+  }
+
+  // Mettre à jour les réservations associées
+  const resLiees = (APP.reservations || []).filter(r => r.devis_id === devisId);
+  for (const r of resLiees) {
+    r.statut = statut;
+    await sbUpdate('reservations', { statut }, { id: r._id });
+    // Si refusé → supprimer la réservation
+    if (statut === 'refuse') {
+      await sbDelete('reservations', { id: r._id });
+    }
+  }
+  if (statut === 'refuse') {
+    APP.reservations = (APP.reservations || []).filter(r => r.devis_id !== devisId);
+  }
+
+  journalLog(`Devis ${devisId} marqué ${label}`, statut === 'accepte' ? 'ok' : 'warn');
+  toast(`Devis ${devisId} ${label}`, statut === 'accepte' ? 'success' : 'info');
+  renderDevisSauvegardes();
+  renderParc();
+  renderVehiculesDisponibles('vehicules-disponibles', APP.devisLocation.vehiculesSelectionnes, 'location');
+  renderVehiculesDisponibles('ae-vehicules-disponibles', APP.devisAE.vehiculesSelectionnes, 'ae');
+}
+
+/** Ouvre le modal prolonger pour un bus en location */
+function ouvrirProlongation(busId, locataire, dateFinActuelle) {
+  document.getElementById('prolonger-bus-id').textContent = busId;
+  document.getElementById('prolonger-locataire').textContent = locataire;
+  document.getElementById('prolonger-semaines').value = '';
+  document.getElementById('prolonger-date').value = dateFinActuelle || '';
+  document.getElementById('modal-prolonger-location').dataset.busId = busId;
+  openModal('modal-prolonger-location');
+}
+
+async function confirmerProlongation() {
+  const busId = document.getElementById('modal-prolonger-location').dataset.busId;
+  const semaines = parseInt(document.getElementById('prolonger-semaines').value);
+  const dateInput = document.getElementById('prolonger-date').value;
+
+  let nouvelleDateFin = null;
+
+  if (semaines > 0) {
+    // Partir de la date de fin actuelle de la réservation ou d'aujourd'hui
+    const res = getReservationBus(busId);
+    const base = res && res.date_fin ? new Date(res.date_fin) : new Date();
+    base.setDate(base.getDate() + semaines * 7);
+    nouvelleDateFin = base.toISOString().split('T')[0];
+  } else if (dateInput) {
+    nouvelleDateFin = dateInput;
+  } else {
+    toast('Saisissez un nombre de semaines ou une date', 'error'); return;
+  }
+
+  // Mettre à jour la réservation en base
+  const res = getReservationBus(busId);
+  if (res) {
+    res.date_fin = nouvelleDateFin;
+    await sbUpdate('reservations', { date_fin: nouvelleDateFin }, { id: res._id });
+    toast(`Réservation de ${busId} prolongée jusqu'au ${nouvelleDateFin.split('-').reverse().join('/')}`, 'success');
+    journalLog(`Prolongation réservation ${busId} → ${nouvelleDateFin}`, 'ok');
+  } else {
+    toast('Aucune réservation trouvée pour ce bus', 'error');
+  }
+
+  closeModal('modal-prolonger-location');
+  renderLocations();
+}
+
+/** Ouvre le modal lever réservation depuis la page Parc */
+function ouvrirLeverReservation(busId) {
+  const res = getReservationBus(busId);
+  document.getElementById('lever-res-bus-id').textContent = busId;
+  document.getElementById('lever-res-devis-id').textContent = res ? res.devis_id : '—';
+  document.getElementById('modal-lever-reservation').dataset.busId = busId;
+  openModal('modal-lever-reservation');
+}
+
+async function confirmerLeverReservation() {
+  const busId = document.getElementById('modal-lever-reservation').dataset.busId;
+  const res = getReservationBus(busId);
+  if (res) {
+    await sbDelete('reservations', { id: res._id });
+    APP.reservations = (APP.reservations || []).filter(r => r._id !== res._id);
+    journalLog(`Réservation levée manuellement : ${busId} (devis ${res.devis_id})`, 'warn');
+    toast(`Réservation du bus ${busId} levée`, 'info');
+  }
+  closeModal('modal-lever-reservation');
+  renderParc();
+  renderVehiculesDisponibles('vehicules-disponibles', APP.devisLocation.vehiculesSelectionnes, 'location');
+  renderVehiculesDisponibles('ae-vehicules-disponibles', APP.devisAE.vehiculesSelectionnes, 'ae');
+}
+
+// ================================================================
+//  TRI GÉNÉRIQUE DES TABLEAUX
+// ================================================================
+const _sortState = {};
+
+function makeSortable(tableId, data, renderFn) {
+  // Attache les écouteurs sur les th.sortable d'un tableau donné
+  // renderFn(sortedData) sera appelée avec le tableau trié
+}
+
+/** Appelé au clic sur un th.sortable — tri du tableau correspondant */
+function handleSortClick(th) {
+  const tableKey = th.dataset.table;
+  const col = th.dataset.col;
+  if (!tableKey || !col) return;
+
+  // Toggle direction
+  if (!_sortState[tableKey]) _sortState[tableKey] = { col: null, dir: 1 };
+  const st = _sortState[tableKey];
+  if (st.col === col) { st.dir = -st.dir; }
+  else { st.col = col; st.dir = 1; }
+
+  // Mettre à jour les classes visuelles
+  document.querySelectorAll(`th[data-table="${tableKey}"]`).forEach(t => {
+    t.classList.remove('sort-asc', 'sort-desc');
+  });
+  th.classList.add(st.dir === 1 ? 'sort-asc' : 'sort-desc');
+
+  // Déclencher le re-render du tableau concerné
+  const renders = {
+    'parc': renderParc,
+    'locations': renderLocations,
+    'membres': renderMembres,
+    'aides': renderAides,
+    'personnel': renderPersonnel,
+    'devis-sauv': renderDevisSauvegardes,
+  };
+  if (renders[tableKey]) renders[tableKey]();
+}
+
+/** Trie un tableau de données selon _sortState */
+function applySortState(tableKey, arr, colAccessor) {
+  const st = _sortState[tableKey];
+  if (!st || !st.col) return arr;
+  return [...arr].sort((a, b) => {
+    const va = colAccessor ? colAccessor(a, st.col) : (a[st.col] ?? '');
+    const vb = colAccessor ? colAccessor(b, st.col) : (b[st.col] ?? '');
+    const sa = typeof va === 'string' ? va.toLowerCase() : (va ?? '');
+    const sb = typeof vb === 'string' ? vb.toLowerCase() : (vb ?? '');
+    if (sa < sb) return -st.dir;
+    if (sa > sb) return st.dir;
+    return 0;
+  });
+}
+
+// Écouteur global pour les th.sortable
+document.addEventListener('click', e => {
+  const th = e.target.closest('th.sortable');
+  if (th) handleSortClick(th);
+});
+
 function renderDevisSauvegardes() {
   const typeFilter = document.getElementById('devis-sauv-type-filter')?.value || '';
   const search     = (document.getElementById('devis-sauv-search')?.value || '').toLowerCase();
@@ -4481,15 +4937,30 @@ function renderDevisSauvegardes() {
   if (typeFilter) items = items.filter(d => d.type === typeFilter);
   if (search)     items = items.filter(d => (d.pseudo||'').toLowerCase().includes(search) || (d.numero||'').toLowerCase().includes(search));
 
-  // Tri anti-chronologique
-  items = [...items].sort((a, b) => new Date(b.date) - new Date(a.date));
+  // Tri (défaut : anti-chronologique)
+  const st = _sortState['devis-sauv'];
+  if (st && st.col) {
+    items = applySortState('devis-sauv', items, (d, col) => {
+      if (col === 'date') return new Date(d.date).getTime();
+      if (col === 'montant') return d.montant || 0;
+      return d[col] ?? '';
+    });
+  } else {
+    items = [...items].sort((a, b) => new Date(b.date) - new Date(a.date));
+  }
 
   if (!items.length) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:30px;">Aucun devis sauvegardé</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:30px;">Aucun devis sauvegardé</td></tr>`;
     return;
   }
 
   const typeLabel = { location: 'Location', ae: 'Aide Exploit.' };
+  const statutBadge = s => {
+    if (s === 'accepte') return `<span class="devis-statut-badge devis-statut-accepte">✅ Accepté</span>`;
+    if (s === 'refuse')  return `<span class="devis-statut-badge devis-statut-refuse">❌ Refusé</span>`;
+    return `<span class="devis-statut-badge devis-statut-attente">⏳ En attente</span>`;
+  };
+
   tbody.innerHTML = items.map(d => `
     <tr>
       <td style="font-family:'Fira Code',monospace;font-size:11px;font-weight:700;color:var(--green2);">${d.numero || '—'}</td>
@@ -4497,22 +4968,35 @@ function renderDevisSauvegardes() {
       <td style="font-weight:600;">${d.pseudo || '—'}</td>
       <td><span class="badge ${d.type === 'location' ? 'badge-blue' : 'badge-green'}">${typeLabel[d.type] || d.type}</span></td>
       <td style="font-weight:700;">${d.montant ? d.montant.toLocaleString('fr') + ' €' : '—'}</td>
+      <td>${statutBadge(d.statut)}</td>
       <td style="font-size:11px;color:var(--text3);">${(d.vehicules||[]).join(', ') || '—'}</td>
       <td>${d.imageUrl ? `<a href="${d.imageUrl}" target="_blank" style="color:var(--blue);font-size:11px;">🖼️ Voir</a>` : '—'}</td>
       <td>
-        <button class="btn btn-danger btn-sm btn-icon" onclick="supprimerDevisSauvegarde('${d._id||''}','${d.numero||''}')" title="Supprimer">🗑️</button>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          ${(!d.statut || d.statut === 'en_attente') ? `
+            <button class="btn btn-sm" style="background:rgba(74,140,82,0.15);color:var(--green2);border:1px solid rgba(74,140,82,0.3);" onclick="changerStatutDevis('${d.numero}','accepte')" title="Accepter">✅</button>
+            <button class="btn btn-sm" style="background:rgba(192,57,43,0.1);color:var(--red);border:1px solid rgba(192,57,43,0.2);" onclick="changerStatutDevis('${d.numero}','refuse')" title="Refuser">❌</button>
+          ` : ''}
+          <button class="btn btn-danger btn-sm btn-icon" onclick="supprimerDevisSauvegarde('${d._id||''}','${d.numero||''}')" title="Supprimer">🗑️</button>
+        </div>
       </td>
     </tr>
   `).join('');
 }
 
 async function supprimerDevisSauvegarde(id, numero) {
-  if (!id || !confirm(`Supprimer le devis ${numero} ?`)) return;
+  if (!id || !confirm(`Supprimer le devis ${numero} ? Les réservations associées seront également levées.`)) return;
   await sbDelete('devis_sauvegardes', { id });
+  // Lever aussi les réservations liées
+  const resLiees = (APP.reservations || []).filter(r => r.devis_id === numero);
+  for (const r of resLiees) await sbDelete('reservations', { id: r._id });
+  APP.reservations = (APP.reservations || []).filter(r => r.devis_id !== numero);
   APP.devisSauvegardes = (APP.devisSauvegardes || []).filter(d => d._id !== id);
   renderDevisSauvegardes();
+  renderParc();
   toast('Devis supprimé', 'info');
 }
+
 function renderCompta() {
   const ops = APP.compta;
 
@@ -4709,6 +5193,11 @@ function renderMembres() {
     if (optFilt === 'avec' && !hasOpts) return false;
     if (optFilt === 'sans' && hasOpts) return false;
     return true;
+  });
+  filtered = applySortState('membres', filtered, (m, col) => {
+    if (col === 'niveau') return parseInt(m.niveau) || 0;
+    if (col === 'totalMensuel') return m.totalMensuel || 0;
+    return m[col] ?? '';
   });
 
   // KPIs
@@ -5065,7 +5554,12 @@ function deleteMembre(id) {
 // ================================================================
 function renderAides() {
   const typeFilter = document.getElementById('aides-type-filter').value;
-  const filtered = APP.aides.filter(a => !typeFilter || a.type === typeFilter);
+  let filtered = APP.aides.filter(a => !typeFilter || a.type === typeFilter);
+  filtered = applySortState('aides', filtered, (a, col) => {
+    if (col === 'date') return new Date(a.date).getTime();
+    if (col === 'montant') return a.montant || 0;
+    return a[col] ?? '';
+  });
 
   const tbody = document.getElementById('aides-table-body');
   if (!filtered.length) {
@@ -6168,12 +6662,13 @@ async function publierDevis(contentId, type) {
     APP._lastDevisType = type;
 
     // 7. Auto-sauvegarder avec numéro unique
-    const numero = genNumeroDevis(type);
+    const pseudoSave = document.getElementById(type === 'location' ? 'dl-pseudo' : 'ae-pseudo')?.value || 'ADTEM';
+    const numero = await genNumeroDevis(type, pseudoSave);
     const vSel = type === 'location' ? APP.devisLocation.vehiculesSelectionnes : APP.devisAE.vehiculesSelectionnes;
     const montantAuto = type === 'location'
       ? parseInt(document.getElementById('calc-total').textContent.replace(/\s|€/g,'')) || 0
       : parseInt(document.getElementById('ae-montant').value) || 0;
-    const devisAuto = { numero, type, pseudo, date: new Date().toISOString(), vehicules: vSel.map(x => x['Numéro Parc']), montant: montantAuto, imageUrl };
+    const devisAuto = { numero, type, pseudo: pseudoSave, date: new Date().toISOString(), vehicules: vSel.map(x => x['Numéro Parc']), montant: montantAuto, imageUrl, statut: 'en_attente' };
     await sbInsert('devis_sauvegardes', { id: genId(), numero, type, pseudo, data: devisAuto });
     _afficherNumeroDevis(type, numero);
 
@@ -6737,7 +7232,15 @@ function renderPersonnel() {
       if (fcoF === 'ok'     && !s.badge.includes('ok'))     return false;
     }
     return true;
-  }).sort((a,b) => (a.fco||'9999') < (b.fco||'9999') ? -1 : 1);
+  });
+
+  // Apply sort (default: FCO date asc)
+  const _ps = _sortState['personnel'];
+  if (_ps && _ps.col) {
+    filtered = applySortState('personnel', filtered, (a, col) => a[col] ?? '');
+  } else {
+    filtered = filtered.sort((a,b) => (a.fco||'9999') < (b.fco||'9999') ? -1 : 1);
+  }
 
   const tbody = document.getElementById('personnel-tbody');
   if (!filtered.length) {
