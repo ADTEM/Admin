@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+  
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ADTEM — Alliance Manager</title>
@@ -42,11 +43,6 @@
 }
 
 * { margin:0; padding:0; box-sizing:border-box; }
-
-html, body {
-  max-width: 100%;
-  overflow-x: hidden;
-}
 
 body {
   background: var(--bg);
@@ -915,7 +911,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V48</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V37</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -998,6 +994,9 @@ body.mode-config #page-title { color: var(--cfg-green); }
       <div class="nav-item cfg-nav" data-page="frequentation">
         <span class="nav-icon">📉</span> Fréquentation lignes
       </div>
+      <div class="nav-item cfg-nav" data-page="cfg-options">
+        <span class="nav-icon">⚡</span> Options & Promotions
+      </div>
       <div class="nav-item cfg-nav" data-page="cfg-assets">
         <span class="nav-icon">🖼️</span> Assets
       </div>
@@ -1058,6 +1057,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
   <!-- ====== DASHBOARD ====== -->
   <div class="page active" id="page-dashboard">
     <div class="section-title">Tableau de bord ADTEM</div>
+    <div class="section-subtitle">Résumé en temps réel de l'alliance</div>
 
     <div class="kpi-grid" id="kpi-grid">
       <div class="kpi-card green">
@@ -1132,6 +1132,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
     <div class="flex-between mb-20">
       <div>
         <div class="section-title">Comptabilité</div>
+        <div class="section-subtitle">Historique des opérations financières de l'alliance</div>
       </div>
       <div class="flex gap-8">
         <select class="form-select" id="compta-month-select" style="width:160px;">
@@ -1188,6 +1189,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
     <div class="flex-between mb-20">
       <div>
         <div class="section-title">Parc de véhicules</div>
+        <div class="section-subtitle">Flotte complète de l'alliance ADTEM</div>
       </div>
       <div class="flex gap-8">
         <button class="btn btn-secondary btn-sm" onclick="loadVehicules()">🔄 Actualiser</button>
@@ -1225,16 +1227,9 @@ body.mode-config #page-title { color: var(--cfg-green); }
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th onclick="sortTable('parc','Numéro Parc')" style="cursor:pointer;">N° Parc <span id="sort-parc-Numéro Parc" class="sort-arrow">↕</span></th>
-            <th onclick="sortTable('parc','Marque')" style="cursor:pointer;">Marque / Modèle <span id="sort-parc-Marque" class="sort-arrow">↕</span></th>
-            <th onclick="sortTable('parc','Type')" style="cursor:pointer;">Type <span id="sort-parc-Type" class="sort-arrow">↕</span></th>
-            <th onclick="sortTable('parc','Energie')" style="cursor:pointer;">Énergie <span id="sort-parc-Energie" class="sort-arrow">↕</span></th>
-            <th onclick="sortTable('parc','Statut')" style="cursor:pointer;">Statut <span id="sort-parc-Statut" class="sort-arrow">↕</span></th>
-            <th onclick="sortTable('parc','Patrimoine')" style="cursor:pointer;">Patrimoine <span id="sort-parc-Patrimoine" class="sort-arrow">↕</span></th>
-            <th onclick="sortTable('parc','Fin Location')" style="cursor:pointer;">Fin loc. <span id="sort-parc-Fin Location" class="sort-arrow">↕</span></th>
-            <th onclick="sortTable('parc','Places')" style="cursor:pointer;">Places <span id="sort-parc-Places" class="sort-arrow">↕</span></th>
-            <th onclick="sortTable('parc','Depot')" style="cursor:pointer;">Dépôt <span id="sort-parc-Depot" class="sort-arrow">↕</span></th>
-            <th>Actions</th>
+            <th>N° Parc</th><th>Marque / Modèle</th><th>Type</th><th>Énergie</th>
+            <th>Statut</th><th>Patrimoine</th><th>Fin loc.</th><th>Places</th>
+            <th>Dépôt</th><th>Actions</th>
           </tr></thead>
           <tbody id="parc-table-body">
             <tr><td colspan="10" style="text-align:center;color:var(--text3);padding:30px;">Chargement...</td></tr>
@@ -1248,6 +1243,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
   <!-- ====== LOCATIONS ACTIVES ====== -->
   <div class="page" id="page-locations">
     <div class="section-title">Locations actives</div>
+    <div class="section-subtitle">Véhicules actuellement en location chez les membres</div>
 
     <div class="kpi-grid mb-20">
       <div class="kpi-card blue">
@@ -1271,12 +1267,8 @@ body.mode-config #page-title { color: var(--cfg-green); }
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th onclick="sortTable('loc','Numéro Parc')" style="cursor:pointer;">N° Parc <span id="sort-loc-Numéro Parc" class="sort-arrow">↕</span></th>
-            <th onclick="sortTable('loc','Marque')" style="cursor:pointer;">Marque / Modèle <span id="sort-loc-Marque" class="sort-arrow">↕</span></th>
-            <th onclick="sortTable('loc','Energie')" style="cursor:pointer;">Énergie <span id="sort-loc-Energie" class="sort-arrow">↕</span></th>
-            <th onclick="sortTable('loc','_locataire')" style="cursor:pointer;">Locataire <span id="sort-loc-_locataire" class="sort-arrow">↕</span></th>
-            <th onclick="sortTable('loc','Fin Location')" style="cursor:pointer;">Fin location <span id="sort-loc-Fin Location" class="sort-arrow">↕</span></th>
-            <th>Statut</th><th>Actions</th>
+            <th>N° Parc</th><th>Marque / Modèle</th><th>Énergie</th>
+            <th>Locataire</th><th>Fin location</th><th>Statut</th><th>Actions</th>
           </tr></thead>
           <tbody id="locations-table-body">
             <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:30px;">Chargement...</td></tr>
@@ -1291,6 +1283,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
     <div class="flex-between mb-20">
       <div>
         <div class="section-title">Devis — Location de véhicules</div>
+        <div class="section-subtitle">Créez et exportez un devis de location pour un membre</div>
       </div>
       <div class="flex gap-8">
         <button class="btn btn-secondary btn-sm" id="btn-historique-devis" onclick="showPage('aides')">📋 Historique</button>
@@ -1304,14 +1297,11 @@ body.mode-config #page-title { color: var(--cfg-green); }
           <div class="card-title"><span class="icon">👤</span> Informations client</div>
           <div class="form-group">
             <label class="form-label">Pseudo Jeu</label>
-            <input type="text" class="form-input" id="dl-pseudo" placeholder="Pseudo du membre"
-              list="datalist-membres-dl" autocomplete="off"
-              oninput="onPseudoInput('dl')">
-            <datalist id="datalist-membres-dl"></datalist>
+            <input type="text" class="form-input" id="dl-pseudo" placeholder="Ex: MattSwing">
           </div>
           <div class="form-group">
             <label class="form-label">Pseudo Forum</label>
-            <input type="text" class="form-input" id="dl-pseudo-forum" placeholder="Pseudo forum (si différent)">
+            <input type="text" class="form-input" id="dl-pseudo-forum" placeholder="Identique si pareil">
           </div>
           <div class="form-grid">
             <div class="form-group">
@@ -1327,9 +1317,9 @@ body.mode-config #page-title { color: var(--cfg-green); }
             <div class="form-group">
               <label class="form-label">🎟️ Code promo <span style="font-size:10px;color:var(--text3);">(optionnel)</span></label>
               <div style="display:flex;gap:6px;">
-                <select class="form-select" id="dl-code-promo" onchange="updateCalcLocation()" style="font-family:'Fira Code',monospace;font-size:11px;">
-                  <option value="">— Aucun code promo —</option>
-                </select>
+                <input type="text" class="form-input" id="dl-code-promo" placeholder="Ex: BIENVENUE2026"
+                  style="text-transform:uppercase;font-family:'Fira Code',monospace;"
+                  oninput="this.value=this.value.toUpperCase();updateCalcLocation()">
                 <button class="btn btn-secondary btn-sm" onclick="appliquerCodePromo('location')" title="Appliquer le code">✓</button>
               </div>
               <div id="dl-code-promo-status" style="font-size:10px;margin-top:4px;"></div>
@@ -1431,6 +1421,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
     <div class="flex-between mb-20">
       <div>
         <div class="section-title">Devis — Aide à l'Exploitation</div>
+        <div class="section-subtitle">Créez un devis d'aide à l'exploitation (bus + conducteurs)</div>
       </div>
     </div>
 
@@ -1440,10 +1431,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
           <div class="card-title"><span class="icon">👤</span> Informations client</div>
           <div class="form-group">
             <label class="form-label">Pseudo Jeu</label>
-            <input type="text" class="form-input" id="ae-pseudo" placeholder="Pseudo du membre"
-              list="datalist-membres-ae" autocomplete="off"
-              oninput="onPseudoInput('ae')">
-            <datalist id="datalist-membres-ae"></datalist>
+            <input type="text" class="form-input" id="ae-pseudo" placeholder="Ex: Kyky03150">
           </div>
           <div class="form-group">
             <label class="form-label">Pseudo Forum</label>
@@ -1461,13 +1449,6 @@ body.mode-config #page-title { color: var(--cfg-green); }
                 <option value="totale">Totale</option>
                 <option value="autre">Autre</option>
               </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">🎟️ Code promo <span style="font-size:10px;color:var(--text3);">(optionnel)</span></label>
-              <select class="form-select" id="ae-code-promo" style="font-family:'Fira Code',monospace;font-size:11px;">
-                <option value="">— Aucun code promo —</option>
-              </select>
-              <div id="ae-code-promo-status" style="font-size:10px;margin-top:4px;"></div>
             </div>
           </div>
         </div>
@@ -1571,6 +1552,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
     <div class="flex-between mb-20">
       <div>
         <div class="section-title">Membres de l'alliance</div>
+        <div class="section-subtitle">Gestion des joueurs et de leurs souscriptions</div>
       </div>
       <div class="flex gap-8">
         <button class="btn btn-secondary btn-sm" onclick="openImportMembres()">📋 Import copier/coller</button>
@@ -1620,11 +1602,11 @@ body.mode-config #page-title { color: var(--cfg-green); }
       <div class="table-wrap">
         <table id="membres-table">
           <thead><tr>
-            <th onclick="sortTable('mbr','pseudo')" style="cursor:pointer;">Pseudo <span id="sort-mbr-pseudo" class="sort-arrow">↕</span></th>
-            <th onclick="sortTable('mbr','entreprise')" style="cursor:pointer;">Entreprise <span id="sort-mbr-entreprise" class="sort-arrow">↕</span></th>
-            <th onclick="sortTable('mbr','niveau')" style="cursor:pointer;text-align:center;">Niv. <span id="sort-mbr-niveau" class="sort-arrow">↕</span></th>
+            <th>Pseudo</th>
+            <th>Entreprise</th>
+            <th style="text-align:center;">Niv.</th>
             <th>Options souscrites</th>
-            <th onclick="sortTable('mbr','_total')" style="cursor:pointer;text-align:right;">Total/mois <span id="sort-mbr-_total" class="sort-arrow">↕</span></th>
+            <th style="text-align:right;">Total/mois</th>
             <th style="text-align:center;">Actions</th>
           </tr></thead>
           <tbody id="membres-tbody">
@@ -1641,6 +1623,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
     <div class="flex-between mb-20">
       <div>
         <div class="section-title">Suivi des aides</div>
+        <div class="section-subtitle">Historique des devis et aides fournies aux membres</div>
       </div>
       <div class="flex gap-8">
         <select class="form-select" id="aides-type-filter" style="width:160px;">
@@ -1669,6 +1652,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
   <!-- ====== CONFIG ====== -->
   <div class="page" id="page-config">
     <div class="section-title">Configuration</div>
+    <div class="section-subtitle">Paramètres de l'application ADTEM Manager</div>
 
     <div class="grid-2" style="gap:16px;">
       <div>
@@ -1702,6 +1686,10 @@ body.mode-config #page-title { color: var(--cfg-green); }
             <label class="form-label">Durée max de location (semaines)</label>
             <input type="number" class="form-input" id="cfg-duree-max" value="12">
           </div>
+          <div class="form-group">
+            <label class="form-label">Offre promotionnelle en cours</label>
+            <input type="text" class="form-input" id="cfg-promo" placeholder="Ex: -20% pour les GNV en mai">
+          </div>
         </div>
 
         <div class="config-group">
@@ -1715,12 +1703,15 @@ body.mode-config #page-title { color: var(--cfg-green); }
 
       <div>
         <div class="config-group">
-          <div class="config-group-title">⚡ Options & Promotions</div>
-          <p style="font-size:11.5px;color:var(--text3);margin-bottom:12px;line-height:1.5;">
-            Définissez les avantages accordés automatiquement au calcul du devis selon l'option souscrite par le membre.
-          </p>
-          <div id="regles-list"><!-- Dynamique --></div>
-          <button class="btn btn-secondary btn-sm" onclick="addRegle()">➕ Ajouter une règle</button>
+          <div class="config-group-title">🔑 Token GitHub (upload assets)</div>
+          <p style="font-size:11.5px;color:var(--text3);margin-bottom:8px;">Token avec permission <code>repo</code> pour uploader des images. Stocké en base, jamais dans le code.</p>
+          <div style="display:flex;gap:8px;">
+            <input type="password" class="form-input" id="cfg-github-token" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
+            <button class="btn btn-secondary btn-sm" onclick="toggleTokenVisibility()">👁️</button>
+          </div>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px;">
+            GitHub → Settings → Developer settings → Personal access tokens → cocher <b>repo</b>
+          </div>
         </div>
 
         <div class="config-group">
@@ -1754,6 +1745,7 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
     <div class="flex-between mb-20">
       <div>
         <div class="section-title">Comptes utilisateurs</div>
+        <div class="section-subtitle">Gestion des accès au site ADTEM Manager</div>
       </div>
       <button class="btn btn-primary btn-sm" onclick="openModalCreateCompte()">➕ Créer un compte</button>
     </div>
@@ -1774,6 +1766,7 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
     <div class="flex-between mb-20">
       <div>
         <div class="section-title">Rentabilité membres</div>
+        <div class="section-subtitle">Analyse des revenus et dépenses par membre de l'alliance</div>
       </div>
       <div class="flex gap-8">
         <select class="form-select" id="renta-month-select" style="width:180px;">
@@ -1832,6 +1825,7 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
   <!-- ====== SAUVEGARDE ====== -->
   <div class="page" id="page-sauvegarde">
     <div class="section-title" style="color:var(--cfg-green);">💾 Sauvegarde & Synchronisation</div>
+    <div class="section-subtitle">Exportez, importez et gérez vos données Firebase</div>
 
     <div class="kpi-grid mb-20">
       <div class="kpi-card green">
@@ -1916,6 +1910,7 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
   <!-- ====== REINITIALISATION ====== -->
   <div class="page" id="page-reinitialisation">
     <div class="section-title" style="color:var(--red);">🗑️ Réinitialisation des données</div>
+    <div class="section-subtitle">Suppression partielle ou totale des données Firebase</div>
 
     <div class="kpi-grid mb-20">
       <div class="kpi-card blue">
@@ -1970,6 +1965,7 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
     <div class="flex-between mb-20">
       <div>
         <div class="section-title">Personnel ADTEM / FCO</div>
+        <div class="section-subtitle">Suivi des agents et des formations obligatoires</div>
       </div>
       <button class="btn btn-primary btn-sm" onclick="openImportPersonnel()">📋 Import copier/coller</button>
     </div>
@@ -2015,6 +2011,7 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
     <div class="flex-between mb-20">
       <div>
         <div class="section-title">Fréquentation des lignes</div>
+        <div class="section-subtitle">Objectifs de fréquentation par ligne et créneau horaire</div>
       </div>
       <button class="btn btn-primary btn-sm" onclick="openImportFreq()">📋 Import copier/coller</button>
     </div>
@@ -2048,6 +2045,7 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
     <div class="flex-between mb-20">
       <div>
         <div class="section-title">Tableau financier</div>
+        <div class="section-subtitle">Recettes et dépenses par thème et catégorie</div>
       </div>
       <div class="flex gap-8">
         <select class="form-select" id="bilan-annee" onchange="renderBilan()" style="width:120px;">
@@ -2076,6 +2074,7 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
     <div class="flex-between mb-20">
       <div>
         <div class="section-title">Créateur de messages forum</div>
+        <div class="section-subtitle">Générez vos messages formatés pour le forum Transport Manager</div>
       </div>
     </div>
 
@@ -2122,6 +2121,7 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
   <!-- ====== CONFIG FINANCIER ====== -->
   <div class="page" id="page-cfg-financier">
     <div class="section-title" style="color:var(--cfg-green);">⚖️ Configuration financière</div>
+    <div class="section-subtitle">Paramètres de solde et correction d'écart</div>
 
     <div class="grid-2 mb-16">
       <div class="card">
@@ -2156,19 +2156,43 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
     </div>
   </div>
 
+  <!-- ====== CONFIG OPTIONS & PROMOTIONS ====== -->
+  <div class="page" id="page-cfg-options">
+    <div class="flex-between mb-20">
+      <div>
+        <div class="section-title" style="color:var(--cfg-green);">⚡ Options & Promotions</div>
+        <div class="section-subtitle">Options membres, règles de remise et codes promo</div>
+      </div>
+      <div class="flex gap-8">
+        <button class="btn btn-secondary btn-sm" onclick="addRegle()">➕ Ajouter</button>
+        <button class="btn btn-primary btn-sm" onclick="saveConfig()">💾 Sauvegarder</button>
+      </div>
+    </div>
+    <div id="regles-list" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">
+      <!-- Dynamique -->
+    </div>
+  </div>
+
   <!-- ====== CONFIG ASSETS ====== -->
   <div class="page" id="page-cfg-assets">
     <div class="flex-between mb-20">
       <div>
         <div class="section-title" style="color:var(--cfg-green);">🖼️ Assets ADTEM</div>
+        <div class="section-subtitle">Images du repo GitHub — cliquez pour copier l'URL</div>
       </div>
       <div class="flex gap-8">
         <input type="text" class="form-input" id="assets-repo-path" value="assets/img"
-          placeholder="Chemin dans le repo (ex: assets/img)" style="width:220px;font-size:11px;">
-        <button class="btn btn-secondary btn-sm" onclick="renderAssets()">🔄 Rafraîchir</button>
+          placeholder="Chemin (ex: assets/img)" style="width:160px;font-size:11px;">
+        <label class="btn btn-primary btn-sm" style="cursor:pointer;margin-bottom:0;">
+          📤 Upload
+          <input type="file" id="assets-upload-input" accept="image/*" multiple style="display:none;"
+            onchange="uploadAssets(this.files)">
+        </label>
+        <button class="btn btn-secondary btn-sm" onclick="renderAssets()">🔄</button>
       </div>
     </div>
-    <div id="assets-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;">
+    <div id="assets-upload-progress" style="display:none;margin-bottom:12px;"></div>
+    <div id="assets-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;">
       <div style="color:var(--text3);text-align:center;padding:30px;grid-column:1/-1;">
         Chargement des assets...
       </div>
@@ -2180,6 +2204,7 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
     <div class="flex-between mb-20">
       <div>
         <div class="section-title" style="color:var(--cfg-green);">🏷️ Thèmes & Catégories</div>
+        <div class="section-subtitle">Chaque thème regroupe des catégories avec des règles de matching sur les libellés (* = wildcard)</div>
       </div>
       <div class="flex gap-8">
         <button class="btn btn-secondary btn-sm" onclick="majToutesOps()">🔄 MAJ toutes les opérations</button>
@@ -2199,6 +2224,7 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
     <div class="flex-between mb-20">
       <div>
         <div class="section-title" style="color:var(--cfg-green);">💬 Templates de messages forum</div>
+        <div class="section-subtitle">Configurez vos modèles de messages avec variables et assets</div>
       </div>
       <button class="btn btn-primary btn-sm" onclick="ouvrirModalNouveauTemplate()">➕ Nouveau template</button>
     </div>
@@ -2234,7 +2260,7 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
     <div class="modal-body">
       <div class="form-group">
         <label class="form-label">Pseudo / Nom affiché *</label>
-        <input type="text" class="form-input" id="cc-pseudo" placeholder="Pseudo du membre">
+        <input type="text" class="form-input" id="cc-pseudo" placeholder="Ex: MattSwing">
       </div>
       <div class="form-group">
         <label class="form-label">Email *</label>
@@ -2804,7 +2830,6 @@ function initFirebase() {
       });
     }
     renderMembres();
-    populateOptionSelects(); // Rafraîchit aussi les datalists pseudos
     document.getElementById('badge-membres').textContent = APP.membres.length;
     document.getElementById('kpi-membres').textContent = APP.membres.length;
   });
@@ -2952,6 +2977,7 @@ function showPage(pageId) {
   if (pageId === 'frequentation') renderFrequentation();
   if (pageId === 'tableau-financier') renderBilan();
   if (pageId === 'messages-forum') renderTemplates();
+  if (pageId === 'cfg-options') renderOptions();
   if (pageId === 'cfg-assets') renderAssets();
   if (pageId === 'cfg-financier') loadCfgFinancier();
   if (pageId === 'cfg-categories') renderCategories();
@@ -2988,6 +3014,7 @@ function showPage(pageId) {
     frequentation: ['Fréquentation lignes', 'Objectifs de fréquentation par créneau'],
     'tableau-financier': ['Tableau financier', 'Recettes et dépenses par thème et catégorie'],
     'messages-forum': ['Messages forum', 'Créateur de messages formatés'],
+    'cfg-options':   ['Options & Promotions',       'Règles de remise, options membres et codes promo'],
     'cfg-assets':    ['Assets ADTEM',              'Images et ressources du repo GitHub'],
     'cfg-categories': ['Thèmes & Catégories', 'Règles de matching pour la comptabilité'],
     'cfg-messages': ['Templates messages', 'Modèles de messages forum'],
@@ -3225,10 +3252,6 @@ function renderParc() {
     return true;
   });
 
-  // Tri
-  const ps = TABLE_SORT.parc;
-  if (ps.col) filtered = sortData(filtered, ps.col, ps.dir);
-
   const tbody = document.getElementById('parc-table-body');
   if (!filtered.length) {
     tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px;">Aucun véhicule</td></tr>`;
@@ -3278,24 +3301,17 @@ function isDateSoon(dateStr, days = 14) {
 }
 
 function parseDateFR(s) {
-  if (!s || s === '—' || s === '-') return null;
-  // Format DD/MM/YYYY
+  if (!s) return null;
   const parts = s.split('/');
-  if (parts.length === 3) {
-    const d = parseInt(parts[0]), m = parseInt(parts[1]), y = parseInt(parts[2]);
-    if (!isNaN(d) && !isNaN(m) && !isNaN(y) && y > 1000) return new Date(y, m - 1, d);
-  }
-  // Format ISO YYYY-MM-DD
-  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (iso) return new Date(parseInt(iso[1]), parseInt(iso[2]) - 1, parseInt(iso[3]));
-  return null;
+  if (parts.length < 3) return null;
+  return new Date(parts[2], parts[1] - 1, parts[0]);
 }
 
 // ================================================================
 //  LOCATIONS ACTIVES
 // ================================================================
 function renderLocations() {
-  let locs = APP.vehicules.filter(v => v['Patrimoine'] && v['Patrimoine'].startsWith('EN LOCATION'));
+  const locs = APP.vehicules.filter(v => v['Patrimoine'] && v['Patrimoine'].startsWith('EN LOCATION'));
   const now = new Date();
 
   let soon = 0, overdue = 0;
@@ -3309,13 +3325,8 @@ function renderLocations() {
     return;
   }
 
-  // Ajouter champ virtuel _locataire pour le tri
-  locs = locs.map(v => ({ ...v, _locataire: v['Patrimoine'].replace('EN LOCATION (', '').replace(')', '') }));
-  const ls = TABLE_SORT.loc;
-  if (ls.col) locs = sortData(locs, ls.col, ls.dir);
-
   tbody.innerHTML = locs.map(v => {
-    const locataire = v._locataire;
+    const locataire = v['Patrimoine'].replace('EN LOCATION (', '').replace(')', '');
     const finDate = parseDateFR(v['Fin Location']);
     const diffDays = finDate ? Math.ceil((finDate - now) / 86400000) : null;
 
@@ -3396,9 +3407,8 @@ function renderLocationsSoon() {
     .slice(0, 8);
 
   document.getElementById('locations-soon').innerHTML = soon.length ? soon.map(v => {
-    const days = v.finDate ? Math.ceil((v.finDate - now) / 86400000) : null;
-    const daysOk = days !== null && !isNaN(days);
-    const color = !daysOk ? 'var(--text3)' : days < 0 ? 'var(--red)' : days <= 7 ? 'var(--yellow)' : 'var(--text2)';
+    const days = Math.ceil((v.finDate - now) / 86400000);
+    const color = days < 0 ? 'var(--red)' : days <= 7 ? 'var(--yellow)' : 'var(--text2)';
     const locataire = v['Patrimoine'].replace('EN LOCATION (', '').replace(')', '');
     return `
       <div class="flex-between" style="padding:7px 0;border-bottom:1px solid var(--border);">
@@ -3407,8 +3417,8 @@ function renderLocationsSoon() {
           <div style="font-size:10px;color:var(--text3);">${locataire}</div>
         </div>
         <div style="text-align:right;">
-          <div style="font-size:12px;font-weight:700;color:${color};">${!daysOk ? '—' : days < 0 ? 'Dépassée' : days + 'j'}</div>
-          <div style="font-size:10px;color:var(--text3);">${v['Fin Location'] || '—'}</div>
+          <div style="font-size:12px;font-weight:700;color:${color};">${days < 0 ? 'Dépassée' : days + 'j'}</div>
+          <div style="font-size:10px;color:var(--text3);">${v['Fin Location']}</div>
         </div>
       </div>`;
   }).join('') : '<div style="color:var(--text3);font-size:12px;">Aucune location active</div>';
@@ -3818,6 +3828,7 @@ function calculerPrixAvecOptions(nbBus, duree, optionNom, prixStandard, reglePro
 function populateOptionSelects() {
   // Pour les devis location/AE : uniquement les options qui impactent le calcul
   const typesActifs = ['prix_reduit', 'gratuit_quota', 'employes_gratuits'];
+  // Les code_promo sont exclus car ils s'appliquent via le champ code, pas via le select
   const regles = getRegles();
 
   // Options avec au moins une règle de type actif
@@ -3840,30 +3851,6 @@ function populateOptionSelects() {
       sel.appendChild(opt);
     });
     if (currentVal) sel.value = currentVal;
-  });
-
-  // Peupler les selects code promo (depuis les règles avec code_promo)
-  const codesPromo = getRegles().filter(r => r.type === 'code_promo' && r.code).map(r => r.code);
-  ['dl-code-promo', 'ae-code-promo'].forEach(id => {
-    const sel = document.getElementById(id);
-    if (!sel) return;
-    const cur = sel.value;
-    sel.innerHTML = '<option value="">— Aucun code promo —</option>';
-    codesPromo.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c;
-      opt.textContent = c;
-      sel.appendChild(opt);
-    });
-    if (cur) sel.value = cur;
-  });
-
-  // Peupler les datalists membres pour les devis
-  const pseudos = Object.values(APP.membres || {}).map(m => m.pseudo).filter(Boolean).sort();
-  ['datalist-membres-dl', 'datalist-membres-ae'].forEach(id => {
-    const dl = document.getElementById(id);
-    if (!dl) return;
-    dl.innerHTML = pseudos.map(p => `<option value="${p}">`).join('');
   });
 }
 
@@ -4473,24 +4460,6 @@ function renderMembres() {
     return;
   }
 
-  // Tri membres
-  const ms = TABLE_SORT.mbr;
-  if (ms.col) {
-    filtered = [...filtered].sort((a, b) => {
-      let va, vb;
-      if (ms.col === '_total') {
-        va = a.totalMensuel || calcTotalMensuel(a.options || []);
-        vb = b.totalMensuel || calcTotalMensuel(b.options || []);
-      } else {
-        va = a[ms.col] ?? '';
-        vb = b[ms.col] ?? '';
-      }
-      const na = parseFloat(va), nb = parseFloat(vb);
-      if (!isNaN(na) && !isNaN(nb)) return (na - nb) * ms.dir;
-      return String(va).localeCompare(String(vb), 'fr') * ms.dir;
-    });
-  }
-
   const opts = getOptions();
 
   tbody.innerHTML = filtered.map(m => {
@@ -4877,7 +4846,12 @@ function loadConfigForm() {
   document.getElementById('cfg-google-form').value        = APP.config.googleForm        || '';
   document.getElementById('cfg-prix-sem').value           = APP.config.prixSem  || 1000;
   document.getElementById('cfg-duree-max').value          = APP.config.dureeMax || 12;
+  document.getElementById('cfg-promo').value              = APP.config.promo    || '';
   document.getElementById('cfg-assets-url').value         = APP.config.assetsUrl|| '';
+  // Token GitHub — afficher masqué si présent
+  const tokenEl = document.getElementById('cfg-github-token');
+  if (tokenEl) tokenEl.value = APP.config.githubToken ? '••••••••••••••••' : '';
+  if (tokenEl) tokenEl.dataset.hasToken = APP.config.githubToken ? '1' : '';
 
   // Restaurer état bouton Import CSV
   const csvChk = document.getElementById('cfg-show-import-csv');
@@ -4896,14 +4870,7 @@ function loadConfigForm() {
   };
   const reglesContainer = document.getElementById('regles-list');
   if (reglesContainer) {
-    const codePromos = getRegles().filter(r => r.type === 'code_promo' && r.code).map(r => r.code);
-    const typeDescriptions = {
-      prix_reduit: '💚 Prix réduit — Applique un tarif à la semaine inférieur au prix normal pour les membres ayant souscrit cette option.',
-      gratuit_quota: '🎁 Gratuité quota — Offre un certain nombre de véhicules gratuits pendant un nombre de semaines défini. Au-delà du quota, le prix normal (ou réduit) s\'applique.',
-      bourse: '💰 Bourse — Versement mensuel d\'une aide financière au membre (crédit en €), dans la limite d\'un plafond.',
-      employes_gratuits: '👷 Employés gratuits — Attribue des conducteurs sans coût supplémentaire pendant une durée définie.'
-    };
-    reglesContainer.innerHTML = regles.filter(r => r.type !== 'code_promo').map((r, i) => `
+    reglesContainer.innerHTML = regles.map((r, i) => `
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
           <span class="badge badge-green" style="flex-shrink:0;">${typeLabels[r.type] || r.type}</span>
@@ -4911,7 +4878,7 @@ function loadConfigForm() {
           ${r.prixMensuel ? `<span style="font-size:11px;color:var(--text3);">${r.prixMensuel.toLocaleString('fr')} €/mois</span>` : ''}
           <button class="btn btn-danger btn-sm" onclick="removeRegle(${i})">🗑️</button>
         </div>
-        ${typeDescriptions[r.type] ? `<div style="font-size:10.5px;color:var(--text3);margin-bottom:10px;padding:6px 8px;background:var(--surface3);border-radius:4px;border-left:3px solid var(--green);">${typeDescriptions[r.type]}</div>` : ''}
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-style:italic;">${r.description || ''}</div>
         <div class="form-grid" style="gap:8px;">
           <div>
             <label class="form-label" style="font-size:10px;">Nom de l'option (libre)</label>
@@ -4926,11 +4893,12 @@ function loadConfigForm() {
           </div>
           <div>
             <label class="form-label" style="font-size:10px;">Type de règle</label>
-            <select class="form-select" id="regle-type-${i}" style="font-size:11px;padding:5px 8px;" onchange="renderConfig()">
-              <option value="prix_reduit"       ${r.type==='prix_reduit'       ?'selected':''}>💚 Prix réduit</option>
-              <option value="gratuit_quota"     ${r.type==='gratuit_quota'     ?'selected':''}>🎁 Gratuité quota</option>
-              <option value="bourse"            ${r.type==='bourse'            ?'selected':''}>💰 Bourse</option>
-              <option value="employes_gratuits" ${r.type==='employes_gratuits' ?'selected':''}>👷 Employés gratuits</option>
+            <select class="form-select" id="regle-type-${i}" style="font-size:11px;padding:5px 8px;">
+              <option value="prix_reduit"     ${r.type==='prix_reduit'     ?'selected':''}>💚 Prix réduit</option>
+              <option value="gratuit_quota"   ${r.type==='gratuit_quota'   ?'selected':''}>🎁 Gratuité quota</option>
+              <option value="bourse"          ${r.type==='bourse'          ?'selected':''}>💰 Bourse</option>
+              <option value="employes_gratuits" ${r.type==='employes_gratuits'?'selected':''}>👷 Employés gratuits</option>
+              <option value="code_promo"      ${r.type==='code_promo'      ?'selected':''}>🎟️ Code promo</option>
             </select>
           </div>
           ${r.type === 'prix_reduit' ? `
@@ -4971,14 +4939,13 @@ function loadConfigForm() {
               min="0" style="font-size:11px;padding:5px 8px;"
               title="Nombre max d'utilisations par membre. 0 = illimité.">
           </div>
+          ${r.type === 'code_promo' ? `
           <div style="grid-column:1/-1;">
-            <label class="form-label" style="font-size:10px;">🎟️ Code promo applicable (optionnel)</label>
-            <select class="form-select" id="regle-codePromo-${i}" style="font-size:11px;padding:5px 8px;">
-              <option value="">— Aucun code promo —</option>
-              ${codePromos.map(c => `<option value="${c}" ${r.codePromo===c?'selected':''}>${c}</option>`).join('')}
-            </select>
-            <div style="font-size:10px;color:var(--text3);margin-top:3px;">Les codes promos sont définis dans l'onglet "Assets & Codes promo"</div>
-          </div>
+            <label class="form-label" style="font-size:10px;">🎟️ Code promo (insensible à la casse)</label>
+            <input type="text" class="form-input" id="regle-code-${i}" value="${r.code||''}"
+              placeholder="Ex: BIENVENUE2026" style="font-size:11px;padding:5px 8px;font-family:'Fira Code',monospace;text-transform:uppercase;"
+              oninput="this.value=this.value.toUpperCase()">
+          </div>` : ''}
         </div>
       </div>
     `).join('') || '<div style="color:var(--text3);font-size:12px;">Aucune règle définie — utilisation des règles par défaut ADTEM.</div>';
@@ -4995,9 +4962,14 @@ function saveConfig() {
     const desc = document.getElementById('regle-desc-'   + ri).value;
     const prixMensuel = parseInt((document.getElementById('regle-prixMensuel-' + ri) || {}).value) || 0;
     const maxUtilisations = parseInt((document.getElementById('regle-maxUtilisations-' + ri) || {}).value) || 0;
-    const codePromoEl = document.getElementById('regle-codePromo-' + ri);
-    const codePromo = codePromoEl ? codePromoEl.value : '';
-    const regle = { id: 'regle_' + ri, option: opt, type, description: desc, prixMensuel, maxUtilisations, codePromo };
+    const regle = { id: 'regle_' + ri, option: opt, type, description: desc, prixMensuel, maxUtilisations };
+    if (type === 'code_promo') {
+      const codeEl = document.getElementById('regle-code-' + ri);
+      regle.code = codeEl ? codeEl.value.toUpperCase().trim() : '';
+      // code_promo hérite aussi des propriétés prix_reduit ou gratuit_quota
+      const subTypeEl = document.getElementById('regle-prixSem-' + ri);
+      if (subTypeEl) regle.prixSem = parseInt(subTypeEl.value) || 0;
+    }
     if (type === 'prix_reduit')       regle.prixSem      = parseInt(document.getElementById('regle-prixSem-'      + ri).value) || 0;
     if (type === 'gratuit_quota') {
       regle.nbGratuits   = parseInt(document.getElementById('regle-nbGratuits-'   + ri).value) || 4;
@@ -5020,8 +4992,10 @@ function saveConfig() {
     googleForm:       document.getElementById('cfg-google-form').value,
     prixSem:          parseInt(document.getElementById('cfg-prix-sem').value)  || 1000,
     dureeMax:         parseInt(document.getElementById('cfg-duree-max').value) || 12,
+    promo:            document.getElementById('cfg-promo').value,
     assetsUrl:        document.getElementById('cfg-assets-url').value,
     cgv:              document.getElementById('cfg-cgv').value,
+    githubToken:      document.getElementById('cfg-github-token').value || APP.config.githubToken || '',
     regles
   };
 
@@ -5033,25 +5007,224 @@ function saveConfig() {
   });
 }
 
+function toggleTokenVisibility() {
+  const el = document.getElementById('cfg-github-token');
+  if (el) el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+async function uploadAssets(files) {
+  if (!files || !files.length) return;
+
+  // Récupérer le token depuis Firebase
+  const tokenSnap = await db.ref('config/githubToken').once('value');
+  const token = tokenSnap.val();
+  if (!token) {
+    toast('Token GitHub manquant — configurez-le dans Config générale', 'error');
+    return;
+  }
+
+  const path = (document.getElementById('assets-repo-path') || {}).value || 'assets/img';
+  const progress = document.getElementById('assets-upload-progress');
+  if (progress) {
+    progress.style.display = 'block';
+    progress.innerHTML = `<div style="background:var(--surface2);border-radius:6px;padding:10px 14px;font-size:12px;">
+      ⏳ Upload en cours (0/${files.length})...</div>`;
+  }
+
+  let ok = 0, errors = [];
+
+  for (const file of Array.from(files)) {
+    try {
+      // Lire le fichier en base64
+      const base64 = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(',')[1]);
+        r.onerror = rej;
+        r.readAsDataURL(file);
+      });
+
+      // Vérifier si le fichier existe déjà (pour obtenir son SHA)
+      const checkResp = await fetch(
+        `https://api.github.com/repos/ADTEM/Admin/contents/${path}/${file.name}`,
+        { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' } }
+      );
+      let sha = null;
+      if (checkResp.ok) {
+        const existing = await checkResp.json();
+        sha = existing.sha;
+      }
+
+      // Upload via API GitHub
+      const body = { message: `Upload asset: ${file.name}`, content: base64 };
+      if (sha) body.sha = sha; // mise à jour si existe déjà
+
+      const uploadResp = await fetch(
+        `https://api.github.com/repos/ADTEM/Admin/contents/${path}/${file.name}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `token ${token}`,
+            Accept: 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        }
+      );
+
+      if (!uploadResp.ok) {
+        const err = await uploadResp.json();
+        throw new Error(err.message || 'Erreur upload');
+      }
+
+      ok++;
+      if (progress) progress.innerHTML = `<div style="background:var(--greenbg);border:1px solid rgba(74,140,82,0.2);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--green2);">
+        ⏳ Upload en cours (${ok}/${files.length})...</div>`;
+
+    } catch(e) {
+      errors.push(`${file.name}: ${e.message}`);
+    }
+  }
+
+  // Résultat
+  if (progress) {
+    if (errors.length) {
+      progress.innerHTML = `<div style="background:var(--redbg);border:1px solid rgba(192,57,43,0.2);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--red);">
+        ❌ ${errors.join('<br>')}</div>`;
+    } else {
+      progress.innerHTML = `<div style="background:var(--greenbg);border:1px solid rgba(74,140,82,0.2);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--green2);">
+        ✅ ${ok} fichier(s) uploadé(s) avec succès !</div>`;
+      setTimeout(() => { progress.style.display = 'none'; }, 3000);
+    }
+  }
+
+  // Reset input
+  const input = document.getElementById('assets-upload-input');
+  if (input) input.value = '';
+
+  // Rafraîchir la grille
+  if (ok > 0) {
+    journalLog(`${ok} asset(s) uploadé(s) dans ${path}`, 'ok');
+    setTimeout(() => renderAssets(), 1500); // Laisser GitHub indexer
+  }
+}
+
+function renderOptions() {
+  const container = document.getElementById('regles-list');
+  if (!container) return;
+  const regles = getRegles();
+  const typeLabels = {
+    prix_reduit: '💚 Prix réduit',
+    gratuit_quota: '🎁 Gratuité quota',
+    bourse: '💰 Bourse',
+    employes_gratuits: '👷 Employés gratuits',
+    code_promo: '🎟️ Code promo'
+  };
+  if (!regles.length) {
+    container.innerHTML = '<div style="color:var(--text3);font-size:12px;grid-column:1/-1;">Aucune règle définie.</div>';
+    return;
+  }
+  container.innerHTML = regles.map((r, i) => `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span class="badge badge-green" style="flex-shrink:0;">${typeLabels[r.type] || r.type}</span>
+        <span style="font-weight:600;font-size:12px;flex:1;">${r.option || '<em style="color:var(--text3)">Sans option</em>'}</span>
+        ${r.prixMensuel ? `<span style="font-size:11px;color:var(--text3);">${r.prixMensuel.toLocaleString('fr')} €/mois</span>` : ''}
+        <button class="btn btn-danger btn-sm" onclick="removeRegle(${i})">🗑️</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-style:italic;">${r.description || ''}</div>
+      <div class="form-grid" style="gap:6px;">
+        <div>
+          <label class="form-label" style="font-size:10px;">Option</label>
+          <input type="text" class="form-input" id="regle-option-${i}" value="${r.option||''}"
+            list="datalist-opts-${i}" placeholder="Nom de l'option" style="font-size:11px;padding:5px 8px;"
+            oninput="">
+          <datalist id="datalist-opts-${i}">
+            ${[...new Set(getRegles().map(r2=>r2.option).filter(Boolean))].map(n=>`<option value="${n}">`).join('')}
+          </datalist>
+        </div>
+        <div>
+          <label class="form-label" style="font-size:10px;">Type</label>
+          <select class="form-select" id="regle-type-${i}" style="font-size:11px;padding:5px 8px;" onchange="renderOptions()">
+            <option value="prix_reduit"       ${r.type==='prix_reduit'       ?'selected':''}>💚 Prix réduit</option>
+            <option value="gratuit_quota"     ${r.type==='gratuit_quota'     ?'selected':''}>🎁 Gratuité quota</option>
+            <option value="bourse"            ${r.type==='bourse'            ?'selected':''}>💰 Bourse</option>
+            <option value="employes_gratuits" ${r.type==='employes_gratuits' ?'selected':''}>👷 Employés gratuits</option>
+            <option value="code_promo"        ${r.type==='code_promo'        ?'selected':''}>🎟️ Code promo</option>
+          </select>
+        </div>
+        ${r.type === 'prix_reduit' || r.type === 'code_promo' ? `
+        <div>
+          <label class="form-label" style="font-size:10px;">Prix/sem (€)</label>
+          <input type="number" class="form-input" id="regle-prixSem-${i}" value="${r.prixSem||0}" style="font-size:11px;padding:5px 8px;">
+        </div>` : ''}
+        ${r.type === 'gratuit_quota' ? `
+        <div>
+          <label class="form-label" style="font-size:10px;">Nb gratuits</label>
+          <input type="number" class="form-input" id="regle-nbGratuits-${i}" value="${r.nbGratuits||4}" style="font-size:11px;padding:5px 8px;">
+        </div>
+        <div>
+          <label class="form-label" style="font-size:10px;">Sem. gratuites</label>
+          <input type="number" class="form-input" id="regle-semGratuites-${i}" value="${r.semGratuites||3}" style="font-size:11px;padding:5px 8px;">
+        </div>
+        <div>
+          <label class="form-label" style="font-size:10px;">Prix après quota (€)</label>
+          <input type="number" class="form-input" id="regle-prixApres-${i}" value="${r.prixApres||750}" style="font-size:11px;padding:5px 8px;">
+        </div>` : ''}
+        ${r.type === 'bourse' ? `
+        <div>
+          <label class="form-label" style="font-size:10px;">Plafond (€)</label>
+          <input type="number" class="form-input" id="regle-plafond-${i}" value="${r.plafond||0}" style="font-size:11px;padding:5px 8px;">
+        </div>` : ''}
+        ${r.type === 'employes_gratuits' ? `
+        <div>
+          <label class="form-label" style="font-size:10px;">Nb gratuits</label>
+          <input type="number" class="form-input" id="regle-nbGratuits-${i}" value="${r.nbGratuits||10}" style="font-size:11px;padding:5px 8px;">
+        </div>
+        <div>
+          <label class="form-label" style="font-size:10px;">Durée (jours)</label>
+          <input type="number" class="form-input" id="regle-dureeJours-${i}" value="${r.dureeJours||90}" style="font-size:11px;padding:5px 8px;">
+        </div>` : ''}
+        ${r.type === 'code_promo' ? `
+        <div>
+          <label class="form-label" style="font-size:10px;">🎟️ Code promo</label>
+          <input type="text" class="form-input" id="regle-code-${i}" value="${r.code||''}"
+            placeholder="EX: BIENVENUE2026" style="font-size:11px;padding:5px 8px;font-family:'Fira Code',monospace;text-transform:uppercase;"
+            oninput="this.value=this.value.toUpperCase()">
+        </div>` : ''}
+        <div>
+          <label class="form-label" style="font-size:10px;">💳 Prix mensuel (€)</label>
+          <input type="number" class="form-input" id="regle-prixMensuel-${i}" value="${r.prixMensuel||0}" style="font-size:11px;padding:5px 8px;">
+        </div>
+        <div>
+          <label class="form-label" style="font-size:10px;">🔢 Limite utilisations (0=∞)</label>
+          <input type="number" class="form-input" id="regle-maxUtilisations-${i}" value="${r.maxUtilisations||0}" min="0" style="font-size:11px;padding:5px 8px;">
+        </div>
+        <div style="grid-column:1/-1;">
+          <label class="form-label" style="font-size:10px;">Description</label>
+          <input type="text" class="form-input" id="regle-desc-${i}" value="${r.description||''}" style="font-size:11px;padding:5px 8px;">
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
 function addRegle() {
   const regles = getRegles();
-  regles.push({
-    id: 'regle_' + Date.now(),
-    option: '',
-    type: 'prix_reduit',
-    prixMensuel: 0,
-    prixSem: 0,
-    description: ''
-  });
+  regles.push({ id: 'regle_' + Date.now(), option: '', type: 'prix_reduit', prixMensuel: 0, prixSem: 0, description: '' });
   APP.config.regles = regles;
-  loadConfigForm();
+  // Rafraîchir la page active
+  const page = document.querySelector('.page.active');
+  if (page && page.id === 'page-cfg-options') renderOptions();
+  else loadConfigForm();
 }
 
 function removeRegle(i) {
   const regles = getRegles();
   regles.splice(i, 1);
   APP.config.regles = regles;
-  loadConfigForm();
+  const page = document.querySelector('.page.active');
+  if (page && page.id === 'page-cfg-options') renderOptions();
+  else loadConfigForm();
 }
 
 function toggleImportCSVBtn(show) {
@@ -5358,7 +5531,6 @@ async function loadComptes() {
           </div>
         `).join('')}
       </div>`;
-  }
 
   // ── SECTION COMPTES ACTIFS ──
   if (!actifs.length) {
@@ -5511,10 +5683,8 @@ async function supprimerDefinitivement(uid) {
   toast(`Compte "${pseudo}" supprimé de la base`, 'info');
   loadComptes();
 }
-async function changerRole(uid, newRole) {
   await db.ref('users/' + uid + '/role').set(newRole);
   toast('Rôle mis à jour', 'success');
-  loadComptes();
 }
 
 async function toggleActif(uid, currentActif) {
@@ -6857,7 +7027,6 @@ function renderTemplates() {
       <div class="flex-between mb-8">
         <div style="font-weight:700;font-size:13px;">${t.nom}</div>
         <div style="display:flex;gap:6px;">
-          <button class="btn btn-secondary btn-sm" onclick="dupliquerTemplate('${t.id}')" title="Dupliquer">📋</button>
           <button class="btn btn-secondary btn-sm" onclick="editerTemplate('${t.id}')">✏️</button>
           <button class="btn btn-danger btn-sm" onclick="supprimerTemplate('${t.id}')">🗑️</button>
         </div>
@@ -6939,16 +7108,6 @@ function insererVariable(v) {
   ta.value = ta.value.slice(0, pos) + v + ta.value.slice(ta.selectionEnd);
   ta.selectionStart = ta.selectionEnd = pos + v.length;
   ta.focus();
-
-  // Auto-ajout dans "variables requises"
-  const varName = v.replace(/[{}]/g, '');
-  const varInput = document.getElementById('tpl-variables');
-  if (varInput) {
-    const existing = varInput.value.split(',').map(s => s.trim()).filter(Boolean);
-    if (!existing.includes(varName)) {
-      varInput.value = existing.length ? existing.join(', ') + ', ' + varName : varName;
-    }
-  }
 }
 
 function loadTemplate() {
@@ -7141,82 +7300,6 @@ function enregistrerUsagePromo(pseudo) {
 // ================================================================
 //  INIT
 // ================================================================
-// ================================================================
-//  SORT GÉNÉRIQUE SUR LES TABLES
-// ================================================================
-const TABLE_SORT = { parc: { col: null, dir: 1 }, loc: { col: null, dir: 1 }, mbr: { col: null, dir: 1 } };
-
-function sortTable(table, col) {
-  const s = TABLE_SORT[table];
-  if (s.col === col) s.dir *= -1;
-  else { s.col = col; s.dir = 1; }
-
-  // Réinitialiser toutes les flèches de ce tableau
-  document.querySelectorAll(`[id^="sort-${table}-"]`).forEach(el => el.textContent = '↕');
-  const arrowEl = document.getElementById(`sort-${table}-${col}`);
-  if (arrowEl) arrowEl.textContent = s.dir === 1 ? '↑' : '↓';
-
-  if (table === 'parc') renderParc();
-  if (table === 'loc') renderLocations();
-  if (table === 'mbr') filterMembres();
-}
-
-function sortData(arr, col, dir) {
-  return [...arr].sort((a, b) => {
-    let va = a[col] ?? '';
-    let vb = b[col] ?? '';
-    // Essai tri numérique
-    const na = parseFloat(String(va).replace(/\s/g, ''));
-    const nb = parseFloat(String(vb).replace(/\s/g, ''));
-    if (!isNaN(na) && !isNaN(nb)) return (na - nb) * dir;
-    // Tri date FR
-    const da = parseDateFR(va), db = parseDateFR(vb);
-    if (da && db) return (da - db) * dir;
-    // Tri alpha
-    return String(va).localeCompare(String(vb), 'fr') * dir;
-  });
-}
-
-// ================================================================
-//  AUTOCOMPLETE PSEUDO DANS LES DEVIS
-// ================================================================
-function onPseudoInput(type) {
-  const pseudo = document.getElementById(type === 'dl' ? 'dl-pseudo' : 'ae-pseudo').value.trim();
-  if (!pseudo) return;
-  // Si le pseudo correspond à un membre, pré-remplir les autres champs
-  const membre = Object.values(APP.membres || {}).find(m => m.pseudo && m.pseudo.toLowerCase() === pseudo.toLowerCase());
-  if (membre) {
-    if (type === 'dl') {
-      if (document.getElementById('dl-pseudo-forum')) document.getElementById('dl-pseudo-forum').value = membre.pseudo;
-      if (document.getElementById('dl-niveau')) document.getElementById('dl-niveau').value = membre.niveau ? 'Niveau ' + membre.niveau : '';
-      const optSel = document.getElementById('dl-option');
-      if (optSel && membre.options && membre.options.length) {
-        const opt = membre.options[0];
-        for (let i = 0; i < optSel.options.length; i++) {
-          if (optSel.options[i].value === opt) { optSel.selectedIndex = i; break; }
-        }
-      }
-    } else {
-      if (document.getElementById('ae-pseudo-forum')) document.getElementById('ae-pseudo-forum').value = membre.pseudo;
-      if (document.getElementById('ae-niveau')) document.getElementById('ae-niveau').value = membre.niveau ? 'Niveau ' + membre.niveau : '';
-    }
-  }
-}
-
-// ================================================================
-//  DUPLIQUER UN TEMPLATE
-// ================================================================
-function dupliquerTemplate(id) {
-  const t = (APP.templates || []).find(x => x.id === id);
-  if (!t) return;
-  const clone = { ...t, id: genId(), nom: t.nom + ' (copie)' };
-  APP.templates.push(clone);
-  db.ref('templates').set(APP.templates).then(() => {
-    renderTemplates();
-    toast('Template dupliqué', 'success');
-  });
-}
-
 function init() {
   // Sync version sur la page login
   const v = document.getElementById('github-version');
