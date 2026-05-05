@@ -274,7 +274,24 @@ td {
 }
 tr:hover td { background: var(--surface2); }
 
-/* === SORTABLE TABLES === */
+/* === AUTOCOMPLETE PSEUDO === */
+.pseudo-autocomplete-wrap { position: relative; }
+.pseudo-dropdown {
+  position: absolute; top: calc(100% + 2px); left: 0; right: 0; z-index: 500;
+  background: var(--surface); border: 1px solid var(--border2); border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12); overflow: hidden;
+  max-height: 220px; overflow-y: auto;
+}
+.pseudo-dropdown-item {
+  padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 10px;
+  font-size: 12px; transition: background 0.1s;
+}
+.pseudo-dropdown-item:hover, .pseudo-dropdown-item.selected {
+  background: rgba(74,140,82,0.1);
+}
+.pseudo-dropdown-item .pdi-pseudo { font-weight: 700; color: var(--text); }
+.pseudo-dropdown-item .pdi-info { font-size: 10px; color: var(--text3); margin-left: auto; }
+.pseudo-dropdown-item .pdi-match { color: var(--green2); }
 th.sortable { cursor: pointer; user-select: none; position: relative; padding-right: 22px; }
 th.sortable:hover { color: var(--green2); background: rgba(74,140,82,0.06); }
 th.sortable::after {
@@ -1319,7 +1336,10 @@ body.mode-config #page-title { color: var(--cfg-green); }
           <div class="card-title"><span class="icon">👤</span> Informations client</div>
           <div class="form-group">
             <label class="form-label">Pseudo Jeu</label>
-            <input type="text" class="form-input" id="dl-pseudo" placeholder="Ex: MattSwing">
+            <div class="pseudo-autocomplete-wrap">
+              <input type="text" class="form-input" id="dl-pseudo" placeholder="Ex: MattSwing" autocomplete="off" oninput="pseudoAutoInput('dl')" onkeydown="pseudoAutoKey(event,'dl')" onblur="pseudoAutoBlur('dl')">
+              <div class="pseudo-dropdown" id="dl-pseudo-dropdown" style="display:none;"></div>
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label">Pseudo Forum</label>
@@ -1451,7 +1471,10 @@ body.mode-config #page-title { color: var(--cfg-green); }
           <div class="card-title"><span class="icon">👤</span> Informations client</div>
           <div class="form-group">
             <label class="form-label">Pseudo Jeu</label>
-            <input type="text" class="form-input" id="ae-pseudo" placeholder="Ex: Kyky03150">
+            <div class="pseudo-autocomplete-wrap">
+              <input type="text" class="form-input" id="ae-pseudo" placeholder="Ex: Kyky03150" autocomplete="off" oninput="pseudoAutoInput('ae')" onkeydown="pseudoAutoKey(event,'ae')" onblur="pseudoAutoBlur('ae')">
+              <div class="pseudo-dropdown" id="ae-pseudo-dropdown" style="display:none;"></div>
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label">Pseudo Forum</label>
@@ -5547,6 +5570,139 @@ async function saveEditMembre() {
   journalLog(`Membre modifié : ${pseudo}`, 'info');
   toast(`Membre "${pseudo}" mis à jour`, 'success');
   closeModal('modal-edit-membre');
+}
+
+// ================================================================
+//  AUTOCOMPLETE PSEUDO — Devis Location & AE
+// ================================================================
+const _pseudoAC = { dl: { idx: -1 }, ae: { idx: -1 } };
+
+function pseudoAutoInput(prefix) {
+  const val = (document.getElementById(prefix + '-pseudo').value || '').toLowerCase().trim();
+  const drop = document.getElementById(prefix + '-pseudo-dropdown');
+  _pseudoAC[prefix].idx = -1;
+
+  if (!val) { drop.style.display = 'none'; return; }
+
+  const matches = (APP.membres || []).filter(m =>
+    (m.pseudo || '').toLowerCase().includes(val)
+  ).slice(0, 8);
+
+  if (!matches.length) { drop.style.display = 'none'; return; }
+
+  drop.innerHTML = matches.map((m, i) => {
+    const pseudo = m.pseudo || '';
+    // Highlight matching part
+    const re = new RegExp(`(${val.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+    const highlighted = pseudo.replace(re, '<span class="pdi-match">$1</span>');
+    const opts = (m.options || []).join(', ') || '—';
+    return `<div class="pseudo-dropdown-item" data-idx="${i}"
+      onmousedown="pseudoAutoSelect('${prefix}',${i})"
+      onmouseover="pseudoAutoHover('${prefix}',${i})">
+      <span class="pdi-pseudo">${highlighted}</span>
+      <span class="pdi-info">Niv.${m.niveau || '?'} · ${opts}</span>
+    </div>`;
+  }).join('');
+
+  drop._matches = matches;
+  drop.style.display = 'block';
+}
+
+function pseudoAutoHover(prefix, idx) {
+  _pseudoAC[prefix].idx = idx;
+  document.querySelectorAll(`#${prefix}-pseudo-dropdown .pseudo-dropdown-item`).forEach((el, i) => {
+    el.classList.toggle('selected', i === idx);
+  });
+}
+
+function pseudoAutoKey(e, prefix) {
+  const drop = document.getElementById(prefix + '-pseudo-dropdown');
+  if (drop.style.display === 'none') return;
+  const items = drop.querySelectorAll('.pseudo-dropdown-item');
+  const ac = _pseudoAC[prefix];
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    ac.idx = Math.min(ac.idx + 1, items.length - 1);
+    items.forEach((el, i) => el.classList.toggle('selected', i === ac.idx));
+    if (items[ac.idx]) items[ac.idx].scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    ac.idx = Math.max(ac.idx - 1, 0);
+    items.forEach((el, i) => el.classList.toggle('selected', i === ac.idx));
+  } else if (e.key === 'Enter' || e.key === 'Tab') {
+    if (ac.idx >= 0 && drop._matches && drop._matches[ac.idx]) {
+      e.preventDefault();
+      pseudoAutoSelect(prefix, ac.idx);
+    } else if (e.key === 'Enter') {
+      // Tentative de match exact au blur
+      pseudoAutoBlur(prefix);
+    }
+  } else if (e.key === 'Escape') {
+    drop.style.display = 'none';
+  }
+}
+
+function pseudoAutoBlur(prefix) {
+  // Petit délai pour laisser le mousedown se déclencher avant le blur
+  setTimeout(() => {
+    const drop = document.getElementById(prefix + '-pseudo-dropdown');
+    drop.style.display = 'none';
+    // Tenter un match exact si rien n'a été sélectionné
+    const val = (document.getElementById(prefix + '-pseudo').value || '').trim();
+    if (!val) return;
+    const exact = (APP.membres || []).find(m => (m.pseudo || '').toLowerCase() === val.toLowerCase());
+    if (exact) pseudoAutoFill(prefix, exact);
+  }, 150);
+}
+
+function pseudoAutoSelect(prefix, idx) {
+  const drop = document.getElementById(prefix + '-pseudo-dropdown');
+  const m = drop._matches && drop._matches[idx];
+  if (!m) return;
+  document.getElementById(prefix + '-pseudo').value = m.pseudo || '';
+  drop.style.display = 'none';
+  pseudoAutoFill(prefix, m);
+}
+
+function pseudoAutoFill(prefix, m) {
+  // Pseudo forum
+  const forumEl = document.getElementById(prefix + '-pseudo-forum');
+  if (forumEl && !forumEl.value) forumEl.value = m.pseudo || '';
+
+  if (prefix === 'dl') {
+    // Niveau
+    const nivEl = document.getElementById('dl-niveau');
+    if (nivEl) nivEl.value = m.niveau ? 'Niveau ' + m.niveau : '';
+    // Option dans le select
+    const optEl = document.getElementById('dl-option');
+    if (optEl && m.options && m.options.length > 0) {
+      const opt = m.options[0].toLowerCase().substring(0, 8);
+      for (let i = 0; i < optEl.options.length; i++) {
+        if (optEl.options[i].text.toLowerCase().includes(opt)) {
+          optEl.selectedIndex = i; break;
+        }
+      }
+    } else if (optEl) {
+      optEl.selectedIndex = 0;
+    }
+    updateCalcLocation();
+  } else if (prefix === 'ae') {
+    // Niveau
+    const nivEl = document.getElementById('ae-niveau');
+    if (nivEl) nivEl.value = m.niveau ? 'Niveau ' + m.niveau : '';
+    // Option AE
+    const optEl = document.getElementById('ae-option');
+    if (optEl && m.options && m.options.length > 0) {
+      const opt = m.options[0].toLowerCase();
+      for (let i = 0; i < optEl.options.length; i++) {
+        if (optEl.options[i].value.toLowerCase() === opt || optEl.options[i].text.toLowerCase().includes(opt.substring(0,6))) {
+          optEl.selectedIndex = i; break;
+        }
+      }
+    }
+  }
+  toast(`Membre ${m.pseudo} chargé`, 'success');
 }
 
 function createDevisForMembre(id) {
