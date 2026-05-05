@@ -944,7 +944,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.10</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.12</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -1326,7 +1326,8 @@ body.mode-config #page-title { color: var(--cfg-green); }
       <div>
       </div>
       <div class="flex gap-8">
-        <button class="btn btn-secondary btn-sm" id="btn-historique-devis" onclick="showPage('aides')">📋 Historique</button>
+        <button class="btn btn-secondary btn-sm" onclick="resetDevisLocation()">🗑️ Vider</button>
+        <button class="btn btn-secondary btn-sm" id="btn-historique-devis" onclick="showPage('devis-sauvegardes')">📋 Historique</button>
       </div>
     </div>
 
@@ -1463,6 +1464,10 @@ body.mode-config #page-title { color: var(--cfg-green); }
   <div class="page" id="page-devis-ae">
     <div class="flex-between mb-20">
       <div>
+      </div>
+      <div class="flex gap-8">
+        <button class="btn btn-secondary btn-sm" onclick="resetDevisAE()">🗑️ Vider</button>
+        <button class="btn btn-secondary btn-sm" onclick="showPage('devis-sauvegardes')">📋 Historique</button>
       </div>
     </div>
 
@@ -6523,15 +6528,30 @@ async function loadComptes() {
 async function validerCompte(uid, pseudo) {
   const roleSelect = document.getElementById('role-select-' + uid);
   const role = roleSelect ? roleSelect.value : 'membre';
-  const { error } = await supa.from('profiles').update({ role, actif: true }).eq('id', uid);
-  if (error) {
-    const { error: err2 } = await supa.from('profiles').upsert({ id: uid, role, actif: true });
-    if (err2) {
-      toast('Erreur validation : ' + err2.message, 'error');
-      console.error('validerCompte', err2);
+
+  // 1. Tenter via edge function validate-user (service_role, bypasse la RLS)
+  const { error: efErr } = await supa.functions.invoke('validate-user', {
+    body: { user_id: uid, role, actif: true }
+  });
+
+  if (efErr) {
+    // 2. Fallback : update direct (fonctionne si la RLS admin est bien configurée)
+    const { error, count } = await supa.from('profiles')
+      .update({ role, actif: true })
+      .eq('id', uid)
+      .select();
+    if (error) {
+      toast('Erreur validation : ' + error.message, 'error');
+      console.error('validerCompte update', error);
+      return;
+    }
+    if (!count && count !== null) {
+      toast('Aucune ligne mise à jour — vérifiez les politiques RLS Supabase', 'error');
+      console.warn('validerCompte: 0 rows updated for uid', uid);
       return;
     }
   }
+
   journalLog(`Compte validé : ${pseudo} (rôle: ${role})`, 'ok');
   toast(`Compte "${pseudo}" validé avec le rôle ${role}`, 'success');
   loadComptes();
@@ -8312,6 +8332,72 @@ function enregistrerUsagePromo(pseudo) {
       journalLog(`Code promo "${promo.code}" utilisé par ${pseudo}`, 'ok');
     });
   });
+}
+
+// ================================================================
+//  RESET FORMULAIRES DEVIS
+// ================================================================
+function resetDevisLocation() {
+  if (!confirm('Vider le formulaire de devis location ?')) return;
+  const today = new Date().toISOString().slice(0, 10);
+  // Champs texte / date / nombre
+  ['dl-pseudo','dl-pseudo-forum','dl-niveau','dl-bus-remplaces','dl-code-promo'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('dl-date-demande').value  = today;
+  document.getElementById('dl-date-creation').value = today;
+  document.getElementById('dl-debut').value  = '';
+  document.getElementById('dl-duree').value  = '1';
+  document.getElementById('dl-option').value = document.getElementById('dl-option').options[0]?.value || '';
+  document.getElementById('dl-filtre-energie').value = '';
+  document.getElementById('dl-filtre-type').value    = '';
+  // Véhicules sélectionnés
+  APP.devisLocation.vehiculesSelectionnes = [];
+  // Numéro en cours
+  if (APP._currentDevisNumero) delete APP._currentDevisNumero['location'];
+  APP._promoActive = null;
+  // Preview + actions
+  const preview = document.getElementById('devis-location-preview');
+  if (preview) preview.innerHTML = '';
+  const actions = document.getElementById('devis-location-actions');
+  if (actions) actions.style.display = 'none';
+  const urlBox = document.getElementById('devis-location-url');
+  if (urlBox) { urlBox.style.display = 'none'; urlBox.innerHTML = ''; }
+  // Recalculer
+  updateCalcLocation();
+  renderVehiculesDisponibles('vehicules-disponibles', [], 'location');
+  toast('Formulaire vidé', 'info');
+}
+
+function resetDevisAE() {
+  if (!confirm('Vider le formulaire de devis AE ?')) return;
+  const today = new Date().toISOString().slice(0, 10);
+  ['ae-pseudo','ae-pseudo-forum','ae-niveau','ae-description','ae-conso-type'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('ae-date-demande').value  = today;
+  document.getElementById('ae-date-creation').value = today;
+  document.getElementById('ae-debut').value      = '';
+  document.getElementById('ae-fin').value        = '';
+  document.getElementById('ae-conducteurs').value = '1';
+  document.getElementById('ae-duree-sem').value   = '1';
+  document.getElementById('ae-montant').value     = '';
+  document.getElementById('ae-option').value      = document.getElementById('ae-option').options[0]?.value || '';
+  document.getElementById('ae-filtre-energie').value = '';
+  document.getElementById('ae-filtre-type').value    = '';
+  // Véhicules sélectionnés
+  APP.devisAE.vehiculesSelectionnes = [];
+  // Numéro en cours
+  if (APP._currentDevisNumero) delete APP._currentDevisNumero['ae'];
+  // Preview + actions
+  const preview = document.getElementById('devis-ae-preview');
+  if (preview) preview.innerHTML = '';
+  const actions = document.getElementById('devis-ae-actions');
+  if (actions) actions.style.display = 'none';
+  const urlBox = document.getElementById('devis-ae-url');
+  if (urlBox) { urlBox.style.display = 'none'; urlBox.innerHTML = ''; }
+  renderVehiculesDisponibles('ae-vehicules-disponibles', [], 'ae');
+  toast('Formulaire vidé', 'info');
 }
 
 // ================================================================
