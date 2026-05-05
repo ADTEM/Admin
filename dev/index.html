@@ -813,7 +813,11 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <label class="form-label">Mot de passe</label>
         <input type="password" class="form-input" id="login-mdp" placeholder="••••••••" autocomplete="current-password">
       </div>
-      <button class="btn btn-primary" style="width:100%;margin-top:8px;justify-content:center;" onclick="doLogin()">
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+        <input type="checkbox" id="login-remember" style="accent-color:var(--green);width:14px;height:14px;cursor:pointer;">
+        <label for="login-remember" style="font-size:11.5px;color:var(--text3);cursor:pointer;">Se souvenir de moi</label>
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:10px;justify-content:center;" onclick="doLogin()">
         🔐 Se connecter
       </button>
       <div style="margin-top:10px;">
@@ -906,7 +910,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V44</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V46</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -3275,11 +3279,14 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
     const vehicules = data.vehicules || data;
     if (!Array.isArray(vehicules)) throw new Error('Format inattendu');
     const avant = APP.vehicules.length;
+    // Upsert groupé en une seule requête
+    const rows = vehicules.map((v, i) => ({
+      id: v['Num\u00e9ro Parc'] || ('v' + i),
+      numero_parc: v['Num\u00e9ro Parc'] || '',
+      data: v
+    }));
     await supa.from('vehicules').delete().neq('id', '');
-    for (let i = 0; i < vehicules.length; i++) {
-      const v = vehicules[i];
-      await sbInsert('vehicules', { id: v['Num\u00e9ro Parc'] || ('v' + i), numero_parc: v['Num\u00e9ro Parc'] || '', data: v });
-    }
+    await supa.from('vehicules').upsert(rows);
     const nouveaux = vehicules.length - avant;
     addResult('🚌', 'Parc de véhicules',
       `${vehicules.length} véhicules importés${nouveaux > 0 ? ` (+${nouveaux} nouveaux)` : ' (à jour)'}`,
@@ -5478,6 +5485,7 @@ function bypassLogin() {
 async function doLogin() {
   const pseudo = document.getElementById('login-pseudo').value.trim();
   const mdp    = document.getElementById('login-mdp').value;
+  const remember = document.getElementById('login-remember').checked;
   const errEl  = document.getElementById('login-error');
   errEl.style.display = 'none';
 
@@ -5485,6 +5493,13 @@ async function doLogin() {
     errEl.textContent = 'Veuillez remplir tous les champs.';
     errEl.style.display = 'block';
     return;
+  }
+
+  // Sauvegarder ou effacer le pseudo selon la checkbox
+  if (remember) {
+    localStorage.setItem('adtem_remember_pseudo', pseudo);
+  } else {
+    localStorage.removeItem('adtem_remember_pseudo');
   }
 
   try {
@@ -7443,6 +7458,16 @@ function init() {
   const v = document.getElementById('github-version');
   const vLogin = document.getElementById('login-version');
   if (v && vLogin) vLogin.textContent = v.textContent;
+
+  // Restaurer pseudo mémorisé
+  const savedPseudo = localStorage.getItem('adtem_remember_pseudo');
+  if (savedPseudo) {
+    const el = document.getElementById('login-pseudo');
+    const cb = document.getElementById('login-remember');
+    if (el) el.value = savedPseudo;
+    if (cb) cb.checked = true;
+  }
+
   // Dates par défaut
   const today = new Date().toISOString().slice(0,10);
   document.getElementById('dl-date-demande').value = today;
