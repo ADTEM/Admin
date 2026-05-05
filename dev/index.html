@@ -817,8 +817,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
     <img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/Logo%20Alliance.png"
       onclick="bypassLogin()" title="Mode développeur" style="height:70px;width:auto;object-fit:contain;cursor:pointer;margin:0 auto 16px;display:block;"
       crossorigin="anonymous" onerror="this.style.display='none'">
-    <div class="login-title">ADTEM</div>
-    <div class="login-sub">Alliance Manager · Transport Manager</div>
+
 
     <!-- Panel Connexion -->
     <div id="panel-login">
@@ -885,7 +884,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
     </div>
 
     <div style="text-align:center;margin-top:20px;font-size:10px;color:var(--text4);">
-      ADTEM · Transport Manager · <span id="login-version">V1.5</span>
+      ADTEM · Transport Manager · <span id="login-version">V1.6</span>
     </div>
   </div>
 </div>
@@ -915,20 +914,19 @@ body.mode-config #page-title { color: var(--cfg-green); }
   <div id="cfg-mode-banner">⚙ Mode Configuration</div>
 
   <div class="sidebar-logo">
-    <div class="logo-row">
+    <div class="logo-row" style="flex-direction:column;align-items:center;gap:6px;">
       <img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/Logo%20Alliance.png"
         style="height:48px;width:auto;object-fit:contain;" crossorigin="anonymous"
         onerror="this.style.display='none'" id="sidebar-logo-img">
-      <div class="logo-text" id="sidebar-logo-normal">
-        <h1>ADTEM</h1>
-        <small>Alliance Manager</small>
+      <div class="logo-text" id="sidebar-logo-normal" style="text-align:center;">
+        <small style="font-size:10px;letter-spacing:1.5px;color:var(--text3);font-weight:600;">ALLIANCE MANAGER</small>
       </div>
-      <div class="logo-text" id="sidebar-logo-config" style="display:none;">
+      <div class="logo-text" id="sidebar-logo-config" style="display:none;text-align:center;">
         <h1 style="color:var(--cfg-green);font-size:16px;">CONFIG</h1>
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.5</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.6</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -1076,8 +1074,6 @@ body.mode-config #page-title { color: var(--cfg-green); }
 
   <!-- ====== DASHBOARD ====== -->
   <div class="page active" id="page-dashboard">
-    <div class="section-title">Tableau de bord ADTEM</div>
-    <div class="section-subtitle">Résumé en temps réel de l'alliance</div>
 
     <div class="kpi-grid" id="kpi-grid">
       <div class="kpi-card green">
@@ -1151,8 +1147,6 @@ body.mode-config #page-title { color: var(--cfg-green); }
   <div class="page" id="page-compta">
     <div class="flex-between mb-20">
       <div>
-        <div class="section-title">Comptabilité</div>
-        <div class="section-subtitle">Historique des opérations financières de l'alliance</div>
       </div>
       <div class="flex gap-8">
         <select class="form-select" id="compta-month-select" style="width:160px;">
@@ -1208,8 +1202,6 @@ body.mode-config #page-title { color: var(--cfg-green); }
   <div class="page" id="page-parc">
     <div class="flex-between mb-20">
       <div>
-        <div class="section-title">Parc de véhicules</div>
-        <div class="section-subtitle">Flotte complète de l'alliance ADTEM</div>
       </div>
       <div class="flex gap-8">
         <button class="btn btn-secondary btn-sm" onclick="loadVehicules()">🔄 Actualiser</button>
@@ -1269,8 +1261,6 @@ body.mode-config #page-title { color: var(--cfg-green); }
 
   <!-- ====== LOCATIONS ACTIVES ====== -->
   <div class="page" id="page-locations">
-    <div class="section-title">Locations actives</div>
-    <div class="section-subtitle">Véhicules actuellement en location chez les membres</div>
 
     <div class="kpi-grid mb-20">
       <div class="kpi-card blue">
@@ -1316,8 +1306,6 @@ body.mode-config #page-title { color: var(--cfg-green); }
   <div class="page" id="page-devis-location">
     <div class="flex-between mb-20">
       <div>
-        <div class="section-title">Devis — Location de véhicules</div>
-        <div class="section-subtitle">Créez et exportez un devis de location pour un membre</div>
       </div>
       <div class="flex gap-8">
         <button class="btn btn-secondary btn-sm" id="btn-historique-devis" onclick="showPage('aides')">📋 Historique</button>
@@ -1454,8 +1442,6 @@ body.mode-config #page-title { color: var(--cfg-green); }
   <div class="page" id="page-devis-ae">
     <div class="flex-between mb-20">
       <div>
-        <div class="section-title">Devis — Aide à l'Exploitation</div>
-        <div class="section-subtitle">Créez un devis d'aide à l'exploitation (bus + conducteurs)</div>
       </div>
     </div>
 
@@ -1585,8 +1571,6 @@ body.mode-config #page-title { color: var(--cfg-green); }
   <div class="page" id="page-membres">
     <div class="flex-between mb-20">
       <div>
-        <div class="section-title">Membres de l'alliance</div>
-        <div class="section-subtitle">Gestion des joueurs et de leurs souscriptions</div>
       </div>
       <div class="flex gap-8">
         <button class="btn btn-secondary btn-sm" onclick="openImportMembres()">📋 Import copier/coller</button>
@@ -1656,8 +1640,6 @@ body.mode-config #page-title { color: var(--cfg-green); }
   <div class="page" id="page-aides">
     <div class="flex-between mb-20">
       <div>
-        <div class="section-title">Suivi des aides</div>
-        <div class="section-subtitle">Historique des devis et aides fournies aux membres</div>
       </div>
       <div class="flex gap-8">
         <select class="form-select" id="aides-type-filter" style="width:160px;">
@@ -1692,8 +1674,6 @@ body.mode-config #page-title { color: var(--cfg-green); }
   <div class="page" id="page-devis-sauvegardes">
     <div class="flex-between mb-20">
       <div>
-        <div class="section-title">🗂️ Devis sauvegardés</div>
-        <div class="section-subtitle">Historique de tous les devis sauvegardés</div>
       </div>
       <div class="flex gap-8">
         <select class="form-select" id="devis-sauv-type-filter" style="width:160px;" onchange="renderDevisSauvegardes()">
@@ -1726,8 +1706,6 @@ body.mode-config #page-title { color: var(--cfg-green); }
 
   <!-- ====== CONFIG ====== -->
   <div class="page" id="page-config">
-    <div class="section-title">Configuration</div>
-    <div class="section-subtitle">Paramètres de l'application ADTEM Manager</div>
 
     <div class="grid-2" style="gap:16px;">
       <div>
@@ -1819,8 +1797,6 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
   <div class="page" id="page-comptes">
     <div class="flex-between mb-20">
       <div>
-        <div class="section-title">Comptes utilisateurs</div>
-        <div class="section-subtitle">Gestion des accès au site ADTEM Manager</div>
       </div>
       <button class="btn btn-primary btn-sm" onclick="openModalCreateCompte()">➕ Créer un compte</button>
     </div>
@@ -1840,8 +1816,6 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
   <div class="page" id="page-rentabilite">
     <div class="flex-between mb-20">
       <div>
-        <div class="section-title">Rentabilité membres</div>
-        <div class="section-subtitle">Analyse des revenus et dépenses par membre de l'alliance</div>
       </div>
       <div class="flex gap-8">
         <select class="form-select" id="renta-month-select" style="width:180px;">
@@ -1899,8 +1873,6 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
 
   <!-- ====== SAUVEGARDE ====== -->
   <div class="page" id="page-sauvegarde">
-    <div class="section-title" style="color:var(--cfg-green);">💾 Sauvegarde & Synchronisation</div>
-    <div class="section-subtitle">Exportez, importez et gérez vos données Supabase</div>
 
     <div class="kpi-grid mb-20">
       <div class="kpi-card green">
@@ -1984,8 +1956,6 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
 
   <!-- ====== REINITIALISATION ====== -->
   <div class="page" id="page-reinitialisation">
-    <div class="section-title" style="color:var(--red);">🗑️ Réinitialisation des données</div>
-    <div class="section-subtitle">Suppression partielle ou totale des données Supabase</div>
 
     <div class="kpi-grid mb-20">
       <div class="kpi-card blue">
@@ -2039,8 +2009,6 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
   <div class="page" id="page-personnel">
     <div class="flex-between mb-20">
       <div>
-        <div class="section-title">Personnel ADTEM / FCO</div>
-        <div class="section-subtitle">Suivi des agents et des formations obligatoires</div>
       </div>
       <button class="btn btn-primary btn-sm" onclick="openImportPersonnel()">📋 Import copier/coller</button>
     </div>
@@ -2090,8 +2058,6 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
   <div class="page" id="page-frequentation">
     <div class="flex-between mb-20">
       <div>
-        <div class="section-title">Fréquentation des lignes</div>
-        <div class="section-subtitle">Objectifs de fréquentation par ligne et créneau horaire</div>
       </div>
       <button class="btn btn-primary btn-sm" onclick="openImportFreq()">📋 Import copier/coller</button>
     </div>
@@ -2124,8 +2090,6 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
   <div class="page" id="page-tableau-financier">
     <div class="flex-between mb-20">
       <div>
-        <div class="section-title">Tableau financier</div>
-        <div class="section-subtitle">Recettes et dépenses par thème et catégorie</div>
       </div>
       <div class="flex gap-8">
         <select class="form-select" id="bilan-annee" onchange="renderBilan()" style="width:120px;">
@@ -2153,8 +2117,6 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
   <div class="page" id="page-messages-forum">
     <div class="flex-between mb-20">
       <div>
-        <div class="section-title">Créateur de messages forum</div>
-        <div class="section-subtitle">Générez vos messages formatés pour le forum Transport Manager</div>
       </div>
     </div>
 
@@ -2200,8 +2162,6 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
 
   <!-- ====== CONFIG FINANCIER ====== -->
   <div class="page" id="page-cfg-financier">
-    <div class="section-title" style="color:var(--cfg-green);">⚖️ Configuration financière</div>
-    <div class="section-subtitle">Paramètres de solde et correction d'écart</div>
 
     <div class="grid-2 mb-16">
       <div class="card">
@@ -2240,8 +2200,6 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
   <div class="page" id="page-cfg-options">
     <div class="flex-between mb-20">
       <div>
-        <div class="section-title" style="color:var(--cfg-green);">⚡ Options & Promotions</div>
-        <div class="section-subtitle">Options membres, règles de remise et codes promo</div>
       </div>
       <div class="flex gap-8">
         <button class="btn btn-secondary btn-sm" onclick="addRegle()">➕ Ajouter</button>
@@ -2257,8 +2215,6 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
   <div class="page" id="page-cfg-assets">
     <div class="flex-between mb-20">
       <div>
-        <div class="section-title" style="color:var(--cfg-green);">🖼️ Assets ADTEM</div>
-        <div class="section-subtitle">Images du repo GitHub — cliquez pour copier l'URL</div>
       </div>
       <div class="flex gap-8">
         <input type="text" class="form-input" id="assets-repo-path" value="assets/img"
@@ -2283,8 +2239,6 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
   <div class="page" id="page-cfg-categories">
     <div class="flex-between mb-20">
       <div>
-        <div class="section-title" style="color:var(--cfg-green);">🏷️ Thèmes & Catégories</div>
-        <div class="section-subtitle">Chaque thème regroupe des catégories avec des règles de matching sur les libellés (* = wildcard)</div>
       </div>
       <div class="flex gap-8">
         <button class="btn btn-secondary btn-sm" onclick="majToutesOps()">🔄 MAJ toutes les opérations</button>
@@ -2303,8 +2257,6 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
   <div class="page" id="page-cfg-messages">
     <div class="flex-between mb-20">
       <div>
-        <div class="section-title" style="color:var(--cfg-green);">💬 Templates de messages forum</div>
-        <div class="section-subtitle">Configurez vos modèles de messages avec variables et assets</div>
       </div>
       <button class="btn btn-primary btn-sm" onclick="ouvrirModalNouveauTemplate()">➕ Nouveau template</button>
     </div>
@@ -3346,6 +3298,7 @@ function showPage(pageId) {
     'cfg-assets':    ['Assets ADTEM',              'Images et ressources du repo GitHub'],
     'cfg-categories': ['Thèmes & Catégories', 'Règles de matching pour la comptabilité'],
     'cfg-messages': ['Templates messages', 'Modèles de messages forum'],
+    'cfg-financier': ['Financière', 'Paramètres de solde et correction d\'écart'],
     config: ['Configuration générale', 'Paramètres de l\'application']
   };
   if (titles[pageId]) {
