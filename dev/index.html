@@ -867,7 +867,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
     </div>
 
     <div style="text-align:center;margin-top:20px;font-size:10px;color:var(--text4);">
-      ADTEM · Transport Manager · <span id="login-version">V1.00</span>
+      ADTEM · Transport Manager · <span id="login-version">V29</span>
     </div>
   </div>
 </div>
@@ -910,7 +910,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.00</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.1</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -4914,7 +4914,7 @@ async function parseMembresImport() {
       } else {
         membreData.dateAdhesion = new Date().toISOString().slice(0, 10);
         membreData.notes = '';
-        await sbInsert('membres', { id: genId(), data: membreData });
+        await sbInsert('membres', { id: genId(), pseudo: membreData.pseudo || '', data: membreData });
         added++;
       }
     }
@@ -4957,7 +4957,7 @@ async function saveMembre() {
     notes:        document.getElementById('add-notes').value
   };
   const newId = genId();
-  await sbInsert('membres', { id: newId, data: membre });
+  await sbInsert('membres', { id: newId, pseudo: membre.pseudo || '', data: membre });
   toast('Membre ajouté', 'success');
   closeModal('modal-add-membre');
   journalLog(`Membre ajouté manuellement : ${pseudo}`, 'ok');
@@ -6349,7 +6349,7 @@ function importerSauvegarde(input) {
           ? data.membres
           : Object.values(data.membres);
         for (const m of membres) {
-          await sbInsert('membres', { id: m.id || genId(), data: m });
+          await sbInsert('membres', { id: m.id || genId(), pseudo: m.pseudo || '', data: m });
         }
       }
 
@@ -6536,7 +6536,7 @@ async function pushSupabase() {
     await sbUpsert('config', { id: 1, data: { ...APP.config, themes: APP.themes } });
     // Membres
     for (const m of APP.membres) {
-      await sbUpsert('membres', { id: m.id || genId(), data: m });
+      await sbUpsert('membres', { id: m.id || genId(), pseudo: m.pseudo || '', data: m });
     }
     // Aides
     for (const a of APP.aides) {
