@@ -944,7 +944,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.12</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.15</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -4742,20 +4742,7 @@ async function saveDevis(type) {
   renderDevisSauvegardes();
 }
 
-function _afficherNumeroDevis(type, numero) {
-  const contentId = type === 'location' ? 'devis-loc-content' : 'devis-ae-content';
-  const el = document.getElementById(contentId);
-  if (!el) return;
-  // Retirer un badge existant
-  const old = el.querySelector('.devis-numero-badge');
-  if (old) old.remove();
-  const badge = document.createElement('div');
-  badge.className = 'devis-numero-badge';
-  badge.style.cssText = 'position:absolute;top:8px;right:12px;background:#2e7d32;color:white;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;font-family:monospace;z-index:10;letter-spacing:0.5px;';
-  badge.textContent = numero;
-  el.style.position = 'relative';
-  el.appendChild(badge);
-}
+function _afficherNumeroDevis(type, numero) { /* numéro affiché dans le template */ }
 
 // ================================================================
 //  RESERVATIONS — Fonctions principales
@@ -6516,6 +6503,7 @@ async function loadComptes() {
               ${u.actif ? '🚫' : '✅'}
             </button>
             <button class="btn btn-danger btn-sm" onclick="deleteCompte('${u.id}','${u.pseudo||''}')">⛔ Suspendre</button>
+            <button class="btn btn-danger btn-sm btn-icon" onclick="supprimerDefinitivement('${u.id}','${u.pseudo||''}')" title="Supprimer définitivement le compte">🗑️</button>
           ` : ''}
         </div>
       </div>
@@ -6523,6 +6511,17 @@ async function loadComptes() {
   }
 
   container.innerHTML = html || `<div style="color:var(--text3);text-align:center;padding:30px;">Aucun compte</div>`;
+}
+
+async function adminUpdateProfile(uid, fields) {
+  const { error } = await supa.functions.invoke('admin-update-profile', {
+    body: { user_id: uid, ...fields }
+  });
+  if (error) {
+    // Fallback sbUpdate si l'edge function n'est pas déployée
+    return await sbUpdate('profiles', fields, { id: uid });
+  }
+  return true;
 }
 
 async function validerCompte(uid, pseudo) {
@@ -6588,7 +6587,7 @@ async function savePseudo(uid) {
   const input = document.getElementById('pseudo-input-' + uid);
   const newPseudo = input.value.trim();
   if (!newPseudo) { toast('Le pseudo ne peut pas être vide', 'error'); return; }
-  await sbUpdate('profiles', { pseudo: newPseudo }, { id: uid });
+  await adminUpdateProfile(uid, { pseudo: newPseudo });
   document.getElementById('pseudo-display-' + uid).textContent = newPseudo;
   document.getElementById('pseudo-edit-' + uid).style.display = 'none';
   document.getElementById('pseudo-display-' + uid).style.display = '';
@@ -6602,39 +6601,51 @@ async function savePseudo(uid) {
 
 async function deleteCompte(uid, pseudo) {
   if (!confirm(`Suspendre le compte "${pseudo}" ?\n\nL'utilisateur ne pourra plus se connecter.`)) return;
-  await sbUpdate('profiles', {
+  await adminUpdateProfile(uid, {
     actif: false, role: 'suspendu',
     suspendedAt: new Date().toISOString(),
     suspendedBy: CURRENT_USER.pseudo || 'admin'
-  }, { id: uid });
+  });
   journalLog(`Compte suspendu : ${pseudo}`, 'warn');
   toast(`Compte "${pseudo}" suspendu`, 'info');
   loadComptes();
 }
 
 async function reactiverCompte(uid, pseudo) {
-  await sbUpdate('profiles', { actif: true, role: 'membre', suspendedAt: null, suspendedBy: null }, { id: uid });
+  await adminUpdateProfile(uid, { actif: true, role: 'membre', suspendedAt: null, suspendedBy: null });
   journalLog(`Compte réactivé : ${pseudo}`, 'ok');
   toast(`Compte "${pseudo}" réactivé`, 'success');
   loadComptes();
 }
 
 async function supprimerDefinitivement(uid, pseudo) {
-  if (!confirm(`Supprimer définitivement "${pseudo}" ?\n\nCette action est irréversible.`)) return;
+  if (!confirm(`⚠️ Supprimer définitivement le compte "${pseudo}" ?\n\nCela supprimera la ligne de la base ET le compte d'authentification.\nCette action est irréversible.`)) return;
+  if (!confirm(`Dernière confirmation — supprimer "${pseudo}" définitivement ?`)) return;
+
+  // 1. Supprimer le compte auth + profile via edge function (service_role)
+  const { error: efErr } = await supa.functions.invoke('delete-user', { body: { user_id: uid } });
+  if (efErr) {
+    toast('Erreur suppression auth : ' + efErr.message, 'error');
+    console.error('supprimerDefinitivement auth', efErr);
+    // Tenter quand même de supprimer le profil
+  }
+
+  // 2. Supprimer la ligne profiles (fallback si l'edge function ne le fait pas)
   await sbDelete('profiles', { id: uid });
-  await supa.functions.invoke('delete-user', { body: { user_id: uid } });
-  journalLog(`Compte supprimé : ${pseudo}`, 'danger');
+
+  journalLog(`Compte supprimé définitivement : ${pseudo}`, 'danger');
   toast(`Compte "${pseudo}" supprimé`, 'info');
   loadComptes();
+  refreshBadgeAttente();
 }
 
 async function changeRole(uid, newRole) {
-  await sbUpdate('profiles', { role: newRole }, { id: uid });
+  await adminUpdateProfile(uid, { role: newRole });
   toast('Rôle mis à jour', 'success');
 }
 
 async function toggleActif(uid, currentActif) {
-  await sbUpdate('profiles', { actif: !currentActif }, { id: uid });
+  await adminUpdateProfile(uid, { actif: !currentActif });
   toast(currentActif ? 'Compte désactivé' : 'Compte activé', 'success');
   loadComptes();
 }
@@ -6644,7 +6655,7 @@ async function resetMdpAdmin(uid, pseudo) {
   const newMdp = genMdpAleatoire();
   const { error } = await supa.functions.invoke('reset-password', { body: { user_id: uid, password: newMdp } });
   if (error) { toast('Erreur reset MDP : ' + error.message, 'error'); return; }
-  await sbUpdate('profiles', { must_change_password: true }, { id: uid });
+  await adminUpdateProfile(uid, { must_change_password: true });
   journalLog(`MDP réinitialisé pour : ${pseudo}`, 'warn');
   // Afficher le MDP temporaire à l'admin
   alert(`✅ Mot de passe temporaire pour "${pseudo}" :\n\n${newMdp}\n\nCommuniquez-le à l'utilisateur. Il devra le changer à la prochaine connexion.`);
