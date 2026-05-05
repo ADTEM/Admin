@@ -741,7 +741,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 14px; padding: 40px 36px; width: 380px;
   box-shadow: 0 4px 32px rgba(0,0,0,0.10);
-  text-align: center;
+  text-align: center; position: relative;
 }
 .login-logo {
   width: 56px; height: 56px; margin: 0 auto 16px;
@@ -832,8 +832,9 @@ body.mode-config #page-title { color: var(--cfg-green); }
 <div id="login-screen">
   <div class="login-box">
     <img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/Logo%20Alliance.png"
-      onclick="bypassLogin()" title="Mode développeur" style="height:70px;width:auto;object-fit:contain;cursor:pointer;margin:0 auto 16px;display:block;"
+      style="height:70px;width:auto;object-fit:contain;margin:0 auto 16px;display:block;"
       crossorigin="anonymous" onerror="this.style.display='none'">
+    <div onclick="bypassLogin()" style="position:absolute;top:0;right:0;width:40px;height:40px;border-radius:0 14px 0 0;cursor:default;" title="" tabindex="-1" aria-hidden="true"></div>
 
 
     <!-- Panel Connexion -->
@@ -943,7 +944,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.6</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.10</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -1129,7 +1130,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
       </div>
       <div class="card">
         <div class="card-title"><span class="icon">📅</span> Locations se terminant bientôt</div>
-        <div id="locations-soon" style="max-height:200px;overflow-y:auto;">
+        <div id="locations-soon" style="max-height:200px;overflow-y:auto;padding-right:4px;">
           <div style="color:var(--text3);font-size:12px;">Chargement...</div>
         </div>
       </div>
@@ -3042,7 +3043,7 @@ async function loadAllData() {
 
     // Membres
     const membresRows = await sbGet('membres');
-    APP.membres = (membresRows || []).map(r => ({ id: r.id, ...r }));
+    APP.membres = (membresRows || []).map(r => ({ id: r.id, ...(r.data || r) }));
     renderMembres();
     const bm = document.getElementById('badge-membres');
     const km = document.getElementById('kpi-membres');
@@ -3120,7 +3121,7 @@ function setupRealtimeListeners() {
   supa.channel('realtime-adtem')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'membres' }, async () => {
       const rows = await sbGet('membres');
-      APP.membres = (rows || []).map(r => ({ id: r.id, ...r }));
+      APP.membres = (rows || []).map(r => ({ id: r.id, ...(r.data || r) }));
       renderMembres();
       const bm = document.getElementById('badge-membres');
       const km = document.getElementById('kpi-membres');
@@ -3769,22 +3770,23 @@ function renderLocationsSoon() {
   const soon = APP.vehicules
     .filter(v => v['Patrimoine'] && v['Patrimoine'].startsWith('EN LOCATION') && v['Fin Location'])
     .map(v => ({ ...v, finDate: parseDateFR(v['Fin Location']) }))
-    .filter(v => v.finDate)
+    .filter(v => v.finDate && !isNaN(v.finDate))
     .sort((a, b) => a.finDate - b.finDate)
     .slice(0, 8);
 
   document.getElementById('locations-soon').innerHTML = soon.length ? soon.map(v => {
-    const days = Math.ceil((v.finDate - now) / 86400000);
-    const color = days < 0 ? 'var(--red)' : days <= 7 ? 'var(--yellow)' : 'var(--text2)';
+    const days = isNaN(v.finDate) ? null : Math.ceil((v.finDate - now) / 86400000);
+    const color = days === null ? 'var(--text3)' : days < 0 ? 'var(--red)' : days <= 7 ? 'var(--yellow)' : 'var(--text2)';
+    const daysLabel = days === null ? '—' : days < 0 ? 'Dépassée' : days + 'j';
     const locataire = v['Patrimoine'].replace('EN LOCATION (', '').replace(')', '');
     return `
-      <div class="flex-between" style="padding:7px 0;border-bottom:1px solid var(--border);">
+      <div class="flex-between" style="padding:7px 0;border-bottom:1px solid var(--border);padding-right:12px;">
         <div>
           <div style="font-size:12px;font-weight:600;">${v['Numéro Parc']}</div>
           <div style="font-size:10px;color:var(--text3);">${locataire}</div>
         </div>
-        <div style="text-align:right;">
-          <div style="font-size:12px;font-weight:700;color:${color};">${days < 0 ? 'Dépassée' : days + 'j'}</div>
+        <div style="text-align:right;flex-shrink:0;margin-left:16px;">
+          <div style="font-size:12px;font-weight:700;color:${color};">${daysLabel}</div>
           <div style="font-size:10px;color:var(--text3);">${v['Fin Location']}</div>
         </div>
       </div>`;
@@ -4318,7 +4320,7 @@ function updateCalcLocation() {
 // ================================================================
 //  GÉNÉRATION DEVIS LOCATION
 // ================================================================
-function genererDevisLocation() {
+async function genererDevisLocation() {
   const v = APP.devisLocation.vehiculesSelectionnes;
   if (!v.length) { toast('Sélectionnez au moins un véhicule', 'error'); return; }
 
@@ -4350,11 +4352,16 @@ function genererDevisLocation() {
   if (APP._promoActive) enregistrerUsagePromo(pseudo);
   const prixSansOption = nbBus * duree * prixStd;
 
+  // Attribuer le numéro à la génération
+  const numero = await genNumeroDevis('location', pseudo);
+  APP._currentDevisNumero = APP._currentDevisNumero || {};
+  APP._currentDevisNumero['location'] = numero;
+
   const html = buildDevisLocationHTML({
     pseudo, pseudoForum, niveau, option: optionLabel, dateDemande, dateCreation,
     debut, fin: finDate, busRemplaces,
     nbBus, totalPlaces, energies, types, marques, modeles, numParcs,
-    duree, detail, total, economie, prixSansOption, prixStd
+    duree, detail, total, economie, prixSansOption, prixStd, numero
   });
 
   const preview = document.getElementById('devis-location-preview');
@@ -4402,6 +4409,7 @@ function buildDevisLocationHTML(d) {
       <div style="font-size:10px;color:#333;">
         <div>Date de demande : <b>${d.dateDemande}</b></div>
         <div>Date de création : <b>${d.dateCreation}</b></div>
+        ${d.numero ? `<div style="margin-top:4px;font-size:11px;color:#2e7d32;font-weight:700;">Numéro devis : ${d.numero}</div>` : ''}
       </div>
     </div>
   </div>
@@ -4477,7 +4485,7 @@ function devisRow(label, value) {
 // ================================================================
 //  GÉNÉRATION DEVIS AE
 // ================================================================
-function genererDevisAE() {
+async function genererDevisAE() {
   const v = APP.devisAE.vehiculesSelectionnes;
   if (!v.length) { toast('Sélectionnez au moins un véhicule', 'error'); return; }
   const pseudo = document.getElementById('ae-pseudo').value || '—';
@@ -4501,10 +4509,15 @@ function genererDevisAE() {
   const modeles = [...new Set(v.map(x => x['Modèle']))].join(', ');
   const numParcs = v.map(x => x['Numéro Parc']).join(', ');
 
+  // Attribuer le numéro à la génération
+  const numero = await genNumeroDevis('ae', pseudo);
+  APP._currentDevisNumero = APP._currentDevisNumero || {};
+  APP._currentDevisNumero['ae'] = numero;
+
   const html = buildDevisAEHTML({
     pseudo, pseudoForum, niveau, option, dateDemande, dateCreation,
     debut, fin, duree, conducteurs, montant, consoType, description,
-    nbVeh, energies, types, marques, modeles, numParcs
+    nbVeh, energies, types, marques, modeles, numParcs, numero
   });
 
   const preview = document.getElementById('devis-ae-preview');
@@ -4530,6 +4543,7 @@ function buildDevisAEHTML(d) {
       <div style="font-size:10px;color:#333;">
         <div>Date de demande : <b>${d.dateDemande}</b></div>
         <div>Date de création : <b>${d.dateCreation}</b></div>
+        ${d.numero ? `<div style="margin-top:4px;font-size:11px;color:#2e7d32;font-weight:700;">Numéro devis : ${d.numero}</div>` : ''}
       </div>
     </div>
   </div>
@@ -4668,7 +4682,9 @@ async function saveDevis(type) {
     dateFin = document.getElementById('ae-fin').value || null;
   }
 
-  const numero = await genNumeroDevis(type, pseudo);
+  // Réutiliser le numéro déjà attribué à la génération (évite les doublons)
+  APP._currentDevisNumero = APP._currentDevisNumero || {};
+  const numero = APP._currentDevisNumero[type] || await genNumeroDevis(type, pseudo);
   const devis  = {
     numero, type, pseudo,
     date: new Date().toISOString(),
@@ -4678,10 +4694,18 @@ async function saveDevis(type) {
     statut: 'en_attente',
     imageUrl: APP._lastDevisUrl && APP._lastDevisType === type ? APP._lastDevisUrl : null
   };
-  const id = genId();
-  await sbInsert('devis_sauvegardes', { id, numero, type, pseudo, data: devis });
+  // Vérifier si ce numéro existe déjà en base (double-clic ou sauvegarder + publier)
   APP.devisSauvegardes = APP.devisSauvegardes || [];
-  APP.devisSauvegardes.unshift({ _id: id, ...devis });
+  const existe = APP.devisSauvegardes.find(d => d.numero === numero);
+  if (existe) {
+    await sbUpdate('devis_sauvegardes', { data: { ...devis } }, { numero });
+    const idx = APP.devisSauvegardes.findIndex(d => d.numero === numero);
+    if (idx !== -1) APP.devisSauvegardes[idx] = { ...APP.devisSauvegardes[idx], ...devis };
+  } else {
+    const id = genId();
+    await sbInsert('devis_sauvegardes', { id, numero, type, pseudo, data: devis });
+    APP.devisSauvegardes.unshift({ _id: id, ...devis });
+  }
 
   // Créer les réservations pour chaque bus sélectionné
   if (v.length && dateFin) {
@@ -5572,6 +5596,10 @@ async function saveEditMembre() {
   };
 
   await sbUpdate('membres', { data }, { id });
+  // Mise à jour locale immédiate (sans attendre le realtime)
+  const idx = APP.membres.findIndex(m => m.id === id);
+  if (idx !== -1) APP.membres[idx] = { ...APP.membres[idx], ...data };
+  renderMembres();
   journalLog(`Membre modifié : ${pseudo}`, 'info');
   toast(`Membre "${pseudo}" mis à jour`, 'success');
   closeModal('modal-edit-membre');
@@ -6495,7 +6523,15 @@ async function loadComptes() {
 async function validerCompte(uid, pseudo) {
   const roleSelect = document.getElementById('role-select-' + uid);
   const role = roleSelect ? roleSelect.value : 'membre';
-  await sbUpdate('profiles', { role, actif: true }, { id: uid });
+  const { error } = await supa.from('profiles').update({ role, actif: true }).eq('id', uid);
+  if (error) {
+    const { error: err2 } = await supa.from('profiles').upsert({ id: uid, role, actif: true });
+    if (err2) {
+      toast('Erreur validation : ' + err2.message, 'error');
+      console.error('validerCompte', err2);
+      return;
+    }
+  }
   journalLog(`Compte validé : ${pseudo} (rôle: ${role})`, 'ok');
   toast(`Compte "${pseudo}" validé avec le rôle ${role}`, 'success');
   loadComptes();
@@ -6859,15 +6895,26 @@ async function publierDevis(contentId, type) {
     APP._lastDevisUrl  = imageUrl;
     APP._lastDevisType = type;
 
-    // 7. Auto-sauvegarder avec numéro unique
+    // 7. Auto-sauvegarder — réutiliser le numéro généré, check doublon
     const pseudoSave = document.getElementById(type === 'location' ? 'dl-pseudo' : 'ae-pseudo')?.value || 'ADTEM';
-    const numero = await genNumeroDevis(type, pseudoSave);
+    APP._currentDevisNumero = APP._currentDevisNumero || {};
+    const numero = APP._currentDevisNumero[type] || await genNumeroDevis(type, pseudoSave);
+    APP._currentDevisNumero[type] = numero;
     const vSel = type === 'location' ? APP.devisLocation.vehiculesSelectionnes : APP.devisAE.vehiculesSelectionnes;
     const montantAuto = type === 'location'
       ? parseInt(document.getElementById('calc-total').textContent.replace(/\s|€/g,'')) || 0
       : parseInt(document.getElementById('ae-montant').value) || 0;
     const devisAuto = { numero, type, pseudo: pseudoSave, date: new Date().toISOString(), vehicules: vSel.map(x => x['Numéro Parc']), montant: montantAuto, imageUrl, statut: 'en_attente' };
-    await sbInsert('devis_sauvegardes', { id: genId(), numero, type, pseudo, data: devisAuto });
+    APP.devisSauvegardes = APP.devisSauvegardes || [];
+    const existePub = APP.devisSauvegardes.find(d => d.numero === numero);
+    if (existePub) {
+      await sbUpdate('devis_sauvegardes', { data: { ...devisAuto } }, { numero });
+      const idx = APP.devisSauvegardes.findIndex(d => d.numero === numero);
+      if (idx !== -1) APP.devisSauvegardes[idx] = { ...APP.devisSauvegardes[idx], ...devisAuto, imageUrl };
+    } else {
+      await sbInsert('devis_sauvegardes', { id: genId(), numero, type, pseudo, data: devisAuto });
+      APP.devisSauvegardes.unshift({ ...devisAuto });
+    }
     _afficherNumeroDevis(type, numero);
 
     journalLog(`Devis ${type.toUpperCase()} publié pour ${pseudo}`, 'ok');
@@ -7364,7 +7411,7 @@ async function importerPersonnel() {
       matricule,
       nom:       parts[1] || '',
       poste:     parts[2] || '',
-      fco:       parseDateFR(parts[3]),
+      fco:       parseDateFRtoISO(parts[3]),
       formation: parts[4] || '—',
       updatedAt: new Date().toISOString()
     };
@@ -7384,7 +7431,7 @@ async function importerPersonnel() {
   renderPersonnel();
 }
 
-function parseDateFR(str) {
+function parseDateFRtoISO(str) {
   if (!str || str === '—' || str === '-') return null;
   const m = str.match(/(\d{2})\/(\d{2})\/(\d{4})/);
   if (!m) return null;
