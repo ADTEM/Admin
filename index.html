@@ -906,7 +906,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V41</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V42</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -2945,7 +2945,7 @@ async function loadAllData() {
 
     // Journal
     const jRows = await sbGet('journal', { order: ['created_at', { ascending: false }], limit: 30 });
-    renderJournal((jRows || []).map(r => r.data || r));
+    renderJournal(jRows || []);
 
   } catch(e) {
     console.error('loadAllData error', e);
@@ -6081,8 +6081,7 @@ function journalLog(text, type = 'info') {
   const heure = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   const date  = now.toLocaleDateString('fr-FR');
   const user  = CURRENT_USER.pseudo || 'Système';
-  const entry = { date, heure, text, type, user };
-  sbInsert('journal', { data: entry });
+  sbInsert('journal', { date, heure, text, type, user });
 }
 
 function renderJournal(entries) {
@@ -6105,7 +6104,7 @@ function renderJournal(entries) {
 
 function clearJournal() {
   if (!confirm('Vider le journal d\'activité ?')) return;
-  supa.from('journal').delete().neq('id', 0).then(() => toast('Journal vidé', 'success'));
+  supa.from('journal').delete().neq('id', -1).then(() => toast('Journal vidé', 'success'));
 }
 
 // ================================================================
