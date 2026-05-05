@@ -867,7 +867,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
     </div>
 
     <div style="text-align:center;margin-top:20px;font-size:10px;color:var(--text4);">
-      ADTEM · Transport Manager · <span id="login-version">V29</span>
+      ADTEM · Transport Manager · <span id="login-version">V1.3</span>
     </div>
   </div>
 </div>
@@ -910,7 +910,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.1</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.3</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -2951,7 +2951,10 @@ async function loadAllData() {
     // Véhicules
     const vehRows = await sbGet('vehicules');
     APP.vehicules = (vehRows || []).map(r => r.data || r);
-    if (APP.vehicules.length) afterVehiculesLoaded();
+    if (APP.vehicules.length) {
+      afterVehiculesLoaded();
+      renderLocations();
+    }
 
     // Compta current
     const comptaRows = await sbGet('compta', { eq: ['periode', 'current'] });
@@ -4872,60 +4875,52 @@ async function parseMembresImport() {
   });
 
   let added = 0, updated = 0, removed = 0;
-  const batch = {};
 
   if (nouveauxMembres) {
-    // Index des nouveaux pseudos
     const nouveauxIdx = {};
     nouveauxMembres.forEach(m => { nouveauxIdx[m.pseudo.toLowerCase()] = m; });
 
-    // Supprimer les membres absents de la nouvelle liste
-    for (const [pseudoLow, { id }] of Object.entries(existantsIdx)) {
-      if (!nouveauxIdx[pseudoLow]) {
-        await sbDelete('membres', { id: existantsIdx[pseudoLow].id });
-        removed++;
-      }
+    // Supprimer les membres absents — groupé
+    const toDelete = Object.entries(existantsIdx)
+      .filter(([pseudoLow]) => !nouveauxIdx[pseudoLow])
+      .map(([, { id }]) => id);
+    for (const id of toDelete) {
+      await sbDelete('membres', { id });
+      removed++;
     }
 
-    // Ajouter ou mettre à jour
-    for (const nm of nouveauxMembres) {
+    // Préparer tous les upserts en une seule fois
+    const toUpsert = nouveauxMembres.map(nm => {
       const pseudoLow = nm.pseudo.toLowerCase();
       const contrat   = contratsMap[pseudoLow] || {};
       const options   = contrat.options || (existantsIdx[pseudoLow] ? existantsIdx[pseudoLow].data.options || [] : []);
-      const total     = contrat.totalMensuel !== undefined
-        ? contrat.totalMensuel
-        : calcTotalMensuel(options);
-
+      const total     = contrat.totalMensuel !== undefined ? contrat.totalMensuel : calcTotalMensuel(options);
       const membreData = {
-        pseudo:       nm.pseudo,
-        entreprise:   nm.entreprise,
-        niveau:       nm.niveau,
-        options,
-        totalMensuel: total,
-        updatedAt:    new Date().toISOString()
+        pseudo: nm.pseudo, entreprise: nm.entreprise, niveau: nm.niveau,
+        options, totalMensuel: total, updatedAt: new Date().toISOString(),
+        notes:        existantsIdx[pseudoLow]?.data.notes        || '',
+        dateAdhesion: existantsIdx[pseudoLow]?.data.dateAdhesion || new Date().toISOString().slice(0, 10)
       };
+      if (existantsIdx[pseudoLow]) { updated++; return { id: existantsIdx[pseudoLow].id, pseudo: nm.pseudo, data: membreData }; }
+      else                         { added++;   return { id: genId(), pseudo: nm.pseudo, data: membreData }; }
+    });
 
-      if (existantsIdx[pseudoLow]) {
-        // Preserve notes et dateAdhesion
-        membreData.notes       = existantsIdx[pseudoLow].data.notes || '';
-        membreData.dateAdhesion= existantsIdx[pseudoLow].data.dateAdhesion || '';
-        await sbUpdate('membres', { data: membreData }, { id: existantsIdx[pseudoLow].id });
-        updated++;
-      } else {
-        membreData.dateAdhesion = new Date().toISOString().slice(0, 10);
-        membreData.notes = '';
-        await sbInsert('membres', { id: genId(), pseudo: membreData.pseudo || '', data: membreData });
-        added++;
-      }
+    // Un seul upsert groupé
+    if (toUpsert.length) {
+      const { error } = await supa.from('membres').upsert(toUpsert);
+      if (error) { toast('Erreur import : ' + error.message, 'error'); return; }
     }
+
   } else if (contratsText) {
-    // Seulement contrats → update options sur membres existants
+    // Seulement contrats → update groupé
+    const toUpsert = [];
     for (const [pseudoLow, contrat] of Object.entries(contratsMap)) {
       if (existantsIdx[pseudoLow]) {
-        await sbUpdate('membres', { data: { ...existantsIdx[pseudoLow].data, options: contrat.options, totalMensuel: contrat.totalMensuel, updatedAt: new Date().toISOString() } }, { id: existantsIdx[pseudoLow].id });
+        toUpsert.push({ id: existantsIdx[pseudoLow].id, pseudo: existantsIdx[pseudoLow].data.pseudo || '', data: { ...existantsIdx[pseudoLow].data, options: contrat.options, totalMensuel: contrat.totalMensuel, updatedAt: new Date().toISOString() } });
         updated++;
       }
     }
+    if (toUpsert.length) await supa.from('membres').upsert(toUpsert);
   }
 
   const msg = [
