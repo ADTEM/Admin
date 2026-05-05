@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ADTEM — Alliance Manager</title>
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <style>
 :root {
@@ -806,8 +808,8 @@ body.mode-config #page-title { color: var(--cfg-green); }
     <div id="panel-login">
       <div class="login-error" id="login-error"></div>
       <div class="form-group" style="text-align:left;">
-        <label class="form-label">Pseudo</label>
-        <input type="text" class="form-input" id="login-email" placeholder="Votre pseudo" autocomplete="username">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-input" id="login-email" placeholder="admin@adtem.fr" autocomplete="email">
       </div>
       <div class="form-group" style="text-align:left;">
         <label class="form-label">Mot de passe</label>
@@ -816,8 +818,11 @@ body.mode-config #page-title { color: var(--cfg-green); }
       <button class="btn btn-primary" style="width:100%;margin-top:8px;justify-content:center;" onclick="doLogin()">
         🔐 Se connecter
       </button>
-      <div style="margin-top:10px;">
-        <button class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;" onclick="showPanelInscription()">
+      <div style="margin-top:10px;display:flex;gap:8px;">
+        <button class="btn btn-secondary btn-sm" style="flex:1;justify-content:center;" onclick="doResetPassword()">
+          Mot de passe oublié ?
+        </button>
+        <button class="btn btn-secondary btn-sm" style="flex:1;justify-content:center;" onclick="showPanelInscription()">
           ➕ Créer un compte
         </button>
       </div>
@@ -832,6 +837,10 @@ body.mode-config #page-title { color: var(--cfg-green); }
       <div class="form-group" style="text-align:left;">
         <label class="form-label">Pseudo Jeu *</label>
         <input type="text" class="form-input" id="reg-pseudo" placeholder="Votre pseudo dans Transport Manager">
+      </div>
+      <div class="form-group" style="text-align:left;">
+        <label class="form-label">Email *</label>
+        <input type="email" class="form-input" id="reg-email" placeholder="votre@email.com">
       </div>
       <div class="form-group" style="text-align:left;">
         <label class="form-label">Mot de passe *</label>
@@ -906,7 +915,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V49</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V48</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -2228,9 +2237,13 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
         <input type="text" class="form-input" id="cc-pseudo" placeholder="Pseudo du membre">
       </div>
       <div class="form-group">
+        <label class="form-label">Email *</label>
+        <input type="email" class="form-input" id="cc-email" placeholder="joueur@exemple.com">
+      </div>
+      <div class="form-group">
         <label class="form-label">Mot de passe provisoire *</label>
         <input type="password" class="form-input" id="cc-mdp" placeholder="Min. 6 caractères">
-        <div style="font-size:10px;color:var(--text3);margin-top:4px;">L'utilisateur sera forcé de le changer à la première connexion.</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px;">L'utilisateur pourra le changer via "Mot de passe oublié"</div>
       </div>
       <div class="form-group">
         <label class="form-label">Rôle</label>
@@ -2244,29 +2257,6 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-create-compte')">Annuler</button>
       <button class="btn btn-primary" onclick="createCompte()">✅ Créer le compte</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL CHANGEMENT MDP -->
-<div class="modal-overlay hidden" id="modal-change-mdp">
-  <div class="modal" style="max-width:400px;">
-    <div class="modal-header">
-      <span class="modal-title" id="modal-change-mdp-title">🔑 Changer mon mot de passe</span>
-    </div>
-    <div class="modal-body">
-      <div class="login-error" id="change-mdp-error" style="display:none;margin-bottom:12px;"></div>
-      <div class="form-group">
-        <label class="form-label">Nouveau mot de passe *</label>
-        <input type="password" class="form-input" id="change-mdp-new" placeholder="Min. 6 caractères">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Confirmer *</label>
-        <input type="password" class="form-input" id="change-mdp-confirm" placeholder="Répétez le mot de passe">
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-primary" style="width:100%;" onclick="saveNewMdp()">✅ Enregistrer le nouveau mot de passe</button>
     </div>
   </div>
 </div>
@@ -2668,46 +2658,21 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
 
 <script>
 // ================================================================
-//  SUPABASE CONFIG
+//  FIREBASE CONFIG
 // ================================================================
-const SUPABASE_URL  = 'https://gmrsqpuqbwvlfmapsnmo.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdtcnNxcHVxYnd2bGZtYXBzbm1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MDc4NTcsImV4cCI6MjA5MzQ4Mzg1N30.A5U5aocBCKDwTwoQiwhDKxFSFhcYnHUnebQ_IMoYDIs';
-const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+const firebaseConfig = {
+  apiKey: "AIzaSyBLmlN_Nl2w_-qX625R2k5p5i3CZQx5bk4",
+  authDomain: "adtem-admin.firebaseapp.com",
+  projectId: "adtem-admin",
+  storageBucket: "adtem-admin.firebasestorage.app",
+  messagingSenderId: "583726998171",
+  appId: "1:583726998171:web:af87ad2ddd740a361b1c3e",
+  databaseURL: "https://adtem-admin-default-rtdb.europe-west1.firebasedatabase.app"
+};
 
-// Helpers Supabase
-async function sbGet(table, opts = {}) {
-  let q = supa.from(table).select(opts.select || '*');
-  if (opts.eq)     q = q.eq(...opts.eq);
-  if (opts.order)  q = q.order(...opts.order);
-  if (opts.limit)  q = q.limit(opts.limit);
-  const { data, error } = await q;
-  if (error) { console.error('sbGet', table, error); return null; }
-  return data;
-}
-async function sbUpsert(table, data, opts = {}) {
-  const { error } = await supa.from(table).upsert(data, opts);
-  if (error) { console.error('sbUpsert', table, error); return false; }
-  return true;
-}
-async function sbInsert(table, data) {
-  const { error } = await supa.from(table).insert(data);
-  if (error) { console.error('sbInsert', table, error); return false; }
-  return true;
-}
-async function sbUpdate(table, data, match) {
-  let q = supa.from(table).update(data);
-  Object.entries(match).forEach(([k, v]) => { q = q.eq(k, v); });
-  const { error } = await q;
-  if (error) { console.error('sbUpdate', table, error); return false; }
-  return true;
-}
-async function sbDelete(table, match) {
-  let q = supa.from(table).delete();
-  Object.entries(match).forEach(([k, v]) => { q = q.eq(k, v); });
-  const { error } = await q;
-  if (error) { console.error('sbDelete', table, error); return false; }
-  return true;
-}
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const auth = firebase.auth();
 
 // ================================================================
 //  ÉTAT UTILISATEUR CONNECTÉ
@@ -2733,239 +2698,181 @@ const APP = {
     apiComptaLast:    'https://transport-manager.net/api/api_compta.php?key=95080a1958d89045a251862c0bd84ab7&format=json&periode=lastmonth',
     apiVehicules:     'https://transport-manager.net/api/api_vehicules.php?key=95080a1958d89045a251862c0bd84ab7',
     googleForm: '',
+    promo: ''
   },
   devisLocation: { vehiculesSelectionnes: [] },
-  devisAE: { vehiculesSelectionnes: [] },
-  personnel: {},
-  themes: [],
-  templates: [],
-  frequentation: []
+  devisAE: { vehiculesSelectionnes: [] }
 };
 
 // ================================================================
-//  SUPABASE — INIT & LISTENERS
+//  FIREBASE — LISTENERS
 // ================================================================
-function initFirebase() { initSupabase(); }
+function initFirebase() {
+  // ── Auth state listener
+  auth.onAuthStateChanged(async user => {
+    if (user) {
+      const snap = await db.ref('users/' + user.uid).once('value');
+      const userData = snap.val() || {};
 
-async function initSupabase() {
-  // ── Auth state
-  const { data: { session } } = await supa.auth.getSession();
-  await handleAuthState(session?.user || null);
+      CURRENT_USER.uid = user.uid;
+      CURRENT_USER.email = user.email;
+      CURRENT_USER.pseudo = userData.pseudo || user.email.split('@')[0];
+      CURRENT_USER.role = userData.role || 'en_attente';
 
-  supa.auth.onAuthStateChange(async (_event, session) => {
-    await handleAuthState(session?.user || null);
-  });
+      // Compte en attente ou suspendu
+      if (userData.role === 'en_attente' || userData.role === 'suspendu' || userData.actif === false) {
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('waiting-screen').classList.remove('hidden');
+        document.getElementById('waiting-pseudo').textContent = CURRENT_USER.pseudo;
+        document.getElementById('waiting-email').textContent = user.email;
 
-  // ── Connexion DB (ping simple)
-  const dot   = document.getElementById('db-dot');
-  const label = document.getElementById('db-label');
-  try {
-    await supa.from('config').select('id').limit(1);
-    if (dot)   dot.className   = 'status-dot connected';
-    if (label) label.textContent = 'Supabase connecté';
-  } catch {
-    if (dot)   dot.className   = 'status-dot error';
-    if (label) label.textContent = 'Hors ligne';
-  }
-}
+        // Message différent selon le statut
+        const titre   = document.querySelector('#waiting-screen .waiting-title');
+        const sousTxt = document.querySelector('#waiting-screen .waiting-sub');
+        const badge   = document.querySelector('#waiting-screen .badge-attente');
 
-async function handleAuthState(user) {
-  if (user) {
-    // Récupérer le profil
-    const profiles = await sbGet('profiles', { eq: ['id', user.id] });
-    const profile  = profiles?.[0];
-
-    if (!profile) {
-      // Profil pas encore créé (trigger pas encore passé) → attente
-      document.getElementById('login-screen').classList.add('hidden');
-      document.getElementById('waiting-screen').classList.remove('hidden');
-      return;
-    }
-
-    CURRENT_USER.uid    = user.id;
-    CURRENT_USER.email  = user.email;
-    CURRENT_USER.pseudo = profile.pseudo;
-    CURRENT_USER.role   = profile.role;
-
-    // Compte en attente / suspendu
-    if (profile.role === 'en_attente' || profile.role === 'suspendu' || !profile.actif) {
-      document.getElementById('login-screen').classList.add('hidden');
-      document.getElementById('waiting-screen').classList.remove('hidden');
-      document.getElementById('waiting-pseudo').textContent = profile.pseudo;
-      document.getElementById('waiting-email').textContent  = user.email;
-
-      const titre   = document.querySelector('#waiting-screen .waiting-title');
-      const sousTxt = document.querySelector('#waiting-screen .waiting-sub');
-      const badge   = document.querySelector('#waiting-screen .badge-attente');
-
-      if (profile.role === 'suspendu') {
-        if (titre)   titre.textContent  = 'Compte suspendu';
-        if (sousTxt) sousTxt.innerHTML  = `Votre compte <b>${profile.pseudo}</b> a été suspendu par un administrateur.<br>Contactez l'équipe ADTEM pour plus d'informations.`;
-        if (badge)   { badge.textContent = 'COMPTE SUSPENDU'; badge.style.color = 'var(--red)'; }
-      } else {
-        if (titre)   titre.textContent  = 'Compte en attente';
-        if (sousTxt) sousTxt.innerHTML  = `Votre compte <b>${profile.pseudo}</b> est en cours de validation.<br>Un administrateur doit approuver votre accès.`;
+        if (userData.role === 'suspendu') {
+          if (titre)   titre.textContent = 'Compte suspendu';
+          if (sousTxt) sousTxt.innerHTML = `Votre compte <b>${CURRENT_USER.pseudo}</b> a été suspendu par un administrateur.<br>Contactez l'équipe ADTEM pour plus d'informations.`;
+          if (badge)   { badge.textContent = 'COMPTE SUSPENDU'; badge.style.background = 'rgba(192,57,43,0.12)'; badge.style.color = 'var(--red)'; badge.style.borderColor = 'rgba(192,57,43,0.3)'; }
+        } else {
+          if (titre)   titre.textContent = 'Compte en attente';
+          if (sousTxt) sousTxt.innerHTML = `Votre compte <b>${CURRENT_USER.pseudo}</b> est en cours de validation.<br>Un administrateur doit approuver votre accès.`;
+          if (badge)   { badge.textContent = 'EN ATTENTE DE VALIDATION'; badge.style.background = ''; badge.style.color = ''; badge.style.borderColor = ''; }
+        }
+        return;
       }
-      return;
-    }
 
-    // Forcer changement de MDP si flag actif
-    if (profile.must_change_password) {
+      // Compte actif → affiche l'interface
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('waiting-screen').classList.add('hidden');
-      openModalChangeMdp(true);
-      return;
-    }
+      document.getElementById('topbar-user').style.display = 'flex';
+      document.getElementById('user-avatar').textContent = CURRENT_USER.pseudo.charAt(0).toUpperCase();
+      document.getElementById('user-pseudo').textContent = CURRENT_USER.pseudo;
+      document.getElementById('user-role').textContent = CURRENT_USER.role.toUpperCase();
 
-    // Compte actif → interface
-    document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('waiting-screen').classList.add('hidden');
-    document.getElementById('topbar-user').style.display = 'flex';
-    document.getElementById('user-avatar').textContent  = profile.pseudo.charAt(0).toUpperCase();
-    document.getElementById('user-pseudo').textContent  = profile.pseudo;
-    document.getElementById('user-role').textContent    = profile.role.toUpperCase();
-
-    if (CURRENT_USER.role !== 'admin') {
-      document.getElementById('nav-comptes').style.display = 'none';
-    }
-
-    // Badge demandes en attente (admin)
-    if (CURRENT_USER.role === 'admin') {
-      const pending = await sbGet('profiles', { eq: ['role', 'en_attente'] });
-      const badge = document.getElementById('badge-attente');
-      if (badge) {
-        badge.textContent = pending?.length || 0;
-        badge.style.display = (pending?.length || 0) > 0 ? '' : 'none';
+      // Cache le nav Comptes si pas admin
+      if (CURRENT_USER.role !== 'admin') {
+        document.getElementById('nav-comptes').style.display = 'none';
       }
-      // Listener temps réel profils
-      supa.channel('profiles-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, async () => {
-          const p = await sbGet('profiles', { eq: ['role', 'en_attente'] });
-          if (badge) { badge.textContent = p?.length || 0; badge.style.display = (p?.length||0) > 0 ? '' : 'none'; }
-        }).subscribe();
+
+      // Écouter les demandes en attente (admin seulement)
+      if (CURRENT_USER.role === 'admin') {
+        db.ref('users').on('value', snap => {
+          if (!snap.val()) return;
+          const pending = Object.values(snap.val()).filter(u => u.role === 'en_attente').length;
+          const badge = document.getElementById('badge-attente');
+          if (badge) {
+            badge.textContent = pending;
+            badge.style.display = pending > 0 ? '' : 'none';
+          }
+        });
+      }
+
+      journalLog('Connexion', 'ok');
+
+    } else {
+      document.getElementById('waiting-screen').classList.add('hidden');
+      if (!APP.devBypass) {
+        document.getElementById('login-screen').classList.remove('hidden');
+        showPanelLogin();
+      }
     }
+  });
 
-    journalLog('Connexion', 'ok');
-    loadAllData();
+  // Test connexion DB
+  db.ref('.info/connected').on('value', snap => {
+    const connected = snap.val();
+    document.getElementById('db-dot').className = 'status-dot ' + (connected ? 'connected' : 'error');
+    document.getElementById('db-label').textContent = connected ? 'Firebase connecté' : 'Hors ligne';
+  });
 
-  } else {
-    document.getElementById('waiting-screen').classList.add('hidden');
-    if (!APP.devBypass) {
-      document.getElementById('login-screen').classList.remove('hidden');
-      showPanelLogin();
-    }
-  }
-}
-
-async function loadAllData() {
   // Config
-  const cfgRows = await sbGet('config', { eq: ['id', 1] });
-  if (cfgRows?.[0]?.data) {
-    Object.assign(APP.config, cfgRows[0].data);
-    applyConfig();
-  }
+  db.ref('config').on('value', snap => {
+    if (snap.val()) {
+      Object.assign(APP.config, snap.val());
+      applyConfig();
+    }
+  });
 
   // Membres
-  const mbrs = await sbGet('membres', { order: ['pseudo', { ascending: true }] });
-  APP.membres = mbrs || [];
-  renderMembres();
-  populateOptionSelects();
-  document.getElementById('badge-membres').textContent = APP.membres.length;
-  document.getElementById('kpi-membres').textContent   = APP.membres.length;
+  db.ref('membres').on('value', snap => {
+    APP.membres = [];
+    if (snap.val()) {
+      Object.entries(snap.val()).forEach(([id, val]) => {
+        APP.membres.push({ id, ...val });
+      });
+    }
+    renderMembres();
+    populateOptionSelects(); // Rafraîchit aussi les datalists pseudos
+    document.getElementById('badge-membres').textContent = APP.membres.length;
+    document.getElementById('kpi-membres').textContent = APP.membres.length;
+  });
 
-  // Aides
-  const aides = await sbGet('aides', { order: ['created_at', { ascending: false }] });
-  APP.aides = aides || [];
-  renderAides();
+  // Aides / devis
+  db.ref('aides').on('value', snap => {
+    APP.aides = [];
+    if (snap.val()) {
+      Object.entries(snap.val()).forEach(([id, val]) => {
+        APP.aides.push({ id, ...val });
+      });
+    }
+    renderAides();
+  });
 
   // Véhicules
-  const vehs = await sbGet('vehicules');
-  if (vehs?.length) {
-    APP.vehicules = vehs.map(v => v.data);
-    afterVehiculesLoaded();
-  }
-
-  // Compta current
-  const comptaRows = await sbGet('compta', { eq: ['periode', 'current'] });
-  if (comptaRows?.[0]?.data?.comptabilite) {
-    APP.compta = comptaRows[0].data.comptabilite;
-    renderCompta();
-    updateDashboardCompta();
-  }
+  db.ref('vehicules').on('value', snap => {
+    if (snap.val()) {
+      APP.vehicules = snap.val();
+      afterVehiculesLoaded();
+    }
+  });
 
   // Personnel
-  const perso = await sbGet('personnel');
-  APP.personnel = {};
-  (perso || []).forEach(p => { APP.personnel[p.id] = p.data; });
-  if (document.getElementById('page-personnel').classList.contains('active')) renderPersonnel();
+  db.ref('personnel').on('value', snap => {
+    APP.personnel = snap.val() || {};
+    // Rendu différé — uniquement si la page est active
+    if (document.getElementById('page-personnel').classList.contains('active')) renderPersonnel();
+  });
 
-  // Thèmes
-  const themes = await sbGet('themes');
-  // themes stockés comme lignes individuelles ou JSON unique ?
-  // On stocke en config.data pour les thèmes
-  const cfgFull = cfgRows?.[0]?.data || {};
-  APP.themes = cfgFull.themes || [];
-  if (document.getElementById('page-cfg-categories').classList.contains('active')) renderCategories();
+  // Fréquentation
+  db.ref('frequentation').on('value', snap => {
+    APP.frequentation = snap.val() || [];
+    if (document.getElementById('page-frequentation').classList.contains('active')) renderFrequentation();
+  });
 
-  // Templates
-  const tpls = await sbGet('templates', { order: ['created_at', { ascending: true }] });
-  APP.templates = tpls || [];
-  if (document.getElementById('page-cfg-messages').classList.contains('active')) renderTemplates();
-  if (document.getElementById('page-messages-forum').classList.contains('active')) renderTemplates();
+  // Thèmes & Catégories
+  db.ref('themes').on('value', snap => {
+    APP.themes = snap.val() || [];
+    if (document.getElementById('page-cfg-categories').classList.contains('active')) renderCategories();
+    if (document.getElementById('page-tableau-financier').classList.contains('active')) renderBilan();
+  });
 
-  // Journal
-  const journal = await sbGet('journal', { order: ['created_at', { ascending: false }], limit: 30 });
-  renderJournal(journal || []);
+  // Templates messages
+  db.ref('templates').on('value', snap => {
+    APP.templates = snap.val() || [];
+    if (document.getElementById('page-cfg-messages').classList.contains('active')) renderTemplates();
+    if (document.getElementById('page-messages-forum').classList.contains('active')) renderTemplates();
+  });
 
-  // Listeners temps réel
-  setupRealtimeListeners();
-}
-
-function setupRealtimeListeners() {
-  // Membres
-  supa.channel('membres-rt')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'membres' }, async () => {
-      const mbrs = await sbGet('membres', { order: ['pseudo', { ascending: true }] });
-      APP.membres = mbrs || [];
-      renderMembres();
-      populateOptionSelects();
-      document.getElementById('badge-membres').textContent = APP.membres.length;
-      document.getElementById('kpi-membres').textContent   = APP.membres.length;
-    }).subscribe();
-
-  // Aides
-  supa.channel('aides-rt')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'aides' }, async () => {
-      const aides = await sbGet('aides', { order: ['created_at', { ascending: false }] });
-      APP.aides = aides || [];
-      renderAides();
-    }).subscribe();
-
-  // Véhicules
-  supa.channel('vehicules-rt')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicules' }, async () => {
-      const vehs = await sbGet('vehicules');
-      if (vehs?.length) { APP.vehicules = vehs.map(v => v.data); afterVehiculesLoaded(); }
-    }).subscribe();
+  // Journal d'activité
+  db.ref('journal').orderByKey().limitToLast(30).on('value', snap => {
+    if (snap.val()) {
+      const entries = Object.values(snap.val()).reverse();
+      renderJournal(entries);
+    } else {
+      renderJournal([]);
+    }
+  });
 
   // Compta
-  supa.channel('compta-rt')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'compta' }, async () => {
-      const rows = await sbGet('compta', { eq: ['periode', 'current'] });
-      if (rows?.[0]?.data?.comptabilite) {
-        APP.compta = rows[0].data.comptabilite;
-        renderCompta();
-        updateDashboardCompta();
-      }
-    }).subscribe();
-
-  // Templates
-  supa.channel('templates-rt')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'templates' }, async () => {
-      const tpls = await sbGet('templates', { order: ['created_at', { ascending: true }] });
-      APP.templates = tpls || [];
-      renderTemplates();
-    }).subscribe();
+  db.ref('compta/current').on('value', snap => {
+    if (snap.val() && snap.val().comptabilite) {
+      APP.compta = snap.val().comptabilite;
+      renderCompta();
+      updateDashboardCompta();
+    }
+  });
 }
 
 // ================================================================
@@ -3136,7 +3043,7 @@ function importJSON() {
     const data = JSON.parse(raw);
     if (type === 'compta') {
       if (!data.comptabilite) throw new Error('Clé "comptabilite" manquante');
-      sbUpdate('compta', { data }, { periode: 'current' }).then(() => {
+      db.ref('compta/current').set(data).then(() => {
         journalLog(`Import comptabilité : ${data.comptabilite.length} opérations`, 'ok');
         toast('Comptabilité importée avec succès', 'success');
         closeModal('modal-import');
@@ -3144,7 +3051,7 @@ function importJSON() {
     } else if (type === 'vehicules') {
       const vehicules = data.vehicules || data;
       if (!Array.isArray(vehicules)) throw new Error('Format invalide');
-      Promise.all(vehicules.map((v,i) => sbUpsert('vehicules',{id: v['Numéro Parc']||('v'+i), numero_parc: v['Numéro Parc']||('v'+i), data: v}))).then(() => {
+      db.ref('vehicules').set(vehicules).then(() => {
         journalLog(`Import parc : ${vehicules.length} véhicules`, 'ok');
         toast(`${vehicules.length} véhicules importés`, 'success');
         closeModal('modal-import');
@@ -3191,7 +3098,7 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
     const vehicules = data.vehicules || data;
     if (!Array.isArray(vehicules)) throw new Error('Format inattendu');
     const avant = APP.vehicules.length;
-    await Promise.all(vehicules.map((v,i) => sbUpsert('vehicules',{id: v['Numéro Parc']||('v'+i), numero_parc: v['Numéro Parc']||('v'+i), data: v})));
+    await db.ref('vehicules').set(vehicules);
     const nouveaux = vehicules.length - avant;
     addResult('🚌', 'Parc de véhicules',
       `${vehicules.length} véhicules importés${nouveaux > 0 ? ` (+${nouveaux} nouveaux)` : ' (à jour)'}`,
@@ -3209,7 +3116,7 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
     const data = await r.json();
     if (!data.comptabilite) throw new Error('Clé "comptabilite" manquante');
     const avant = APP.compta.length;
-    await sbUpdate('compta', { data }, { periode: 'current' });
+    await db.ref('compta/current').set(data);
     const nb = data.comptabilite.length;
     const nouvelles = nb - avant;
     addResult('📊', 'Comptabilité — mois en cours',
@@ -3228,7 +3135,7 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
     const data = await r.json();
     if (!data.comptabilite) throw new Error('Clé "comptabilite" manquante');
     const avant = (APP.comptaLast || []).length;
-    await sbUpdate('compta', { data }, { periode: 'last' });
+    await db.ref('compta/last').set(data);
     const nb = data.comptabilite.length;
     const nouvelles = nb - avant;
     addResult('📅', 'Comptabilité — mois précédent',
@@ -3253,9 +3160,9 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
 //  VÉHICULES — Chargement & Rendu
 // ================================================================
 function loadVehicules() {
-  sbGet('vehicules').then(rows => {
-    if (rows && rows.length) {
-      APP.vehicules = rows.map(r => r.data);
+  db.ref('vehicules').once('value').then(snap => {
+    if (snap.val()) {
+      APP.vehicules = snap.val();
       afterVehiculesLoaded();
       toast(`${APP.vehicules.length} véhicules chargés`, 'success');
     } else {
@@ -4337,7 +4244,7 @@ async function saveDevis(type) {
     montant,
     imageUrl: APP._lastDevisUrl && APP._lastDevisType === type ? APP._lastDevisUrl : null
   };
-  await sbInsert('aides', { id: devis.id || genId(), type: devis.type || 'location', pseudo: devis.pseudo || '', data: devis });
+  await db.ref('aides').push(devis);
   journalLog(`Devis ${type.toUpperCase()} sauvegardé pour ${pseudo} — ${montant.toLocaleString('fr')} €`, 'ok');
   toast('Devis sauvegardé en base', 'success');
 }
@@ -4413,7 +4320,7 @@ function filterCompta() {
 const _comtaMonthSel = document.getElementById('compta-month-select');
 if (_comtaMonthSel) _comtaMonthSel.addEventListener('change', async () => {
   const month = document.getElementById('compta-month-select').value;
-  const _comptaRows = await sbGet('compta', { eq: ['periode', month === 'current' ? 'current' : 'last'] }); const snap = { val: () => _comptaRows?.[0]?.data };
+  const snap = await db.ref(`compta/${month}`).once('value');
   if (snap.val() && snap.val().comptabilite) {
     APP.compta = snap.val().comptabilite;
     renderCompta();
@@ -4713,10 +4620,14 @@ async function parseMembresImport() {
   const nouveauxMembres = membresText ? parseMembresTexte(membresText) : null;
   const contratsMap     = contratsText ? parseContratsTexte(contratsText) : {};
 
-  // 2. Index membres actuels par pseudo
+  // 2. Charger les membres actuels depuis Firebase
+  const snap = await db.ref('membres').once('value');
+  const existants = snap.val() || {};
+
+  // Index par pseudo (lowercase) → id Firebase
   const existantsIdx = {};
-  (APP.membres || []).forEach(m => {
-    if (m.pseudo) existantsIdx[m.pseudo.toLowerCase()] = { id: m.id, data: m };
+  Object.entries(existants).forEach(([id, m]) => {
+    if (m.pseudo) existantsIdx[m.pseudo.toLowerCase()] = { id, data: m };
   });
 
   let added = 0, updated = 0, removed = 0;
@@ -4730,7 +4641,7 @@ async function parseMembresImport() {
     // Supprimer les membres absents de la nouvelle liste
     for (const [pseudoLow, { id }] of Object.entries(existantsIdx)) {
       if (!nouveauxIdx[pseudoLow]) {
-        await sbDelete('membres', { id });
+        await db.ref('membres/' + id).remove();
         removed++;
       }
     }
@@ -4757,12 +4668,12 @@ async function parseMembresImport() {
         // Preserve notes et dateAdhesion
         membreData.notes       = existantsIdx[pseudoLow].data.notes || '';
         membreData.dateAdhesion= existantsIdx[pseudoLow].data.dateAdhesion || '';
-        await sbUpdate('membres', membreData, { id: existantsIdx[pseudoLow].id });
+        await db.ref('membres/' + existantsIdx[pseudoLow].id).update(membreData);
         updated++;
       } else {
         membreData.dateAdhesion = new Date().toISOString().slice(0, 10);
         membreData.notes = '';
-        await sbInsert('membres', { id: membreData.id || genId(), ...membreData });
+        await db.ref('membres').push(membreData);
         added++;
       }
     }
@@ -4770,7 +4681,7 @@ async function parseMembresImport() {
     // Seulement contrats → update options sur membres existants
     for (const [pseudoLow, contrat] of Object.entries(contratsMap)) {
       if (existantsIdx[pseudoLow]) {
-        await sbUpdate('membres', {
+        await db.ref('membres/' + existantsIdx[pseudoLow].id).update({
           options:      contrat.options,
           totalMensuel: contrat.totalMensuel,
           updatedAt:    new Date().toISOString()
@@ -4808,7 +4719,7 @@ function saveMembre() {
     dateAdhesion: new Date().toISOString().slice(0, 10),
     notes:        document.getElementById('add-notes').value
   };
-  sbInsert('membres', { id: membre.id || genId(), ...membre }).then(() => {
+  db.ref('membres').push(membre).then(() => {
     toast('Membre ajouté', 'success');
     closeModal('modal-add-membre');
     journalLog(`Membre ajouté manuellement : ${pseudo}`, 'ok');
@@ -4874,7 +4785,7 @@ async function saveEditMembre() {
     updatedAt:    new Date().toISOString()
   };
 
-  await sbUpdate('membres', data, { id });
+  await db.ref('membres/' + id).update(data);
   journalLog(`Membre modifié : ${pseudo}`, 'info');
   toast(`Membre "${pseudo}" mis à jour`, 'success');
   closeModal('modal-edit-membre');
@@ -4911,7 +4822,7 @@ function deleteMembre(id) {
   const m = APP.membres.find(x => x.id === id);
   const pseudo = m ? m.pseudo : id;
   if (!confirm(`Supprimer le membre "${pseudo}" ?`)) return;
-  sbDelete('membres', { id }).then(() => {
+  db.ref('membres/' + id).remove().then(() => {
     journalLog(`Membre supprimé : ${pseudo}`, 'warn');
     toast('Membre supprimé', 'success');
   });
@@ -4950,7 +4861,7 @@ function renderAides() {
 
 function deleteAide(id) {
   if (!confirm('Supprimer cette aide ?')) return;
-  sbDelete('aides', { id });
+  db.ref('aides/' + id).remove();
 }
 
 const _aidesFilter = document.getElementById('aides-type-filter');
@@ -5114,7 +5025,7 @@ function saveConfig() {
     regles
   };
 
-  sbUpsert('config', { id: 1, data: config }).then(() => {
+  db.ref('config').set(config).then(() => {
     Object.assign(APP.config, config);
     populateOptionSelects();
     toast('Configuration sauvegardée', 'success');
@@ -5148,7 +5059,7 @@ function toggleImportCSVBtn(show) {
   if (btn) btn.style.display = show ? '' : 'none';
   // Sauvegarder dans la config globale (évite permission_denied sur /config/showImportCSV)
   APP.config.showImportCSV = show;
-  sbUpdate('config', { data: { ...APP.config, showImportCSV: show } }, { id: 1 });
+  db.ref('config').update({ showImportCSV: show });
 }
 
 function applyConfig() {
@@ -5192,35 +5103,55 @@ function showPanelInscription() {
 // ================================================================
 //  INSCRIPTION — DEMANDE DE COMPTE
 // ================================================================
-// ── Pseudo → email fantoche
-function pseudoToEmail(pseudo) {
-  return pseudo.toLowerCase().replace(/[^a-z0-9]/g, '') + '@adtem.internal';
-}
-
 async function doInscription() {
   const pseudo = document.getElementById('reg-pseudo').value.trim();
+  const email  = document.getElementById('reg-email').value.trim();
   const mdp    = document.getElementById('reg-mdp').value;
   const mdp2   = document.getElementById('reg-mdp2').value;
   const errEl  = document.getElementById('inscription-error');
+
   errEl.style.display = 'none';
-  const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
 
-  if (!pseudo)          return showErr('Le pseudo est obligatoire.');
-  if (mdp.length < 6)   return showErr('Le mot de passe doit faire au moins 6 caractères.');
-  if (mdp !== mdp2)     return showErr('Les mots de passe ne correspondent pas.');
+  const showErr = (msg) => {
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+  };
 
-  // Vérifier que le pseudo n'existe pas déjà
-  const existing = await sbGet('profiles', { eq: ['pseudo', pseudo] });
-  if (existing?.length) return showErr('Ce pseudo est déjà utilisé.');
+  if (!pseudo) return showErr('Le pseudo est obligatoire.');
+  if (!email)  return showErr('L\'email est obligatoire.');
+  if (mdp.length < 6) return showErr('Le mot de passe doit faire au moins 6 caractères.');
+  if (mdp !== mdp2) return showErr('Les mots de passe ne correspondent pas.');
 
-  const email = pseudoToEmail(pseudo);
-  const { error } = await supa.auth.signUp({ email, password: mdp, options: { data: { pseudo, role: 'en_attente' } } });
-  if (error) { showErr('Erreur : ' + error.message); return; }
+  try {
+    // Créer le compte Firebase Auth
+    const cred = await auth.createUserWithEmailAndPassword(email, mdp);
+    const uid = cred.user.uid;
 
-  document.getElementById('panel-inscription').style.display = 'none';
-  document.getElementById('panel-inscription-ok').style.display = '';
+    // Enregistrer en base avec statut "en_attente"
+    await db.ref('users/' + uid).set({
+      pseudo,
+      email,
+      role: 'en_attente',
+      actif: false,
+      createdAt: new Date().toISOString(),
+      demandeAt: new Date().toISOString()
+    });
+
+    // Afficher le panel succès
+    document.getElementById('panel-inscription').style.display = 'none';
+    document.getElementById('panel-inscription-ok').style.display = '';
+
+    // Le onAuthStateChanged va détecter en_attente et afficher l'écran d'attente
+
+  } catch(e) {
+    const msgs = {
+      'auth/email-already-in-use': 'Cet email est déjà utilisé.',
+      'auth/invalid-email': 'Email invalide.',
+      'auth/weak-password': 'Mot de passe trop faible (min. 6 caractères).'
+    };
+    showErr(msgs[e.code] || 'Erreur : ' + e.message);
+  }
 }
-
 APP.devBypass = false;
 
 function bypassLogin() {
@@ -5232,33 +5163,41 @@ function bypassLogin() {
   document.getElementById('user-avatar').textContent = 'D';
   document.getElementById('user-pseudo').textContent = 'Dev Mode';
   document.getElementById('user-role').textContent = 'ADMIN';
-  loadAllData();
 }
 
 async function doLogin() {
-  const pseudo = document.getElementById('login-email').value.trim();
-  const mdp    = document.getElementById('login-mdp').value;
-  const errEl  = document.getElementById('login-error');
+  const email = document.getElementById('login-email').value.trim();
+  const mdp = document.getElementById('login-mdp').value;
+  const errEl = document.getElementById('login-error');
   errEl.style.display = 'none';
 
-  if (!pseudo || !mdp) {
+  if (!email || !mdp) {
     errEl.textContent = 'Veuillez remplir tous les champs.';
     errEl.style.display = 'block';
     return;
   }
 
-  const email = pseudoToEmail(pseudo);
-  const { error } = await supa.auth.signInWithPassword({ email, password: mdp });
-  if (error) {
-    errEl.textContent = 'Pseudo ou mot de passe incorrect.';
+  try {
+    await auth.signInWithEmailAndPassword(email, mdp);
+    // onAuthStateChanged prend le relais
+  } catch(e) {
+    const msgs = {
+      'auth/user-not-found': 'Aucun compte avec cet email.',
+      'auth/wrong-password': 'Mot de passe incorrect.',
+      'auth/invalid-email': 'Email invalide.',
+      'auth/too-many-requests': 'Trop de tentatives. Réessayez plus tard.',
+      'auth/invalid-credential': 'Email ou mot de passe incorrect.'
+    };
+    errEl.textContent = msgs[e.code] || 'Erreur : ' + e.message;
     errEl.style.display = 'block';
   }
-  // onAuthStateChange prend le relais
 }
 
 async function doLogout() {
-  await supa.auth.signOut();
-  CURRENT_USER.uid = null; CURRENT_USER.pseudo = null; CURRENT_USER.role = null;
+  await auth.signOut();
+  CURRENT_USER.uid = null;
+  CURRENT_USER.pseudo = null;
+  CURRENT_USER.role = null;
   APP.devBypass = false;
   document.getElementById('topbar-user').style.display = 'none';
   document.getElementById('login-screen').classList.remove('hidden');
@@ -5267,58 +5206,32 @@ async function doLogout() {
 }
 
 async function doResetPassword() {
-  // Sans email on ne peut pas envoyer de reset — l'admin doit forcer le changement
-  toast('Contactez un administrateur pour réinitialiser votre mot de passe.', 'info');
+  const email = document.getElementById('login-email').value.trim();
+  if (!email) {
+    document.getElementById('login-error').textContent = 'Entrez votre email d\'abord.';
+    document.getElementById('login-error').style.display = 'block';
+    return;
+  }
+  try {
+    await auth.sendPasswordResetEmail(email);
+    toast('Email de réinitialisation envoyé à ' + email, 'success');
+  } catch(e) {
+    toast('Erreur : ' + e.message, 'error');
+  }
 }
 
 // Login avec Enter
 const _loginMdp = document.getElementById('login-mdp');
-if (_loginMdp) _loginMdp.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-
-// ================================================================
-//  MODAL CHANGEMENT MDP (forcé ou volontaire)
-// ================================================================
-let _changeMdpForce = false;
-function openModalChangeMdp(force = false) {
-  _changeMdpForce = force;
-  document.getElementById('modal-change-mdp-title').textContent = force
-    ? '🔒 Changement de mot de passe requis'
-    : '🔑 Changer mon mot de passe';
-  document.getElementById('change-mdp-new').value = '';
-  document.getElementById('change-mdp-confirm').value = '';
-  document.getElementById('change-mdp-error').style.display = 'none';
-  openModal('modal-change-mdp');
-}
-
-async function saveNewMdp() {
-  const mdp  = document.getElementById('change-mdp-new').value;
-  const mdp2 = document.getElementById('change-mdp-confirm').value;
-  const errEl = document.getElementById('change-mdp-error');
-  errEl.style.display = 'none';
-
-  if (mdp.length < 6)  { errEl.textContent = 'Minimum 6 caractères.'; errEl.style.display = 'block'; return; }
-  if (mdp !== mdp2)    { errEl.textContent = 'Les mots de passe ne correspondent pas.'; errEl.style.display = 'block'; return; }
-
-  const { error } = await supa.auth.updateUser({ password: mdp });
-  if (error) { errEl.textContent = 'Erreur : ' + error.message; errEl.style.display = 'block'; return; }
-
-  // Retirer le flag must_change_password
-  if (CURRENT_USER.uid) await sbUpdate('profiles', { must_change_password: false }, { id: CURRENT_USER.uid });
-
-  closeModal('modal-change-mdp');
-  toast('Mot de passe modifié avec succès', 'success');
-
-  // Si c'était forcé → recharger l'interface
-  if (_changeMdpForce) loadAllData();
-}
+if (_loginMdp) _loginMdp.addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
 
 // ================================================================
 //  COMPTES UTILISATEURS
 // ================================================================
 function openModalCreateCompte() {
   document.getElementById('cc-pseudo').value = '';
-  const emailEl = document.getElementById('cc-email');
-  if (emailEl) emailEl.value = '';
+  document.getElementById('cc-email').value = '';
   document.getElementById('cc-mdp').value = '';
   document.getElementById('cc-role').value = 'membre';
   openModal('modal-create-compte');
@@ -5326,50 +5239,64 @@ function openModalCreateCompte() {
 
 async function createCompte() {
   const pseudo = document.getElementById('cc-pseudo').value.trim();
-  const mdp    = document.getElementById('cc-mdp').value;
-  const role   = document.getElementById('cc-role').value;
+  const email = document.getElementById('cc-email').value.trim();
+  const mdp = document.getElementById('cc-mdp').value;
+  const role = document.getElementById('cc-role').value;
 
-  if (!pseudo || !mdp) { toast('Pseudo et mot de passe obligatoires', 'error'); return; }
-  if (mdp.length < 6)  { toast('Mot de passe minimum 6 caractères', 'error'); return; }
-
-  // Vérifier unicité pseudo
-  const existing = await sbGet('profiles', { eq: ['pseudo', pseudo] });
-  if (existing?.length) { toast('Ce pseudo est déjà utilisé', 'error'); return; }
-
-  const email = pseudoToEmail(pseudo);
-
-  // Créer via l'API Supabase Auth admin (edge function) — fallback : signUp côté client
-  const { data, error } = await supa.auth.signUp({
-    email, password: mdp,
-    options: { data: { pseudo, role } }
-  });
-  if (error) { toast('Erreur : ' + error.message, 'error'); return; }
-
-  // Mettre à jour le profil créé par le trigger avec le bon rôle et actif=true
-  if (data.user) {
-    await sbUpdate('profiles', { role, actif: true, must_change_password: true }, { id: data.user.id });
+  if (!pseudo || !email || !mdp) {
+    toast('Tous les champs obligatoires doivent être remplis', 'error');
+    return;
+  }
+  if (mdp.length < 6) {
+    toast('Le mot de passe doit faire au moins 6 caractères', 'error');
+    return;
   }
 
-  journalLog(`Compte créé : ${pseudo} (rôle: ${role})`, 'ok');
-  toast(`Compte "${pseudo}" créé. L'utilisateur devra changer son mot de passe à la première connexion.`, 'success');
-  closeModal('modal-create-compte');
-  loadComptes();
+  try {
+    // Crée le compte Auth — NOTE: cela connecte temporairement le nouvel user
+    // On sauvegarde le user courant avant
+    const currentUser = auth.currentUser;
+
+    const cred = await auth.createUserWithEmailAndPassword(email, mdp);
+    const newUid = cred.user.uid;
+
+    // Sauvegarde dans Realtime DB
+    await db.ref('users/' + newUid).set({
+      pseudo, role, email, actif: true,
+      createdAt: new Date().toISOString(),
+      createdBy: CURRENT_USER.pseudo || 'admin'
+    });
+
+    // Déconnecte le nouvel user, reconnecte l'admin
+    // (nécessite de mémoriser les creds admin — limitation client-side)
+    toast(`Compte "${pseudo}" créé. L'utilisateur peut se connecter avec son email.`, 'success');
+    closeModal('modal-create-compte');
+    loadComptes();
+  } catch(e) {
+    const msgs = {
+      'auth/email-already-in-use': 'Cet email est déjà utilisé.',
+      'auth/invalid-email': 'Email invalide.',
+      'auth/weak-password': 'Mot de passe trop faible (min. 6 caractères).'
+    };
+    toast(msgs[e.code] || 'Erreur : ' + e.message, 'error');
+  }
 }
 
 async function loadComptes() {
-  const users = await sbGet('profiles', { order: ['created_at', { ascending: true }] });
+  const snap = await db.ref('users').once('value');
+  const users = snap.val() || {};
   const container = document.getElementById('comptes-list');
-  if (!users) { container.innerHTML = '<div style="color:var(--red)">Erreur de chargement</div>'; return; }
 
   const roleBadge = { admin: 'badge-red', moderateur: 'badge-yellow', membre: 'badge-green', en_attente: 'badge-yellow', suspendu: 'badge-gray' };
   const roleLabel = { admin: 'Administrateur', moderateur: 'Modérateur', membre: 'Membre', en_attente: 'En attente', suspendu: 'Suspendu' };
 
-  const enAttente = users.filter(u => u.role === 'en_attente');
-  const suspendus = users.filter(u => u.role === 'suspendu');
-  const actifs    = users.filter(u => u.role !== 'en_attente' && u.role !== 'suspendu');
+  const enAttente = Object.entries(users).filter(([,u]) => u.role === 'en_attente');
+  const suspendus = Object.entries(users).filter(([,u]) => u.role === 'suspendu');
+  const actifs    = Object.entries(users).filter(([,u]) => u.role !== 'en_attente' && u.role !== 'suspendu');
 
   let html = '';
 
+  // ── SECTION EN ATTENTE ──
   if (enAttente.length) {
     html += `
       <div style="margin-bottom:20px;">
@@ -5378,94 +5305,232 @@ async function loadComptes() {
           ⏳ Demandes en attente de validation
           <span class="badge badge-yellow">${enAttente.length}</span>
         </div>
-        ${enAttente.map(u => `
+        ${enAttente.map(([uid, u]) => `
           <div class="compte-card" style="border-color:rgba(201,134,10,0.4);background:var(--yellowbg);margin-bottom:8px;">
             <div class="compte-avatar" style="background:linear-gradient(135deg,#a06808,var(--yellow2));">
-              ${(u.pseudo||'?').charAt(0).toUpperCase()}
+              ${(u.pseudo || '?').charAt(0).toUpperCase()}
             </div>
             <div class="compte-info" style="flex:1;margin-left:12px;">
-              <div style="font-size:13px;font-weight:700;">${u.pseudo||'—'}</div>
-              <small style="color:var(--text3);">Demande le ${u.created_at ? new Date(u.created_at).toLocaleDateString('fr') : '—'}</small>
+              <div style="font-size:13px;font-weight:700;">${u.pseudo || '—'}</div>
+              <small style="color:var(--text3);">${u.email || '—'} · Demande le ${u.demandeAt ? new Date(u.demandeAt).toLocaleDateString('fr') : '—'}</small>
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
-              <select class="form-select" id="role-select-${u.id}" style="width:130px;font-size:11px;padding:4px 8px;">
+              <select class="form-select" id="role-select-${uid}" style="width:130px;font-size:11px;padding:4px 8px;">
                 <option value="membre" selected>Membre</option>
                 <option value="moderateur">Modérateur</option>
                 <option value="admin">Administrateur</option>
               </select>
-              <button class="btn btn-primary btn-sm" onclick="validerCompte('${u.id}')">✅ Valider</button>
-              <button class="btn btn-danger btn-sm" onclick="refuserCompte('${u.id}')">❌ Refuser</button>
+              <button class="btn btn-primary btn-sm" onclick="validerCompte('${uid}')">✅ Valider</button>
+              <button class="btn btn-danger btn-sm" onclick="refuserCompte('${uid}')">❌ Refuser</button>
             </div>
-          </div>`).join('')}
+          </div>
+        `).join('')}
+      </div>
+      <div style="border-top:1px solid var(--border);margin-bottom:16px;padding-top:4px;">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);margin-bottom:10px;">
+          Comptes actifs
+        </div>
       </div>`;
   }
 
+  // ── SECTION SUSPENDUS ──
   if (suspendus.length) {
     html += `
       <div style="margin-bottom:20px;">
         <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;
           color:var(--red);margin-bottom:10px;display:flex;align-items:center;gap:8px;">
-          🚫 Comptes suspendus <span class="badge badge-red">${suspendus.length}</span>
+          🚫 Comptes suspendus
+          <span class="badge badge-red">${suspendus.length}</span>
         </div>
-        ${suspendus.map(u => `
-          <div class="compte-card" style="border-color:rgba(192,57,43,0.3);background:var(--redbg);margin-bottom:8px;">
+        ${suspendus.map(([uid, u]) => `
+          <div class="compte-card" style="border-color:rgba(192,57,43,0.3);background:var(--redbg);margin-bottom:8px;opacity:0.85;">
             <div class="compte-avatar" style="background:linear-gradient(135deg,#8e1a12,var(--red));">
-              ${(u.pseudo||'?').charAt(0).toUpperCase()}
+              ${(u.pseudo || '?').charAt(0).toUpperCase()}
             </div>
             <div class="compte-info" style="flex:1;margin-left:12px;">
-              <div style="font-size:13px;font-weight:700;text-decoration:line-through;color:var(--text3);">${u.pseudo||'—'}</div>
+              <div style="font-size:13px;font-weight:700;text-decoration:line-through;color:var(--text3);">${u.pseudo || '—'}</div>
+              <small style="color:var(--text3);">${u.email || '—'} · Suspendu le ${u.suspendedAt ? new Date(u.suspendedAt).toLocaleDateString('fr') : '—'} par ${u.suspendedBy || '—'}</small>
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
-              <button class="btn btn-secondary btn-sm" onclick="reactiverCompte('${u.id}')">✅ Réactiver</button>
-              <button class="btn btn-danger btn-sm" onclick="supprimerDefinitivement('${u.id}')">🗑️ Supprimer</button>
+              <button class="btn btn-secondary btn-sm" onclick="reactiverCompte('${uid}')">✅ Réactiver</button>
+              <button class="btn btn-danger btn-sm" onclick="supprimerDefinitivement('${uid}')">🗑️ Supprimer de la base</button>
             </div>
-          </div>`).join('')}
+          </div>
+        `).join('')}
       </div>`;
   }
 
+  // ── SECTION COMPTES ACTIFS ──
   if (!actifs.length) {
     html += `<div style="color:var(--text3);text-align:center;padding:20px;">Aucun compte actif</div>`;
   } else {
-    html += actifs.map(u => `
-      <div class="compte-card" id="cc-${u.id}">
-        <div class="compte-avatar">${(u.pseudo||'?').charAt(0).toUpperCase()}</div>
+    html += actifs.map(([uid, u]) => `
+      <div class="compte-card" id="cc-${uid}">
+        <div class="compte-avatar">${(u.pseudo || '?').charAt(0).toUpperCase()}</div>
         <div class="compte-info">
           <div style="display:flex;align-items:center;gap:8px;">
-            <span id="pseudo-display-${u.id}" style="font-size:13px;font-weight:700;">${u.pseudo||'—'}</span>
-            ${u.id === CURRENT_USER.uid ? '<span style="font-size:10px;color:var(--text3);">(vous)</span>' : ''}
-            <button class="btn btn-secondary btn-icon btn-sm" onclick="toggleEditPseudo('${u.id}')" title="Modifier le pseudo">✏️</button>
+            <span id="pseudo-display-${uid}" style="font-size:13px;font-weight:700;">${u.pseudo || '—'}</span>
+            ${uid === CURRENT_USER.uid ? '<span style="font-size:10px;color:var(--text3);">(vous)</span>' : ''}
+            <button class="btn btn-secondary btn-icon btn-sm" onclick="toggleEditPseudo('${uid}')" title="Modifier le pseudo">✏️</button>
           </div>
-          <div id="pseudo-edit-${u.id}" style="display:none;margin-top:6px;">
+          <div id="pseudo-edit-${uid}" style="display:none;margin-top:6px;">
             <div style="display:flex;gap:6px;align-items:center;">
-              <input type="text" class="form-input" id="pseudo-input-${u.id}" value="${u.pseudo||''}" style="width:180px;padding:5px 8px;font-size:12px;">
-              <button class="btn btn-primary btn-sm" onclick="savePseudo('${u.id}')">✅</button>
-              <button class="btn btn-secondary btn-sm" onclick="toggleEditPseudo('${u.id}')">✕</button>
+              <input type="text" class="form-input" id="pseudo-input-${uid}" value="${u.pseudo || ''}" style="width:180px;padding:5px 8px;font-size:12px;">
+              <button class="btn btn-primary btn-sm" onclick="savePseudo('${uid}')">✅</button>
+              <button class="btn btn-secondary btn-sm" onclick="toggleEditPseudo('${uid}')">✕</button>
             </div>
           </div>
-          <small style="color:var(--text3);">Créé le ${u.created_at ? new Date(u.created_at).toLocaleDateString('fr') : '—'}${u.must_change_password ? ' · <span style="color:var(--yellow)">⚠️ Doit changer son MDP</span>' : ''}</small>
+          <small style="color:var(--text3);">${u.email || '—'} · Créé le ${u.createdAt ? new Date(u.createdAt).toLocaleDateString('fr') : '—'}</small>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
-          <span class="badge ${roleBadge[u.role]||'badge-gray'}">${roleLabel[u.role]||u.role||'—'}</span>
-          ${u.actif ? '<span class="badge badge-green">Actif</span>' : '<span class="badge badge-gray">Désactivé</span>'}
-          ${u.id !== CURRENT_USER.uid ? `
+          <span class="badge ${roleBadge[u.role] || 'badge-gray'}">${roleLabel[u.role] || u.role || '—'}</span>
+          ${u.actif !== false ? '<span class="badge badge-green">Actif</span>' : '<span class="badge badge-gray">Désactivé</span>'}
+          ${uid !== CURRENT_USER.uid ? `
             <select class="form-select" style="width:130px;font-size:11px;padding:4px 8px;"
-              onchange="changerRole('${u.id}', this.value)">
-              <option value="membre"     ${u.role==='membre'     ?'selected':''}>Membre</option>
-              <option value="moderateur" ${u.role==='moderateur' ?'selected':''}>Modérateur</option>
-              <option value="admin"      ${u.role==='admin'      ?'selected':''}>Admin</option>
+              onchange="changeRole('${uid}', this.value)">
+              <option value="membre"     ${u.role === 'membre'     ? 'selected' : ''}>Membre</option>
+              <option value="moderateur" ${u.role === 'moderateur' ? 'selected' : ''}>Modérateur</option>
+              <option value="admin"      ${u.role === 'admin'      ? 'selected' : ''}>Admin</option>
             </select>
-            <button class="btn btn-secondary btn-sm" onclick="adminResetMdp('${u.id}','${u.pseudo}')" title="Forcer reset MDP">🔑</button>
-            <button class="btn btn-secondary btn-sm" onclick="toggleActif('${u.id}', ${u.actif})"
-              title="${u.actif ? 'Désactiver' : 'Activer'}">${u.actif ? '🚫' : '✅'}</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteCompte('${u.id}')">⛔ Suspendre</button>
-          ` : `<button class="btn btn-secondary btn-sm" onclick="openModalChangeMdp(false)">🔑 Changer mon MDP</button>`}
+            <button class="btn btn-secondary btn-sm" onclick="sendResetEmail('${u.email}')" title="Reset mdp">🔑</button>
+            <button class="btn btn-secondary btn-sm" onclick="toggleActif('${uid}', ${u.actif !== false})"
+              title="${u.actif !== false ? 'Désactiver' : 'Activer'}">
+              ${u.actif !== false ? '🚫' : '✅'}
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="deleteCompte('${uid}')" title="Suspendre le compte">⛔ Suspendre</button>
+          ` : ''}
         </div>
-      </div>`).join('');
+      </div>
+    `).join('');
   }
 
   container.innerHTML = html || `<div style="color:var(--text3);text-align:center;padding:30px;">Aucun compte</div>`;
 }
 
+async function validerCompte(uid) {
+  const roleSelect = document.getElementById('role-select-' + uid);
+  const role = roleSelect ? roleSelect.value : 'membre';
+
+  await db.ref('users/' + uid).update({ role, actif: true });
+
+  // Récupérer le pseudo pour le log
+  const snap = await db.ref('users/' + uid + '/pseudo').once('value');
+  const pseudo = snap.val() || uid;
+
+  journalLog(`Compte validé : ${pseudo} (rôle: ${role})`, 'ok');
+  toast(`Compte "${pseudo}" validé avec le rôle ${role}`, 'success');
+  loadComptes();
+}
+
+async function refuserCompte(uid) {
+  const snap = await db.ref('users/' + uid).once('value');
+  const u = snap.val() || {};
+  const pseudo = u.pseudo || uid;
+
+  if (!confirm(`Refuser la demande de "${pseudo}" ?\n\nLe compte Firebase Auth restera mais l'accès sera définitivement refusé.`)) return;
+
+  // Supprimer le nœud DB → plus d'accès possible
+  await db.ref('users/' + uid).remove();
+
+  journalLog(`Demande refusée : ${pseudo}`, 'warn');
+  toast(`Demande de "${pseudo}" refusée`, 'info');
+  loadComptes();
+}
+
+function toggleEditPseudo(uid) {
+  const display = document.getElementById('pseudo-display-' + uid);
+  const editZone = document.getElementById('pseudo-edit-' + uid);
+  const input = document.getElementById('pseudo-input-' + uid);
+  const isEditing = editZone.style.display !== 'none';
+  if (isEditing) {
+    editZone.style.display = 'none';
+    display.style.display = '';
+  } else {
+    editZone.style.display = 'block';
+    display.style.display = 'none';
+    input.focus();
+    input.select();
+  }
+}
+
+async function savePseudo(uid) {
+  const input = document.getElementById('pseudo-input-' + uid);
+  const newPseudo = input.value.trim();
+  if (!newPseudo) { toast('Le pseudo ne peut pas être vide', 'error'); return; }
+
+  await db.ref('users/' + uid + '/pseudo').set(newPseudo);
+
+  // Met à jour l'affichage sans recharger toute la liste
+  document.getElementById('pseudo-display-' + uid).textContent = newPseudo;
+  document.getElementById('pseudo-edit-' + uid).style.display = 'none';
+  document.getElementById('pseudo-display-' + uid).style.display = '';
+
+  // Met à jour l'avatar topbar si c'est le user connecté
+  if (uid === CURRENT_USER.uid) {
+    CURRENT_USER.pseudo = newPseudo;
+    document.getElementById('user-pseudo').textContent = newPseudo;
+    document.getElementById('user-avatar').textContent = newPseudo.charAt(0).toUpperCase();
+  }
+
+  toast('Pseudo mis à jour : ' + newPseudo, 'success');
+}
+
+async function deleteCompte(uid) {
+  const pseudoEl = document.getElementById('pseudo-display-' + uid);
+  const pseudo = pseudoEl ? pseudoEl.textContent.trim() : uid;
+
+  if (!confirm(`Suspendre le compte "${pseudo}" ?\n\nLe compte sera bloqué immédiatement. L'utilisateur ne pourra plus se connecter.\n\nNote : Le compte Firebase Auth reste techniquement actif mais sans accès au site.`)) return;
+
+  await db.ref('users/' + uid).update({
+    actif: false,
+    role: 'suspendu',
+    suspendedAt: new Date().toISOString(),
+    suspendedBy: CURRENT_USER.pseudo || 'admin'
+  });
+
+  journalLog(`Compte suspendu : ${pseudo}`, 'warn');
+  toast(`Compte "${pseudo}" suspendu`, 'info');
+  loadComptes();
+}
+
+async function reactiverCompte(uid) {
+  const snap = await db.ref('users/' + uid + '/pseudo').once('value');
+  const pseudo = snap.val() || uid;
+  await db.ref('users/' + uid).update({ actif: true, role: 'membre', suspendedAt: null, suspendedBy: null });
+  journalLog(`Compte réactivé : ${pseudo}`, 'ok');
+  toast(`Compte "${pseudo}" réactivé`, 'success');
+  loadComptes();
+}
+
+async function supprimerDefinitivement(uid) {
+  const snap = await db.ref('users/' + uid + '/pseudo').once('value');
+  const pseudo = snap.val() || uid;
+  if (!confirm(`Supprimer définitivement "${pseudo}" de la base de données ?\n\nNote : Le compte Firebase Auth reste actif. Pour le supprimer complètement, allez dans la console Firebase → Authentication.`)) return;
+  await db.ref('users/' + uid).remove();
+  journalLog(`Compte supprimé de la base : ${pseudo}`, 'danger');
+  toast(`Compte "${pseudo}" supprimé de la base`, 'info');
+  loadComptes();
+}
+async function changerRole(uid, newRole) {
+  await db.ref('users/' + uid + '/role').set(newRole);
+  toast('Rôle mis à jour', 'success');
+  loadComptes();
+}
+
+async function toggleActif(uid, currentActif) {
+  await db.ref('users/' + uid + '/actif').set(!currentActif);
+  toast(currentActif ? 'Compte désactivé' : 'Compte activé', 'success');
+  loadComptes();
+}
+
+async function sendResetEmail(email) {
+  try {
+    await auth.sendPasswordResetEmail(email);
+    toast('Email de réinitialisation envoyé à ' + email, 'success');
+  } catch(e) {
+    toast('Erreur : ' + e.message, 'error');
+  }
+}
 
 // ================================================================
 //  RENTABILITÉ MEMBRES
@@ -5493,7 +5558,7 @@ function loadRentabilite() {
     compta = APP.comptaLast || [];
     if (!compta.length) {
       // Charge depuis Firebase
-      sbGet('compta', { eq: ['periode','last'] }).then(rows => { const snap = { val: () => rows?.[0]?.data };
+      db.ref('compta/last').once('value').then(snap => {
         if (snap.val() && snap.val().comptabilite) {
           APP.comptaLast = snap.val().comptabilite;
           loadRentabilite();
@@ -5772,7 +5837,16 @@ function journalLog(text, type = 'info') {
 
   const entry = { date, heure, text, type, user };
 
-  sbInsert('journal', { message: entry.text || '', type: entry.type || 'info' });
+  db.ref('journal').push(entry).then(() => {
+    // Limite à 50 entrées : supprimer les plus anciennes
+    db.ref('journal').once('value').then(snap => {
+      if (snap.numChildren() > 50) {
+        const keys = Object.keys(snap.val());
+        // Supprimer le premier (le plus ancien)
+        db.ref('journal/' + keys[0]).remove();
+      }
+    });
+  });
 }
 
 function renderJournal(entries) {
@@ -5795,7 +5869,7 @@ function renderJournal(entries) {
 
 function clearJournal() {
   if (!confirm('Vider le journal d\'activité ?')) return;
-  supa.from('journal').delete().neq('id', 0).then(() => toast('Journal vidé', 'success'));
+  db.ref('journal').remove().then(() => toast('Journal vidé', 'success'));
 }
 
 // ================================================================
@@ -5826,8 +5900,10 @@ function toggleSyncPause() {
 async function exporterSauvegarde() {
   toast('Chargement de toutes les données...', 'info');
   try {
-    const data = { membres: APP.membres, config: APP.config, aides: APP.aides, vehicules: APP.vehicules, templates: APP.templates };
-    const json = JSON.stringify({ _adtem_backup: true, _date: new Date().toISOString(), _version: 'V49', ...data }, null, 2);
+    const snap = await db.ref('/').once('value');
+    const data = snap.val() || {};
+
+    const json = JSON.stringify({ _adtem_backup: true, _date: new Date().toISOString(), _version: 'V7', ...data }, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
 
@@ -5882,11 +5958,7 @@ function importerSauvegarde(input) {
       const { _adtem_backup, _date, _version, ...toRestore } = data;
 
       // Restaurer dans Firebase
-      // Restauration Supabase
-await sbUpsert('config', { id: 1, data: toRestore.config || {} });
-if(toRestore.membres) await Promise.all(toRestore.membres.map(m => sbUpsert('membres', { id: m.id, ...m })));
-if(toRestore.vehicules) await Promise.all(toRestore.vehicules.map((v,i) => sbUpsert('vehicules',{id:v['Numéro Parc']||('v'+i),numero_parc:v['Numéro Parc']||('v'+i),data:v})));
-if(toRestore.aides) await Promise.all(toRestore.aides.map(a => sbUpsert('aides',{id:a.id,type:a.type,pseudo:a.pseudo,data:a})));
+      await db.ref('/').set(toRestore);
 
       const kb = (file.size / 1024).toFixed(1);
       if (result) {
@@ -5924,13 +5996,19 @@ async function testerConnexion() {
 
   try {
     const start = Date.now();
-    await supa.from('config').select('id').limit(1);
+    const snap = await db.ref('.info/connected').once('value');
     const ping = Date.now() - start;
-    el.style.background = 'var(--greenbg)';
-    el.style.border = '1px solid rgba(74,140,82,0.3)';
-    el.style.color = 'var(--green2)';
-    el.textContent = `✅ Supabase connecté — latence ~${ping}ms`;
-    document.getElementById('sauv-stat-status').textContent = '✅ Connecté';
+    const connected = snap.val();
+
+    if (connected !== false) {
+      el.style.background = 'var(--greenbg)';
+      el.style.border = '1px solid rgba(74,140,82,0.3)';
+      el.style.color = 'var(--green2)';
+      el.textContent = `✅ Firebase connecté — latence ~${ping}ms`;
+      document.getElementById('sauv-stat-status').textContent = '✅ Connecté';
+    } else {
+      throw new Error('Non connecté');
+    }
   } catch(e) {
     el.style.background = 'var(--redbg)';
     el.style.border = '1px solid rgba(192,57,43,0.3)';
@@ -5941,7 +6019,7 @@ async function testerConnexion() {
 }
 
 function loadSauvegardeStats() {
-  Promise.resolve(null).then(snap => {
+  db.ref('/').once('value').then(snap => {
     const data = snap.val() || {};
     const json = JSON.stringify(data);
     const kb = (new Blob([json]).size / 1024).toFixed(1);
@@ -5981,8 +6059,7 @@ async function resetSection(section) {
   if (!confirm(`Vider ${label} ?\n\nCette action est irréversible.`)) return;
   if (!confirm(`Dernière confirmation — vider ${label} ?`)) return;
 
-  if(section==='compta') await supa.from('compta').update({ data: {comptabilite:[]} }).eq('periode','current');
-else await supa.from(section).delete().neq('id','_');
+  await db.ref(section === 'compta' ? 'compta' : section).remove();
 
   journalLog(`Réinitialisation sélective : ${label}`, 'danger');
   toast(`${label} vidé`, 'success');
@@ -5996,12 +6073,12 @@ async function resetTotal() {
 
   try {
     // Supprime tout sauf les users (comptes d'accès)
-    await supa.from('membres').delete().neq('id','_');
-    await supa.from('aides').delete().neq('id','_');
-    await supa.from('vehicules').delete().neq('id','_');
-    await supa.from('compta').update({data:{comptabilite:[]}}).eq('periode','current');
-    await supa.from('journal').delete().neq('id',0);
-    await sbUpdate('config',{data:{}},{id:1});
+    await db.ref('membres').remove();
+    await db.ref('aides').remove();
+    await db.ref('vehicules').remove();
+    await db.ref('compta').remove();
+    await db.ref('journal').remove();
+    await db.ref('config').remove();
 
     // Reset UI
     APP.membres = [];
@@ -6035,16 +6112,24 @@ function loadResetStats() {
 //  9. LOGO + PUSH/LOAD FIREBASE (page sauvegarde améliorée)
 // ================================================================
 async function pushFirebase() {
-  if (!confirm('Pousser toutes les données vers Supabase ?\n\nCela écrasera les données distantes.')) return;
+  if (!confirm('Pousser toutes les données vers Firebase ?\n\nCela écrasera les données distantes.')) return;
   try {
     toast('Envoi en cours...', 'info');
-    await sbUpsert('config', { id: 1, data: { ...APP.config, themes: APP.themes } });
-    if (APP.membres.length) await Promise.all(APP.membres.map(m => sbUpsert('membres', m)));
-    if (APP.aides.length)   await Promise.all(APP.aides.map(a => sbUpsert('aides', { id: a.id, type: a.type, pseudo: a.pseudo, data: a })));
-    if (APP.vehicules.length) await Promise.all(APP.vehicules.map((v,i) => sbUpsert('vehicules', { id: v['Numéro Parc']||('v'+i), numero_parc: v['Numéro Parc']||('v'+i), data: v })));
-    await sbUpdate('compta', { data: { comptabilite: APP.compta } }, { periode: 'current' });
-    if (APP.templates.length) await supa.from('templates').upsert(APP.templates);
-    journalLog('Push Supabase manuel effectué', 'ok');
+    const snap = await db.ref('/').once('value');
+    // Firebase IS the remote — on rewrite everything from APP state
+    const payload = {
+      config:    APP.config,
+      membres:   Object.fromEntries(APP.membres.map(m => [m.id, {...m}])),
+      aides:     Object.fromEntries(APP.aides.map(a => [a.id, {...a}])),
+      vehicules: APP.vehicules,
+      compta:    { current: { comptabilite: APP.compta }, last: { comptabilite: APP.comptaLast || [] } },
+      personnel: APP.personnel || {},
+      frequentation: APP.frequentation || {},
+      themes:    APP.themes || [],
+      templates: APP.templates || []
+    };
+    await db.ref('/').update(payload);
+    journalLog('Push Firebase manuel effectué', 'ok');
     toast('✅ Données envoyées vers Firebase', 'success');
   } catch(e) {
     toast('Erreur push : ' + e.message, 'error');
@@ -6056,7 +6141,8 @@ async function loadFirebase() {
   if (!confirm('Dernière confirmation — cette action est irréversible.')) return;
   try {
     toast('Chargement depuis Firebase...', 'info');
-    const data_raw = { membres: APP.membres, config: APP.config, aides: APP.aides };
+    const snap = await db.ref('/').once('value');
+    const data = snap.val() || {};
     // Les listeners Firebase vont se déclencher et mettre à jour APP automatiquement
     journalLog('Load Firebase manuel effectué', 'ok');
     toast('✅ Données rechargées depuis Firebase', 'success');
@@ -6111,7 +6197,7 @@ function importerCSV() {
           'Statut': cols[19] || ''
         });
       });
-      await Promise.all(vehicules.map((v,i) => sbUpsert('vehicules',{id: v['Numéro Parc']||('v'+i), numero_parc: v['Numéro Parc']||('v'+i), data: v})));
+      await db.ref('vehicules').set(vehicules);
       journalLog(`Import CSV véhicules : ${vehicules.length} véhicules`, 'ok');
       toast(`✅ ${vehicules.length} véhicules importés depuis CSV`, 'success');
       closeModal('modal-import-csv');
@@ -6129,7 +6215,7 @@ function importerCSV() {
           "Revenus":  parseFloat(cols[3]) || 0
         });
       });
-      await sbUpdate('compta', { data: { comptabilite: ops } }, { periode: 'current' });
+      await db.ref('compta/current').set({ comptabilite: ops });
       journalLog(`Import CSV compta : ${ops.length} opérations`, 'ok');
       toast(`✅ ${ops.length} opérations importées depuis CSV`, 'success');
       closeModal('modal-import-csv');
@@ -6171,7 +6257,7 @@ function importerPersonnel() {
     APP.personnel[matricule] = agent;
   });
 
-  Promise.all(Object.entries(APP.personnel).map(([id,data]) => sbUpsert('personnel',{id,data}))).then(() => {
+  db.ref('personnel').set(APP.personnel).then(() => {
     journalLog(`Import personnel : ${added} ajouté(s), ${updated} mis à jour`, 'ok');
     toast(`${added} ajouté(s), ${updated} mis à jour`, 'success');
     closeModal('modal-import-personnel');
@@ -6258,7 +6344,7 @@ async function prolongerFCO(matricule) {
   fcoActuel.setMonth(fcoActuel.getMonth() + 6);
   const newFco = fcoActuel.toISOString().slice(0, 10);
 
-  if(APP.personnel[matricule]) { APP.personnel[matricule].fco = newFco; await sbUpsert('personnel', { id: String(matricule), data: APP.personnel[matricule] }); }
+  await db.ref('personnel/' + matricule + '/fco').set(newFco);
   APP.personnel[matricule].fco = newFco;
 
   journalLog(`FCO prolongée +6 mois : ${agent.nom} (${matricule}) → ${newFco.split('-').reverse().join('/')}`, 'ok');
@@ -6296,7 +6382,7 @@ function importerFrequentation() {
     });
   });
 
-  sbUpdate('config', { data: { ...APP.config, frequentation: data } }, { id: 1 }).then(() => {
+  db.ref('frequentation').set(data).then(() => {
     APP.frequentation = data;
     journalLog(`Import fréquentation : ${data.length} lignes`, 'ok');
     toast(`${data.length} lignes importées`, 'success');
@@ -6354,7 +6440,7 @@ function appliquerEcart() {
   const soldeCalc = getSoldeCalcule();
   const ecart = val - soldeCalc;
   APP.config.ecartFinancier = ecart;
-  sbUpdate('config', { data: { ...APP.config, ecartFinancier: ecart } }, { id: 1 }).then(() => {
+  db.ref('config/ecartFinancier').set(ecart).then(() => {
     const el = document.getElementById('cfg-ecart-actuel');
     if (el) { el.textContent = (ecart >= 0 ? '+' : '') + ecart.toLocaleString('fr') + ' €'; el.style.color = ecart >= 0 ? 'var(--green2)' : 'var(--red)'; }
     document.getElementById('cfg-ecart').value = '';
@@ -6366,7 +6452,7 @@ function appliquerEcart() {
 
 function resetEcart() {
   APP.config.ecartFinancier = 0;
-  sbUpdate('config', { data: { ...APP.config, ecartFinancier: 0 } }, { id: 1 }).then(() => {
+  db.ref('config/ecartFinancier').set(0).then(() => {
     const el = document.getElementById('cfg-ecart-actuel');
     if (el) { el.textContent = '0 €'; el.style.color = 'var(--blue)'; }
     toast('Écart réinitialisé', 'success');
@@ -6376,7 +6462,7 @@ function resetEcart() {
 function sauvegarderArgentDepart() {
   const val = parseFloat(document.getElementById('cfg-argent-depart').value) || 0;
   APP.config.argentDepart = val;
-  sbUpdate('config', { data: { ...APP.config, argentDepart: val } }, { id: 1 }).then(() => {
+  db.ref('config/argentDepart').set(val).then(() => {
     const el = document.getElementById('cfg-argent-actuel');
     if (el) el.textContent = val.toLocaleString('fr') + ' €';
     toast('Argent de départ enregistré', 'success');
@@ -6428,7 +6514,7 @@ function majToutesOps() {
     return { ...op, theme, cat };
   });
   APP.compta = newCompta;
-  sbUpdate('compta', { data: { comptabilite: newCompta } }, { periode: 'current' }).then(() => {
+  db.ref('compta/current').set({ comptabilite: newCompta }).then(() => {
     toast(`${matched} opération(s) catégorisée(s)`, 'success');
     journalLog(`MAJ catégories : ${matched} opérations matchées`, 'ok');
     renderBilan();
@@ -6510,7 +6596,7 @@ function sauvegarderTheme() {
   } else {
     APP.themes.push({ id: genId(), nom, type, couleur, categories: [] });
   }
-  sbUpdate('config', { data: { ...APP.config, themes: APP.themes } }, { id: 1 }).then(() => {
+  db.ref('themes').set(APP.themes).then(() => {
     closeModal('modal-nouveau-theme');
     renderCategories();
     toast(`Thème "${nom}" ${editId ? 'modifié' : 'créé'}`, 'success');
@@ -6521,7 +6607,7 @@ function supprimerTheme(id) {
   const t = (APP.themes||[]).find(x => x.id === id);
   if (!t || !confirm(`Supprimer le thème "${t.nom}" et toutes ses catégories ?`)) return;
   APP.themes = APP.themes.filter(x => x.id !== id);
-  sbUpdate('config', { data: { ...APP.config, themes: APP.themes } }, { id: 1 }).then(() => { renderCategories(); toast('Thème supprimé', 'info'); });
+  db.ref('themes').set(APP.themes).then(() => { renderCategories(); toast('Thème supprimé', 'info'); });
 }
 
 function ouvrirModalNouvelleCategorie(themeId) {
@@ -6580,7 +6666,7 @@ function sauvegarderCategorie() {
     theme.categories.push({ id: genId(), nom, couleur, regles });
   }
 
-  sbUpdate('config', { data: { ...APP.config, themes: APP.themes } }, { id: 1 }).then(() => {
+  db.ref('themes').set(APP.themes).then(() => {
     closeModal('modal-nouvelle-categorie');
     renderCategories();
     toast(`Catégorie "${nom}" ${editId ? 'modifiée' : 'créée'}`, 'success');
@@ -6593,7 +6679,7 @@ function supprimerCategorie(themeId, catId) {
   const cat = (theme.categories||[]).find(c => c.id === catId);
   if (!cat || !confirm(`Supprimer la catégorie "${cat.nom}" ?`)) return;
   theme.categories = theme.categories.filter(c => c.id !== catId);
-  sbUpdate('config', { data: { ...APP.config, themes: APP.themes } }, { id: 1 }).then(() => { renderCategories(); toast('Catégorie supprimée', 'info'); });
+  db.ref('themes').set(APP.themes).then(() => { renderCategories(); toast('Catégorie supprimée', 'info'); });
 }
 
 // ================================================================
@@ -6832,7 +6918,7 @@ function sauvegarderTemplate() {
     APP.templates.push({ id: genId(), nom, asset, forumUrl, corps, variables });
   }
 
-  supa.from('templates').delete().neq('id','_').then(async () => { if(APP.templates.length) await supa.from('templates').upsert(APP.templates);
+  db.ref('templates').set(APP.templates).then(() => {
     closeModal('modal-nouveau-template');
     renderTemplates();
     toast(`Template "${nom}" ${editId ? 'modifié' : 'créé'}`, 'success');
@@ -6843,7 +6929,7 @@ function supprimerTemplate(id) {
   const t = (APP.templates||[]).find(x => x.id === id);
   if (!t || !confirm(`Supprimer "${t.nom}" ?`)) return;
   APP.templates = APP.templates.filter(x => x.id !== id);
-  supa.from('templates').delete().neq('id','_').then(async () => { if(APP.templates.length) await supa.from('templates').upsert(APP.templates); renderTemplates(); toast('Template supprimé', 'info'); });
+  db.ref('templates').set(APP.templates).then(() => { renderTemplates(); toast('Template supprimé', 'info'); });
 }
 
 function insererVariable(v) {
@@ -7021,8 +7107,8 @@ function appliquerCodePromo(type) {
   const maxUtil = regle.maxUtilisations || 0;
 
   if (maxUtil > 0 && pseudo) {
-    sbGet('usages', { eq: ['pseudo', pseudo] }).then(usageRows => {
-      const usages = (usageRows||[]).filter(r => r.regle_id === regle.id).length;
+    db.ref(`usages/${pseudo.replace(/[^a-zA-Z0-9_]/g,'_')}/${regle.id}`).once('value').then(snap => {
+      const usages = snap.val() || 0;
       if (usages >= maxUtil) {
         status.style.color = 'var(--red)';
         status.textContent = `❌ Limite atteinte (${usages}/${maxUtil} utilisations)`;
@@ -7047,7 +7133,7 @@ function enregistrerUsagePromo(pseudo) {
   const promo = APP._promoActive;
   if (!promo || !pseudo || !(promo.maxUtilisations > 0)) return;
   const key = pseudo.replace(/[^a-zA-Z0-9_]/g,'_');
-  sbInsert('usages', { pseudo: key, regle_id: promo.id }).then(() => {
+  db.ref(`usages/${key}/${promo.id}`).transaction(n => (n || 0) + 1).then(() => {
     journalLog(`Code promo "${promo.code}" utilisé par ${pseudo}`, 'ok');
   });
 }
@@ -7125,7 +7211,7 @@ function dupliquerTemplate(id) {
   if (!t) return;
   const clone = { ...t, id: genId(), nom: t.nom + ' (copie)' };
   APP.templates.push(clone);
-  supa.from('templates').delete().neq('id','_').then(async () => { if(APP.templates.length) await supa.from('templates').upsert(APP.templates);
+  db.ref('templates').set(APP.templates).then(() => {
     renderTemplates();
     toast('Template dupliqué', 'success');
   });
