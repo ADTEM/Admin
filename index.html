@@ -944,7 +944,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.15</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.16</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -3189,22 +3189,48 @@ async function saveNewMdp() {
   const mdp  = document.getElementById('new-mdp').value;
   const mdp2 = document.getElementById('new-mdp2').value;
   const errEl = document.getElementById('change-mdp-error');
+  const btn   = document.querySelector('#modal-change-mdp .modal-footer .btn-primary');
+
   errEl.style.display = 'none';
   if (mdp.length < 6) { errEl.textContent = 'Minimum 6 caractères.'; errEl.style.display = 'block'; return; }
   if (mdp !== mdp2)   { errEl.textContent = 'Les mots de passe ne correspondent pas.'; errEl.style.display = 'block'; return; }
 
-  const { error } = await supa.auth.updateUser({ password: mdp });
-  if (error) { errEl.textContent = 'Erreur : ' + error.message; errEl.style.display = 'block'; return; }
+  // Capturer l'UID AVANT updateUser (la session peut changer après)
+  const uid = CURRENT_USER.uid;
 
-  if (CURRENT_USER.uid) await sbUpdate('profiles', { must_change_password: false }, { id: CURRENT_USER.uid });
+  // État de chargement
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Enregistrement...'; }
 
-  closeModal('modal-change-mdp');
-  toast('Mot de passe modifié avec succès', 'success');
+  try {
+    const { error } = await supa.auth.updateUser({ password: mdp });
+    if (error) {
+      errEl.textContent = 'Erreur : ' + error.message;
+      errEl.style.display = 'block';
+      return;
+    }
 
-  if (_changeMdpForce) {
-    // Recharger l'interface après changement forcé
-    const { data: { session } } = await supa.auth.getSession();
-    await handleAuthState(session?.user || null);
+    // Mettre à jour must_change_password IMMÉDIATEMENT avec l'UID capturé
+    if (uid) {
+      const { error: upErr } = await supa.from('profiles').update({ must_change_password: false }).eq('id', uid);
+      if (upErr) console.warn('Erreur mise à jour must_change_password:', upErr.message);
+    }
+
+    // Feedback succès dans la modale avant fermeture
+    errEl.style.cssText = 'display:block;background:var(--greenbg);border:1px solid var(--greenl);color:var(--green2);padding:8px 10px;border-radius:6px;';
+    errEl.textContent = '✅ Mot de passe modifié avec succès !';
+
+    await new Promise(r => setTimeout(r, 1200));
+
+    closeModal('modal-change-mdp');
+    toast('Mot de passe modifié avec succès', 'success');
+
+    if (_changeMdpForce) {
+      // Recharger l'interface après changement forcé
+      const { data: { session } } = await supa.auth.getSession();
+      await handleAuthState(session?.user || null);
+    }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '✅ Enregistrer le nouveau mot de passe'; }
   }
 }
 
