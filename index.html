@@ -944,7 +944,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.22</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.23</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -6603,9 +6603,8 @@ async function validerCompte(uid, pseudo) {
 
 async function refuserCompte(uid, pseudo) {
   if (!confirm(`Refuser la demande de "${pseudo}" ?\n\nLe compte sera supprimé.`)) return;
-  await sbDelete('profiles', { id: uid });
-  // Supprimer le compte auth via edge function
-  await supa.functions.invoke('delete-user', { body: { user_id: uid } });
+  // Suppression auth + profil via admin-update-profile (delete_user: true)
+  await supa.functions.invoke('admin-update-profile', { body: { user_id: uid, delete_user: true } });
   journalLog(`Demande refusée : ${pseudo}`, 'warn');
   toast(`Demande de "${pseudo}" refusée`, 'info');
   loadComptes();
@@ -6666,16 +6665,16 @@ async function supprimerDefinitivement(uid, pseudo) {
   if (!confirm(`⚠️ Supprimer définitivement le compte "${pseudo}" ?\n\nCela supprimera la ligne de la base ET le compte d'authentification.\nCette action est irréversible.`)) return;
   if (!confirm(`Dernière confirmation — supprimer "${pseudo}" définitivement ?`)) return;
 
-  // 1. Supprimer le compte auth + profile via edge function (service_role)
-  const { error: efErr } = await supa.functions.invoke('delete-user', { body: { user_id: uid } });
+  // Suppression auth + profil en un appel (admin-update-profile gère les deux)
+  const { error: efErr } = await supa.functions.invoke('admin-update-profile', {
+    body: { user_id: uid, delete_user: true }
+  });
   if (efErr) {
-    toast('Erreur suppression auth : ' + efErr.message, 'error');
-    console.error('supprimerDefinitivement auth', efErr);
-    // Tenter quand même de supprimer le profil
+    // Fallback : suppression directe si edge function pas encore redéployée
+    await sbDelete('profiles', { id: uid });
+    toast('Suppression partielle (profil seulement) : ' + efErr.message, 'error');
+    console.error('supprimerDefinitivement', efErr);
   }
-
-  // 2. Supprimer la ligne profiles (fallback si l'edge function ne le fait pas)
-  await sbDelete('profiles', { id: uid });
 
   journalLog(`Compte supprimé définitivement : ${pseudo}`, 'danger');
   toast(`Compte "${pseudo}" supprimé`, 'info');
