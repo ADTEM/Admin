@@ -944,7 +944,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.18</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.20</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -2870,7 +2870,7 @@ async function sbGet(table, opts = {}) {
   if (opts.order) q = q.order(...opts.order);
   if (opts.limit) q = q.limit(opts.limit);
   const { data, error } = await q;
-  if (error) { console.error('sbGet', table, error); return null; }
+  if (error) { console.error('sbGet', table, error?.message || error?.code || JSON.stringify(error)); return null; }
   return data;
 }
 async function sbUpsert(table, data, opts = {}) {
@@ -2970,7 +2970,12 @@ async function initSupabase() {
 
 async function handleAuthState(user) {
   if (user) {
-    const profiles = await sbGet('profiles', { eq: ['id', user.id] });
+    let profiles = await sbGet('profiles', { eq: ['id', user.id] });
+    // Retry si null — le trigger handle_new_user peut prendre quelques ms après signUp
+    if (!profiles?.length) {
+      await new Promise(r => setTimeout(r, 800));
+      profiles = await sbGet('profiles', { eq: ['id', user.id] });
+    }
     const profile  = profiles?.[0] || {};
 
     CURRENT_USER.uid    = user.id;
@@ -3196,14 +3201,14 @@ async function saveNewMdp() {
   const mdp   = document.getElementById('new-mdp').value;
   const mdp2  = document.getElementById('new-mdp2').value;
   const errEl = document.getElementById('change-mdp-error');
-  errEl.style.display = 'none';
+  if (errEl) errEl.style.display = 'none';
 
   if (mdp.length < 6) {
-    errEl.textContent = 'Minimum 6 caractères.'; errEl.style.display = 'block';
+    if (errEl) { errEl.textContent = 'Minimum 6 caractères.'; errEl.style.display = 'block'; }
     _saveNewMdpRunning = false; return;
   }
   if (mdp !== mdp2) {
-    errEl.textContent = 'Les mots de passe ne correspondent pas.'; errEl.style.display = 'block';
+    if (errEl) { errEl.textContent = 'Les mots de passe ne correspondent pas.'; errEl.style.display = 'block'; }
     _saveNewMdpRunning = false; return;
   }
 
@@ -3222,8 +3227,7 @@ async function saveNewMdp() {
     // Fallback : tentative directe si edge function pas encore déployée
     const { error: authErr } = await supa.auth.updateUser({ password: mdp });
     if (authErr) {
-      errEl.textContent = 'Erreur : ' + authErr.message + ' — vérifiez que l'edge function admin-update-profile est déployée.';
-      errEl.style.display = 'block';
+      if (errEl) { errEl.textContent = 'Erreur : ' + authErr.message + ' - deployer admin-update-profile sur Supabase Edge Functions.'; errEl.style.display = 'block'; }
       if (btn) { btn.disabled = false; btn.textContent = '✅ Enregistrer le nouveau mot de passe'; }
       _saveNewMdpRunning = false; return;
     }
