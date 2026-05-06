@@ -3002,12 +3002,14 @@ async function handleAuthState(user) {
     }
 
     // MDP temporaire à changer
-    if (profile.must_change_password) {
+    // _mdpJustChanged évite la réouverture si la RLS a retardé l'écriture en base
+    if (profile.must_change_password && !window._mdpJustChanged) {
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('waiting-screen').classList.add('hidden');
       openModalChangeMdp(true);
       return;
     }
+    window._mdpJustChanged = false; // reset après avoir passé le check
 
     // Compte actif → afficher l'interface
     document.getElementById('login-screen').classList.add('hidden');
@@ -3185,53 +3187,61 @@ function openModalChangeMdp(force = false) {
   openModal('modal-change-mdp');
 }
 
+let _saveNewMdpRunning = false;
 async function saveNewMdp() {
-  const mdp  = document.getElementById('new-mdp').value;
-  const mdp2 = document.getElementById('new-mdp2').value;
+  if (_saveNewMdpRunning) return;            // anti double-clic
+  _saveNewMdpRunning = true;
+
+  const btn   = document.querySelector('#modal-change-mdp .btn-primary');
+  const mdp   = document.getElementById('new-mdp').value;
+  const mdp2  = document.getElementById('new-mdp2').value;
   const errEl = document.getElementById('change-mdp-error');
-  const btn   = document.querySelector('#modal-change-mdp .modal-footer .btn-primary');
-
   errEl.style.display = 'none';
-  if (mdp.length < 6) { errEl.textContent = 'Minimum 6 caractères.'; errEl.style.display = 'block'; return; }
-  if (mdp !== mdp2)   { errEl.textContent = 'Les mots de passe ne correspondent pas.'; errEl.style.display = 'block'; return; }
 
-  // Capturer l'UID AVANT updateUser (la session peut changer après)
-  const uid = CURRENT_USER.uid;
+  if (mdp.length < 6) {
+    errEl.textContent = 'Minimum 6 caractères.'; errEl.style.display = 'block';
+    _saveNewMdpRunning = false; return;
+  }
+  if (mdp !== mdp2) {
+    errEl.textContent = 'Les mots de passe ne correspondent pas.'; errEl.style.display = 'block';
+    _saveNewMdpRunning = false; return;
+  }
 
-  // État de chargement
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Enregistrement...'; }
 
-  try {
-    const { error } = await supa.auth.updateUser({ password: mdp });
-    if (error) {
-      errEl.textContent = 'Erreur : ' + error.message;
-      errEl.style.display = 'block';
-      return;
-    }
-
-    // Mettre à jour must_change_password IMMÉDIATEMENT avec l'UID capturé
-    if (uid) {
-      const { error: upErr } = await supa.from('profiles').update({ must_change_password: false }).eq('id', uid);
-      if (upErr) console.warn('Erreur mise à jour must_change_password:', upErr.message);
-    }
-
-    // Feedback succès dans la modale avant fermeture
-    errEl.style.cssText = 'display:block;background:var(--greenbg);border:1px solid var(--greenl);color:var(--green2);padding:8px 10px;border-radius:6px;';
-    errEl.textContent = '✅ Mot de passe modifié avec succès !';
-
-    await new Promise(r => setTimeout(r, 1200));
-
-    closeModal('modal-change-mdp');
-    toast('Mot de passe modifié avec succès', 'success');
-
-    if (_changeMdpForce) {
-      // Recharger l'interface après changement forcé
-      const { data: { session } } = await supa.auth.getSession();
-      await handleAuthState(session?.user || null);
-    }
-  } finally {
+  // 1. Changer le MDP via Supabase Auth
+  const { error } = await supa.auth.updateUser({ password: mdp });
+  if (error) {
+    errEl.textContent = 'Erreur : ' + error.message; errEl.style.display = 'block';
     if (btn) { btn.disabled = false; btn.textContent = '✅ Enregistrer le nouveau mot de passe'; }
+    _saveNewMdpRunning = false; return;
   }
+
+  // 2. Mettre must_change_password = false via edge function (bypasse la RLS)
+  if (CURRENT_USER.uid) {
+    const { error: efErr } = await supa.functions.invoke('admin-update-profile', {
+      body: { user_id: CURRENT_USER.uid, must_change_password: false }
+    });
+    if (efErr) {
+      // Fallback direct (fonctionne si l'user peut se modifier lui-même)
+      await sbUpdate('profiles', { must_change_password: false }, { id: CURRENT_USER.uid });
+    }
+  }
+
+  // 3. Poser le flag court-circuit AVANT de fermer (évite la réouverture si RLS retarde)
+  window._mdpJustChanged = true;
+  if (CURRENT_USER) CURRENT_USER.mustChangePwd = false;
+
+  closeModal('modal-change-mdp');
+  toast('Mot de passe modifié avec succès ✅', 'success');
+
+  if (_changeMdpForce) {
+    _changeMdpForce = false;
+    const { data: { session } } = await supa.auth.getSession();
+    await handleAuthState(session?.user || null);
+  }
+
+  _saveNewMdpRunning = false;
 }
 
 // ================================================================
