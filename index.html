@@ -944,7 +944,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.20</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.22</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -6379,11 +6379,13 @@ async function doLogin() {
 }
 
 async function doLogout() {
-  await supa.auth.signOut();
+  // 403 session_not_found = session deja expiree, on ignore et on nettoie quand meme
+  try { await supa.auth.signOut(); } catch(_) {}
   CURRENT_USER.uid = null;
   CURRENT_USER.pseudo = null;
   CURRENT_USER.role = null;
   APP.devBypass = false;
+  window._mdpJustChanged = false;
   document.getElementById('topbar-user').style.display = 'none';
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('login-pseudo').value = '';
@@ -6695,11 +6697,12 @@ async function toggleActif(uid, currentActif) {
 async function resetMdpAdmin(uid, pseudo) {
   if (!confirm(`Réinitialiser le mot de passe de "${pseudo}" ?\n\nUn mot de passe temporaire sera généré. L'utilisateur devra le changer à sa prochaine connexion.`)) return;
   const newMdp = genMdpAleatoire();
-  const { error } = await supa.functions.invoke('reset-password', { body: { user_id: uid, password: newMdp } });
+  // Utilise admin-update-profile (new_password + must_change_password) — evite reset-password qui crashe
+  const { error } = await supa.functions.invoke('admin-update-profile', {
+    body: { user_id: uid, new_password: newMdp, must_change_password: true }
+  });
   if (error) { toast('Erreur reset MDP : ' + error.message, 'error'); return; }
-  await adminUpdateProfile(uid, { must_change_password: true });
   journalLog(`MDP réinitialisé pour : ${pseudo}`, 'warn');
-  // Afficher le MDP temporaire à l'admin
   alert(`✅ Mot de passe temporaire pour "${pseudo}" :\n\n${newMdp}\n\nCommuniquez-le à l'utilisateur. Il devra le changer à la prochaine connexion.`);
 }
 
