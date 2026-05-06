@@ -741,7 +741,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 14px; padding: 40px 36px; width: 380px;
   box-shadow: 0 4px 32px rgba(0,0,0,0.10);
-  text-align: center;
+  text-align: center; position: relative;
 }
 .login-logo {
   width: 56px; height: 56px; margin: 0 auto 16px;
@@ -832,8 +832,9 @@ body.mode-config #page-title { color: var(--cfg-green); }
 <div id="login-screen">
   <div class="login-box">
     <img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/Logo%20Alliance.png"
-      onclick="bypassLogin()" title="Mode développeur" style="height:70px;width:auto;object-fit:contain;cursor:pointer;margin:0 auto 16px;display:block;"
+      style="height:70px;width:auto;object-fit:contain;margin:0 auto 16px;display:block;"
       crossorigin="anonymous" onerror="this.style.display='none'">
+    <div onclick="bypassLogin()" style="position:absolute;top:0;right:0;width:40px;height:40px;border-radius:0 14px 0 0;cursor:default;" title="" tabindex="-1" aria-hidden="true"></div>
 
 
     <!-- Panel Connexion -->
@@ -943,7 +944,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.6</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.27</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -962,6 +963,9 @@ body.mode-config #page-title { color: var(--cfg-green); }
       </div>
       <div class="nav-item" data-page="tableau-financier">
         <span class="nav-icon">🧾</span> Tableau financier
+      </div>
+      <div class="nav-item" data-page="prime-infra">
+        <span class="nav-icon">🤝</span> Prime InfrAlliance
       </div>
     </div>
 
@@ -1129,7 +1133,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
       </div>
       <div class="card">
         <div class="card-title"><span class="icon">📅</span> Locations se terminant bientôt</div>
-        <div id="locations-soon" style="max-height:200px;overflow-y:auto;">
+        <div id="locations-soon" style="max-height:200px;overflow-y:auto;padding-right:4px;">
           <div style="color:var(--text3);font-size:12px;">Chargement...</div>
         </div>
       </div>
@@ -1229,10 +1233,10 @@ body.mode-config #page-title { color: var(--cfg-green); }
       <input type="text" id="parc-search" placeholder="🔍 Numéro parc, marque, modèle...">
       <select id="parc-energie">
         <option value="">Toutes énergies</option>
-        <option value="Hybride">🌿 Hybride</option>
-        <option value="GNV">💧 GNV</option>
-        <option value="Electrique">⚡ Électrique</option>
-        <option value="Diesel">🔵 Diesel</option>
+        <option value="Hybride">Hybride</option>
+        <option value="GNV">GNV</option>
+        <option value="Electrique">Électrique</option>
+        <option value="Diesel">Diesel</option>
       </select>
       <select id="parc-type">
         <option value="">Tous types</option>
@@ -1325,7 +1329,8 @@ body.mode-config #page-title { color: var(--cfg-green); }
       <div>
       </div>
       <div class="flex gap-8">
-        <button class="btn btn-secondary btn-sm" id="btn-historique-devis" onclick="showPage('aides')">📋 Historique</button>
+        <button class="btn btn-secondary btn-sm" onclick="resetDevisLocation()">🗑️ Vider</button>
+        <button class="btn btn-secondary btn-sm" id="btn-historique-devis" onclick="showPage('devis-sauvegardes')">📋 Historique</button>
       </div>
     </div>
 
@@ -1402,9 +1407,9 @@ body.mode-config #page-title { color: var(--cfg-green); }
           <div class="filter-bar mb-16" style="margin-bottom:10px;">
             <select class="form-select" id="dl-filtre-energie" style="flex:1;">
               <option value="">Toutes énergies</option>
-              <option value="Hybride">🌿 Hybride</option>
-              <option value="GNV">💧 GNV</option>
-              <option value="Electrique">⚡ Électrique</option>
+              <option value="Hybride">Hybride</option>
+              <option value="GNV">GNV</option>
+              <option value="Electrique">Électrique</option>
             </select>
             <select class="form-select" id="dl-filtre-type" style="flex:1;">
               <option value="">Tous types</option>
@@ -1420,10 +1425,62 @@ body.mode-config #page-title { color: var(--cfg-green); }
         </div>
 
         <div class="card mb-16">
-          <div class="card-title"><span class="icon">💰</span> Tarification</div>
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+            <span><span class="icon">💰</span> Tarification</span>
+            <button onclick="toggleAjustTarif()" id="btn-ajust-tarif"
+              style="font-size:10px;padding:3px 9px;border-radius:6px;border:1px solid var(--border2);
+                     background:var(--surface2);color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:4px;
+                     transition:all 0.15s;" title="Ajuster le tarif manuellement">
+              ✏️ Ajuster
+            </button>
+          </div>
+
+          <!-- Panneau d'ajustement tarifaire -->
+          <div id="ajust-tarif-panel" style="display:none;background:var(--greenbg);border:1px solid var(--greenl);
+               border-radius:8px;padding:12px;margin-top:8px;margin-bottom:8px;">
+            <div style="font-size:11px;font-weight:700;color:var(--green3);margin-bottom:8px;">
+              🛠️ Ajustement tarifaire — geste commercial
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+              <div>
+                <label style="font-size:10px;color:var(--text3);font-weight:600;">Mode</label>
+                <select id="ajust-mode" onchange="onAjustModeChange()" class="form-select" style="font-size:11px;padding:4px 8px;margin-top:2px;">
+                  <option value="">— Aucun ajustement —</option>
+                  <option value="prix">💶 Prix fixe / semaine</option>
+                  <option value="remise">🏷️ Réduction (%)</option>
+                </select>
+              </div>
+              <div id="ajust-valeur-wrap">
+                <label style="font-size:10px;color:var(--text3);font-weight:600;" id="ajust-valeur-label">Valeur</label>
+                <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
+                  <input type="number" id="ajust-valeur" class="form-input" min="0"
+                    style="font-size:11px;padding:4px 8px;width:90px;"
+                    oninput="updateCalcLocation()" placeholder="0">
+                  <span id="ajust-unite" style="font-size:11px;color:var(--text3);">€/sem.</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label style="font-size:10px;color:var(--text3);font-weight:600;">Raison / note interne</label>
+              <input type="text" id="ajust-raison" class="form-input" maxlength="120"
+                placeholder="Ex: bug signalé, fidélité, premier contrat…"
+                style="font-size:11px;padding:4px 8px;margin-top:2px;width:100%;"
+                oninput="updateCalcLocation()">
+            </div>
+            <div style="margin-top:8px;text-align:right;">
+              <button onclick="clearAjustTarif()"
+                style="font-size:10px;padding:3px 10px;border-radius:5px;border:1px solid var(--border2);
+                       background:var(--surface);color:var(--red);cursor:pointer;">
+                ✕ Effacer l'ajustement
+              </button>
+            </div>
+          </div>
+
           <!-- Résumé calcul avec détail remises options -->
           <div style="background:var(--surface2);border-radius:8px;padding:12px;margin-top:4px;" id="calc-detail-box">
             <div id="calc-detail-lines" style="margin-bottom:8px;font-size:11.5px;color:var(--text2);"></div>
+            <div id="calc-ajust-line" style="display:none;margin-bottom:6px;padding:5px 8px;background:var(--greenbg);
+                 border:1px solid var(--greenl);border-radius:6px;font-size:11px;color:var(--green3);"></div>
             <div style="border-top:1px solid var(--border);padding-top:8px;">
               <div class="flex-between">
                 <span style="font-size:13px;font-weight:700;">Total sur durée :</span>
@@ -1462,6 +1519,10 @@ body.mode-config #page-title { color: var(--cfg-green); }
   <div class="page" id="page-devis-ae">
     <div class="flex-between mb-20">
       <div>
+      </div>
+      <div class="flex gap-8">
+        <button class="btn btn-secondary btn-sm" onclick="resetDevisAE()">🗑️ Vider</button>
+        <button class="btn btn-secondary btn-sm" onclick="showPage('devis-sauvegardes')">📋 Historique</button>
       </div>
     </div>
 
@@ -1539,9 +1600,9 @@ body.mode-config #page-title { color: var(--cfg-green); }
           <div class="filter-bar" style="margin-bottom:10px;">
             <select class="form-select" id="ae-filtre-energie" style="flex:1;">
               <option value="">Toutes énergies</option>
-              <option value="Hybride">🌿 Hybride</option>
-              <option value="GNV">💧 GNV</option>
-              <option value="Electrique">⚡ Électrique</option>
+              <option value="Hybride">Hybride</option>
+              <option value="GNV">GNV</option>
+              <option value="Electrique">Électrique</option>
             </select>
             <select class="form-select" id="ae-filtre-type" style="flex:1;">
               <option value="">Tous types</option>
@@ -2132,6 +2193,245 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
         <div style="text-align:center;padding:40px;color:var(--text3);">
           🏷️ Configurez d'abord les <b>Thèmes &amp; Catégories</b> en mode configuration.
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== PRIME INFRA ====== -->
+  <div class="page" id="page-prime-infra">
+
+    <!-- Onglets internes -->
+    <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px;">
+      <button class="pi-tab active" data-tab="pi-tab-regles"  onclick="piSwitchTab('regles')"  style="padding:9px 20px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:600;color:var(--green2);border-bottom:2px solid var(--green2);margin-bottom:-2px;font-family:inherit;">⚙️ Règles</button>
+      <button class="pi-tab"        data-tab="pi-tab-primes"  onclick="piSwitchTab('primes')"  style="padding:9px 20px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:500;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-2px;font-family:inherit;">📋 Primes versées</button>
+      <button class="pi-tab"        data-tab="pi-tab-bilan"   onclick="piSwitchTab('bilan')"   style="padding:9px 20px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:500;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-2px;font-family:inherit;">📊 Bilan trimestriel</button>
+    </div>
+
+    <!-- === ONGLET RÈGLES === -->
+    <div id="pi-tab-regles" class="pi-tabcontent" style="display:block;">
+      <div class="grid-2" style="gap:16px;align-items:start;">
+        <div>
+          <div class="card mb-16">
+            <div class="card-title"><span class="icon">➕</span> Nouvelle règle</div>
+            <div class="form-group">
+              <label class="form-label">Nom de la prime</label>
+              <input type="text" class="form-input" id="pi-regle-nom" placeholder="Ex: Prime GNV, Borne électrique dépôt…">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Montant versé au joueur (€)</label>
+              <input type="number" class="form-input" id="pi-regle-montant" placeholder="300000" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Type de calcul</label>
+              <select class="form-select" id="pi-regle-type" onchange="piToggleRegleType()">
+                <option value="fixe">💶 Montants fixes</option>
+                <option value="pourcent">% du total versé</option>
+              </select>
+            </div>
+            <!-- Montants fixes -->
+            <div id="pi-regle-fixe-block">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div class="form-group">
+                  <label class="form-label">Part ADTEM (€)</label>
+                  <input type="number" class="form-input" id="pi-regle-adtem" placeholder="150000" min="0">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Part InfrAlliance (€)</label>
+                  <input type="number" class="form-input" id="pi-regle-infra" placeholder="150000" min="0">
+                </div>
+              </div>
+            </div>
+            <!-- % -->
+            <div id="pi-regle-pct-block" style="display:none;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div class="form-group">
+                  <label class="form-label">Part ADTEM (%)</label>
+                  <input type="number" class="form-input" id="pi-regle-adtem-pct" placeholder="20" min="0" max="100">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Part InfrAlliance (%)</label>
+                  <input type="number" class="form-input" id="pi-regle-infra-pct" placeholder="20" min="0" max="100">
+                </div>
+              </div>
+              <div style="font-size:10px;color:var(--text3);margin-top:-8px;">
+                Le reste (100% − ADTEM% − Infra%) est à la charge du joueur seul.
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mots-clés détection automatique <span style="color:var(--text4);font-weight:400;">(séparés par ;)</span></label>
+              <input type="text" class="form-input" id="pi-regle-keywords" placeholder="Prime GNV;citerne;GNV">
+              <div style="font-size:10px;color:var(--text3);margin-top:3px;">Utilisés pour détecter automatiquement les opérations compta associées.</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Niveau minimum requis</label>
+              <select class="form-select" id="pi-regle-niveau">
+                <option value="">Tous niveaux</option>
+                <option value="N3">N3 et +</option>
+                <option value="N4">N4 et +</option>
+                <option value="N5">N5 et +</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Description / note</label>
+              <input type="text" class="form-input" id="pi-regle-desc" placeholder="Note libre…">
+            </div>
+            <div style="display:flex;gap:8px;margin-top:4px;">
+              <button class="btn btn-primary" style="flex:1;" onclick="piSauvegarderRegle()">✅ Enregistrer la règle</button>
+              <button class="btn btn-secondary btn-sm" onclick="piResetRegleForm()">↺</button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-title"><span class="icon">📋</span> Règles configurées</div>
+            <div id="pi-regles-list" style="color:var(--text3);text-align:center;padding:30px;font-size:12px;">
+              Aucune règle configurée.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- === ONGLET PRIMES VERSÉES === -->
+    <div id="pi-tab-primes" class="pi-tabcontent" style="display:none;">
+      <div class="flex-between mb-16" style="flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input type="text" class="form-input" id="pi-search" placeholder="🔍 Pseudo, raison…" style="width:200px;" oninput="piRenderPrimes()">
+          <select class="form-select" id="pi-filtre-regle" style="width:180px;" onchange="piRenderPrimes()">
+            <option value="">Toutes les primes</option>
+          </select>
+          <select class="form-select" id="pi-filtre-statut" style="width:140px;" onchange="piRenderPrimes()">
+            <option value="">Tous statuts</option>
+            <option value="en_attente">En attente</option>
+            <option value="pointe">Pointé</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="piImportCompta()">🔄 Détecter depuis compta</button>
+          <button class="btn btn-primary btn-sm" onclick="piOpenAddManuel()">➕ Ajouter manuellement</button>
+        </div>
+      </div>
+
+      <!-- Ajout manuel -->
+      <div id="pi-add-manuel" style="display:none;" class="card mb-16" style="border-color:rgba(74,140,82,0.3);">
+        <div class="card-title"><span class="icon">➕</span> Saisie manuelle</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input type="date" class="form-input" id="pi-man-date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Pseudo</label>
+            <input type="text" class="form-input" id="pi-man-pseudo" placeholder="Pseudo du joueur">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Règle de prime</label>
+            <select class="form-select" id="pi-man-regle" onchange="piAutoMontantManuel()">
+              <option value="">— Choisir —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Montant versé au joueur (€)</label>
+            <input type="number" class="form-input" id="pi-man-montant" placeholder="300000" oninput="piCalcManuelParts()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Libellé / raison</label>
+            <input type="text" class="form-input" id="pi-man-libelle" placeholder="Ex: Prime GNV Mika9537">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Note</label>
+            <input type="text" class="form-input" id="pi-man-note" placeholder="Optionnel">
+          </div>
+        </div>
+        <div id="pi-man-parts" style="background:var(--greenbg);border:1px solid var(--greenl);border-radius:6px;padding:8px 12px;font-size:11px;color:var(--green3);margin-bottom:10px;display:none;">
+          <span id="pi-man-parts-txt"></span>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary" onclick="piSauvegarderManuel()">✅ Enregistrer</button>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('pi-add-manuel').style.display='none'">Annuler</button>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0;overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+          <thead>
+            <tr style="background:var(--surface3);">
+              <th style="padding:8px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Date</th>
+              <th style="padding:8px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Pseudo</th>
+              <th style="padding:8px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Prime</th>
+              <th style="padding:8px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Libellé</th>
+              <th style="padding:8px 12px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Joueur</th>
+              <th style="padding:8px 12px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--green3);">ADTEM</th>
+              <th style="padding:8px 12px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--blue);">InfrAlliance</th>
+              <th style="padding:8px 12px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Statut</th>
+              <th style="padding:8px 12px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="pi-primes-tbody">
+            <tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text3);">Aucune prime enregistrée.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- === ONGLET BILAN TRIMESTRIEL === -->
+    <div id="pi-tab-bilan" class="pi-tabcontent" style="display:none;">
+      <div class="grid-2 mb-16" style="gap:16px;align-items:start;">
+        <!-- Paramètres bilan -->
+        <div class="card">
+          <div class="card-title"><span class="icon">📅</span> Paramètres du bilan</div>
+          <div class="form-group">
+            <label class="form-label">Période : depuis le</label>
+            <input type="date" class="form-input" id="pi-bilan-depuis" oninput="piRenderBilan()">
+            <div style="font-size:10px;color:var(--text3);margin-top:3px;">
+              Les primes <b>pointées avant cette date</b> sont exclues du bilan.
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Jusqu'au</label>
+            <input type="date" class="form-input" id="pi-bilan-jusqua" oninput="piRenderBilan()">
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="piSetTrimestre()" style="margin-bottom:12px;width:100%;">📅 Remplir trimestre en cours</button>
+          <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
+          <div class="form-group" style="margin-top:8px;">
+            <label class="form-label" style="color:var(--yellow);font-weight:700;">🔒 Pointer le remboursement</label>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">
+              Marque toutes les primes de la période comme "pointées". Le prochain bilan repartira de zéro après cette date.
+            </div>
+            <input type="date" class="form-input" id="pi-pointer-date" placeholder="Date du remboursement reçu">
+          </div>
+          <button class="btn btn-yellow" style="width:100%;" onclick="piPointerRemboursement()">✅ Confirmer le remboursement trimestriel</button>
+        </div>
+
+        <!-- Résumé KPIs -->
+        <div>
+          <div class="kpi-grid mb-16" id="pi-kpis">
+            <div class="kpi-card green"><div class="kpi-label">Total versé joueurs</div><div class="kpi-value green" id="pi-kpi-total">—</div></div>
+            <div class="kpi-card red"><div class="kpi-label">Dû par ADTEM</div><div class="kpi-value red" id="pi-kpi-adtem">—</div></div>
+            <div class="kpi-card blue"><div class="kpi-label">Dû par InfrAlliance</div><div class="kpi-value blue" id="pi-kpi-infra">—</div></div>
+            <div class="kpi-card yellow"><div class="kpi-label">Nb primes</div><div class="kpi-value yellow" id="pi-kpi-nb">—</div></div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+              <span><span class="icon">📊</span> Détail par type de prime</span>
+              <button class="btn btn-primary btn-sm" onclick="piGenererBilanDevis()">📄 Exporter bilan</button>
+            </div>
+            <div id="pi-bilan-detail" style="color:var(--text3);text-align:center;padding:20px;font-size:12px;">
+              Sélectionnez une période pour calculer.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Aperçu / URL export -->
+      <div class="card" id="pi-bilan-export-card" style="display:none;">
+        <div class="card-title"><span class="icon">📄</span> Export bilan</div>
+        <div id="pi-bilan-preview" style="overflow:auto;"></div>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" onclick="piExportBilanPNG()">📥 Export PNG</button>
+          <button class="btn btn-yellow btn-sm" onclick="piPublierBilan()">☁️ Publier & URL</button>
+        </div>
+        <div id="pi-bilan-url" style="display:none;margin-top:10px;"></div>
       </div>
     </div>
   </div>
@@ -2859,13 +3159,27 @@ function pseudoToEmail(pseudo) {
   return pseudo.toLowerCase().replace(/[^a-z0-9]/g, '') + '@adtem.internal';
 }
 async function sbGet(table, opts = {}) {
-  let q = supa.from(table).select(opts.select || '*');
-  if (opts.eq)    q = q.eq(...opts.eq);
-  if (opts.order) q = q.order(...opts.order);
-  if (opts.limit) q = q.limit(opts.limit);
-  const { data, error } = await q;
-  if (error) { console.error('sbGet', table, error); return null; }
-  return data;
+  try {
+    let q = supa.from(table).select(opts.select || '*');
+    if (opts.eq)    q = q.eq(...opts.eq);
+    if (opts.order) q = q.order(...opts.order);
+    if (opts.limit) q = q.limit(opts.limit);
+    const { data, error } = await q;
+    if (error) {
+      const msg = error?.message || error?.code || JSON.stringify(error);
+      // Table inexistante → retourner tableau vide silencieusement
+      if (msg && (msg.includes('does not exist') || msg.includes('relation') || msg.includes('42P01'))) {
+        console.warn('sbGet: table "' + table + '" introuvable — créez-la dans Supabase.');
+        return [];
+      }
+      console.error('sbGet', table, msg);
+      return null;
+    }
+    return data;
+  } catch(e) {
+    console.warn('sbGet exception', table, e.message);
+    return [];
+  }
 }
 async function sbUpsert(table, data, opts = {}) {
   const { error } = await supa.from(table).upsert(data, opts);
@@ -2953,18 +3267,39 @@ async function initSupabase() {
     if (label) label.textContent = 'Hors ligne';
   }
 
-  // Auth state
-  const { data: { session } } = await supa.auth.getSession();
+  // Auth state — purge si refresh token invalide
+  let session = null;
+  try {
+    const { data, error } = await supa.auth.getSession();
+    if (error) {
+      // Refresh token expiré ou invalide → on purge et on repart propre
+      if (error.message?.toLowerCase().includes('refresh token') || error.status === 400) {
+        Object.keys(localStorage).forEach(k => {
+          if (k.startsWith('sb-') || k.includes('supabase')) localStorage.removeItem(k);
+        });
+        await supa.auth.signOut().catch(() => {});
+      }
+    } else {
+      session = data.session;
+    }
+  } catch(e) {
+    console.warn('getSession error (ignored):', e.message);
+  }
   await handleAuthState(session?.user || null);
 
-  supa.auth.onAuthStateChange(async (_event, session) => {
-    await handleAuthState(session?.user || null);
+  supa.auth.onAuthStateChange(async (_event, sess) => {
+    await handleAuthState(sess?.user || null);
   });
 }
 
 async function handleAuthState(user) {
   if (user) {
-    const profiles = await sbGet('profiles', { eq: ['id', user.id] });
+    let profiles = await sbGet('profiles', { eq: ['id', user.id] });
+    // Retry si null — le trigger handle_new_user peut prendre quelques ms après signUp
+    if (!profiles?.length) {
+      await new Promise(r => setTimeout(r, 800));
+      profiles = await sbGet('profiles', { eq: ['id', user.id] });
+    }
     const profile  = profiles?.[0] || {};
 
     CURRENT_USER.uid    = user.id;
@@ -2996,12 +3331,14 @@ async function handleAuthState(user) {
     }
 
     // MDP temporaire à changer
-    if (profile.must_change_password) {
+    // _mdpJustChanged évite la réouverture si la RLS a retardé l'écriture en base
+    if (profile.must_change_password && !window._mdpJustChanged) {
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('waiting-screen').classList.add('hidden');
       openModalChangeMdp(true);
       return;
     }
+    window._mdpJustChanged = false; // reset après avoir passé le check
 
     // Compte actif → afficher l'interface
     document.getElementById('login-screen').classList.add('hidden');
@@ -3042,7 +3379,7 @@ async function loadAllData() {
 
     // Membres
     const membresRows = await sbGet('membres');
-    APP.membres = (membresRows || []).map(r => ({ id: r.id, ...r }));
+    APP.membres = (membresRows || []).map(r => ({ id: r.id, ...(r.data || r) }));
     renderMembres();
     const bm = document.getElementById('badge-membres');
     const km = document.getElementById('kpi-membres');
@@ -3120,7 +3457,7 @@ function setupRealtimeListeners() {
   supa.channel('realtime-adtem')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'membres' }, async () => {
       const rows = await sbGet('membres');
-      APP.membres = (rows || []).map(r => ({ id: r.id, ...r }));
+      APP.membres = (rows || []).map(r => ({ id: r.id, ...(r.data || r) }));
       renderMembres();
       const bm = document.getElementById('badge-membres');
       const km = document.getElementById('kpi-membres');
@@ -3179,27 +3516,62 @@ function openModalChangeMdp(force = false) {
   openModal('modal-change-mdp');
 }
 
+let _saveNewMdpRunning = false;
 async function saveNewMdp() {
-  const mdp  = document.getElementById('new-mdp').value;
-  const mdp2 = document.getElementById('new-mdp2').value;
+  if (_saveNewMdpRunning) return;            // anti double-clic
+  _saveNewMdpRunning = true;
+
+  const btn   = document.querySelector('#modal-change-mdp .btn-primary');
+  const mdp   = document.getElementById('new-mdp').value;
+  const mdp2  = document.getElementById('new-mdp2').value;
   const errEl = document.getElementById('change-mdp-error');
-  errEl.style.display = 'none';
-  if (mdp.length < 6) { errEl.textContent = 'Minimum 6 caractères.'; errEl.style.display = 'block'; return; }
-  if (mdp !== mdp2)   { errEl.textContent = 'Les mots de passe ne correspondent pas.'; errEl.style.display = 'block'; return; }
+  if (errEl) errEl.style.display = 'none';
 
-  const { error } = await supa.auth.updateUser({ password: mdp });
-  if (error) { errEl.textContent = 'Erreur : ' + error.message; errEl.style.display = 'block'; return; }
+  if (mdp.length < 6) {
+    if (errEl) { errEl.textContent = 'Minimum 6 caractères.'; errEl.style.display = 'block'; }
+    _saveNewMdpRunning = false; return;
+  }
+  if (mdp !== mdp2) {
+    if (errEl) { errEl.textContent = 'Les mots de passe ne correspondent pas.'; errEl.style.display = 'block'; }
+    _saveNewMdpRunning = false; return;
+  }
 
-  if (CURRENT_USER.uid) await sbUpdate('profiles', { must_change_password: false }, { id: CURRENT_USER.uid });
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Enregistrement...'; }
+
+  // 1. Changer le MDP + must_change_password=false en un seul appel via admin-update-profile
+  //    Utilise supaAdmin.auth.admin.updateUserById → bypasse la session (pas de 403)
+  const { error: efErr } = await supa.functions.invoke('admin-update-profile', {
+    body: {
+      user_id: CURRENT_USER.uid,
+      new_password: mdp,
+      must_change_password: false
+    }
+  });
+  if (efErr) {
+    // Fallback : tentative directe si edge function pas encore déployée
+    const { error: authErr } = await supa.auth.updateUser({ password: mdp });
+    if (authErr) {
+      if (errEl) { errEl.textContent = 'Erreur : ' + authErr.message + ' - deployer admin-update-profile sur Supabase Edge Functions.'; errEl.style.display = 'block'; }
+      if (btn) { btn.disabled = false; btn.textContent = '✅ Enregistrer le nouveau mot de passe'; }
+      _saveNewMdpRunning = false; return;
+    }
+    await sbUpdate('profiles', { must_change_password: false }, { id: CURRENT_USER.uid });
+  }
+
+  // 3. Poser le flag court-circuit AVANT de fermer (évite la réouverture si RLS retarde)
+  window._mdpJustChanged = true;
+  if (CURRENT_USER) CURRENT_USER.mustChangePwd = false;
 
   closeModal('modal-change-mdp');
-  toast('Mot de passe modifié avec succès', 'success');
+  toast('Mot de passe modifié avec succès ✅', 'success');
 
   if (_changeMdpForce) {
-    // Recharger l'interface après changement forcé
+    _changeMdpForce = false;
     const { data: { session } } = await supa.auth.getSession();
     await handleAuthState(session?.user || null);
   }
+
+  _saveNewMdpRunning = false;
 }
 
 // ================================================================
@@ -3278,6 +3650,8 @@ function showPage(pageId) {
   if (pageId === 'personnel') renderPersonnel();
   if (pageId === 'frequentation') renderFrequentation();
   if (pageId === 'tableau-financier') renderBilan();
+  if (pageId === 'prime-infra') piLoadAll();
+  if (pageId === 'prime-infra') piLoadAll();
   if (pageId === 'messages-forum') renderTemplates();
   if (pageId === 'cfg-options') renderOptions();
   if (pageId === 'cfg-assets') renderAssets();
@@ -3316,6 +3690,7 @@ function showPage(pageId) {
     personnel: ['Personnel / FCO', 'Suivi des agents et formations obligatoires'],
     frequentation: ['Fréquentation lignes', 'Objectifs de fréquentation par créneau'],
     'tableau-financier': ['Tableau financier', 'Recettes et dépenses par thème et catégorie'],
+    'prime-infra': ['Prime InfrAlliance', 'Suivi des primes partagées avec InfrAlliance'],
     'messages-forum': ['Messages forum', 'Créateur de messages formatés'],
     'cfg-options':   ['Options & Promotions',       'Règles de remise, options membres et codes promo'],
     'cfg-assets':    ['Assets ADTEM',              'Images et ressources du repo GitHub'],
@@ -3542,6 +3917,12 @@ const ENERGIE_ICONS = {
   'GNV':        'https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/gnv.png'
 };
 
+/** Retourne un <img> asset ou '' pour Diesel */
+function getEnergieIconImg(e, h = 14) {
+  if (!ENERGIE_ICONS[e]) return '';
+  return `<img src="${ENERGIE_ICONS[e]}" style="height:${h}px;width:auto;vertical-align:middle;" crossorigin="anonymous" onerror="this.style.display='none'">`;
+}
+
 function getEnergieBadge(e) {
   const m = { 'Hybride': 'badge-green', 'GNV': 'badge-blue', 'Electrique': 'badge-yellow', 'Diesel': 'badge-gray' };
   const icon = ENERGIE_ICONS[e]
@@ -3727,7 +4108,6 @@ function renderEnergieStats() {
   });
   const total = APP.vehicules.length;
   const colors = { Hybride: 'green', GNV: 'blue', Electrique: 'yellow', Diesel: 'gray' };
-  const icons = { Hybride: '<img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/hybride.png" style="height:13px;vertical-align:middle">', GNV: '<img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/gnv.png" style="height:13px;vertical-align:middle">', Electrique: '<img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/electrique.png" style="height:13px;vertical-align:middle">', Diesel: '🔵' };
 
   const energiesPropres = (counts['Hybride'] || 0) + (counts['GNV'] || 0) + (counts['Electrique'] || 0);
   const pct = total ? Math.round(energiesPropres / total * 100) : 0;
@@ -3744,7 +4124,7 @@ function renderEnergieStats() {
     </div>
     ${Object.entries(counts).sort((a,b) => b[1]-a[1]).map(([e, c]) => `
       <div class="flex-between" style="margin-bottom:8px;">
-        <span style="font-size:12px;">${icons[e] || '🚌'} ${e}</span>
+        <span style="font-size:12px;">${getEnergieIconImg(e, 13) || '🚌'} ${e}</span>
         <div style="display:flex;align-items:center;gap:8px;">
           <div style="width:80px;height:4px;background:var(--surface3);border-radius:2px;overflow:hidden;">
             <div style="height:100%;width:${total?Math.round(c/total*100):0}%;background:var(--${colors[e]||'green'});border-radius:2px;"></div>
@@ -3764,22 +4144,23 @@ function renderLocationsSoon() {
   const soon = APP.vehicules
     .filter(v => v['Patrimoine'] && v['Patrimoine'].startsWith('EN LOCATION') && v['Fin Location'])
     .map(v => ({ ...v, finDate: parseDateFR(v['Fin Location']) }))
-    .filter(v => v.finDate)
+    .filter(v => v.finDate && !isNaN(v.finDate))
     .sort((a, b) => a.finDate - b.finDate)
     .slice(0, 8);
 
   document.getElementById('locations-soon').innerHTML = soon.length ? soon.map(v => {
-    const days = Math.ceil((v.finDate - now) / 86400000);
-    const color = days < 0 ? 'var(--red)' : days <= 7 ? 'var(--yellow)' : 'var(--text2)';
+    const days = isNaN(v.finDate) ? null : Math.ceil((v.finDate - now) / 86400000);
+    const color = days === null ? 'var(--text3)' : days < 0 ? 'var(--red)' : days <= 7 ? 'var(--yellow)' : 'var(--text2)';
+    const daysLabel = days === null ? '—' : days < 0 ? 'Dépassée' : days + 'j';
     const locataire = v['Patrimoine'].replace('EN LOCATION (', '').replace(')', '');
     return `
-      <div class="flex-between" style="padding:7px 0;border-bottom:1px solid var(--border);">
+      <div class="flex-between" style="padding:7px 0;border-bottom:1px solid var(--border);padding-right:12px;">
         <div>
           <div style="font-size:12px;font-weight:600;">${v['Numéro Parc']}</div>
           <div style="font-size:10px;color:var(--text3);">${locataire}</div>
         </div>
-        <div style="text-align:right;">
-          <div style="font-size:12px;font-weight:700;color:${color};">${days < 0 ? 'Dépassée' : days + 'j'}</div>
+        <div style="text-align:right;flex-shrink:0;margin-left:16px;">
+          <div style="font-size:12px;font-weight:700;color:${color};">${daysLabel}</div>
           <div style="font-size:10px;color:var(--text3);">${v['Fin Location']}</div>
         </div>
       </div>`;
@@ -3911,7 +4292,7 @@ function renderVehiculesDisponibles(containerId, selectedArr, type) {
     return;
   }
 
-  const energieIcon = { Hybride: '<img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/hybride.png" style="height:13px;vertical-align:middle">', GNV: '<img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/gnv.png" style="height:13px;vertical-align:middle">', Electrique: '<img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/electrique.png" style="height:13px;vertical-align:middle">', Diesel: '🔵' };
+  // energieIcon → utilise getEnergieIconImg centralisé
 
   const renderCard = (v, isReserved) => {
     const selected = selectedArr.some(s => s['Numéro Parc'] === v['Numéro Parc']);
@@ -3926,7 +4307,7 @@ function renderVehiculesDisponibles(containerId, selectedArr, type) {
             <div style="font-size:10px;color:var(--text3);">${v['Marque']} ${v['Modèle']} · ${v['Places']} pl.</div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
-            <span style="font-size:13px;">${energieIcon[v['Energie']] || '🚌'}</span>
+            <span style="font-size:13px;">${getEnergieIconImg(v['Energie'], 13) || '🚌'}</span>
             <span class="badge badge-gray">${v['Type']}</span>
             <span class="badge-reserved">🔒 ${res.devis_id}</span>
             <span style="font-size:9px;color:var(--yellow);">jusqu'au ${finRes}</span>
@@ -3942,7 +4323,7 @@ function renderVehiculesDisponibles(containerId, selectedArr, type) {
           <div style="font-size:10px;color:var(--text3);">${v['Marque']} ${v['Modèle']} · ${v['Places']} pl.</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:13px;">${energieIcon[v['Energie']] || '🚌'}</span>
+          <span style="font-size:13px;">${getEnergieIconImg(v['Energie'], 13) || '🚌'}</span>
           <span class="badge badge-gray">${v['Type']}</span>
           ${selected ? '<span style="color:var(--green);font-size:16px;">✓</span>' : ''}
         </div>
@@ -4264,6 +4645,58 @@ function populateOptionSelects() {
   });
 }
 
+// ================================================================
+//  AJUSTEMENT TARIFAIRE MANUEL (geste commercial)
+// ================================================================
+function toggleAjustTarif() {
+  const panel = document.getElementById('ajust-tarif-panel');
+  const btn   = document.getElementById('btn-ajust-tarif');
+  if (!panel) return;
+  const open = panel.style.display === 'none' || panel.style.display === '';
+  panel.style.display = open ? 'block' : 'none';
+  if (btn) {
+    btn.style.background = open ? 'var(--greenbg)' : 'var(--surface2)';
+    btn.style.borderColor = open ? 'var(--green)' : 'var(--border2)';
+    btn.style.color = open ? 'var(--green2)' : 'var(--text2)';
+  }
+  if (!open) clearAjustTarif();
+}
+
+function onAjustModeChange() {
+  const mode  = document.getElementById('ajust-mode').value;
+  const label = document.getElementById('ajust-valeur-label');
+  const unite = document.getElementById('ajust-unite');
+  const input = document.getElementById('ajust-valeur');
+  if (mode === 'prix') {
+    if (label) label.textContent = 'Prix / semaine (€)';
+    if (unite) unite.textContent = '€/sem.';
+    if (input) { input.placeholder = APP.config.prixSem || 1000; input.max = ''; }
+  } else if (mode === 'remise') {
+    if (label) label.textContent = 'Réduction (%)';
+    if (unite) unite.textContent = '%';
+    if (input) { input.placeholder = '10'; input.max = 100; }
+  }
+  if (input) input.value = '';
+  updateCalcLocation();
+}
+
+function clearAjustTarif() {
+  const mode  = document.getElementById('ajust-mode');
+  const val   = document.getElementById('ajust-valeur');
+  const raison= document.getElementById('ajust-raison');
+  if (mode)   mode.value   = '';
+  if (val)    val.value    = '';
+  if (raison) raison.value = '';
+  onAjustModeChange();
+}
+
+function getAjustement() {
+  const mode   = document.getElementById('ajust-mode')?.value || '';
+  const valeur = parseFloat(document.getElementById('ajust-valeur')?.value) || 0;
+  const raison = document.getElementById('ajust-raison')?.value?.trim() || '';
+  return { mode, valeur, raison };
+}
+
 function updateCalcLocation() {
   const n      = APP.devisLocation.vehiculesSelectionnes.length;
   const duree  = parseInt(document.getElementById('dl-duree').value) || 1;
@@ -4274,6 +4707,8 @@ function updateCalcLocation() {
     document.getElementById('calc-total').textContent = '—';
     document.getElementById('calc-detail-lines').innerHTML = '';
     document.getElementById('calc-economie').textContent = '';
+    const al = document.getElementById('calc-ajust-line');
+    if (al) al.style.display = 'none';
     return;
   }
 
@@ -4285,14 +4720,41 @@ function updateCalcLocation() {
 
   document.getElementById('calc-detail-lines').innerHTML = detail.map(d => `
     <div class="flex-between" style="margin-bottom:5px;">
-      <span style="color:${colors[d.type] || 'var(--text2)'};">${icons[d.type] || ''} ${d.label}</span>
+      <span style="color:${colors[d.type] || 'var(--text2)'}">${icons[d.type] || ''} ${d.label}</span>
       <span style="font-weight:700;color:${d.montant === 0 ? 'var(--green2)' : 'var(--text)'};">
         ${d.montant === 0 ? 'GRATUIT' : d.montant.toLocaleString('fr') + ' €'}
       </span>
     </div>
   `).join('');
 
-  document.getElementById('calc-total').textContent = total.toLocaleString('fr') + ' €';
+  // Ajustement manuel
+  const ajust = getAjustement();
+  let totalFinal = total;
+  const ajustLine = document.getElementById('calc-ajust-line');
+
+  if (ajust.mode === 'prix' && ajust.valeur > 0) {
+    totalFinal = n * duree * ajust.valeur;
+    const diff = total - totalFinal;
+    if (ajustLine) {
+      ajustLine.style.display = 'flex';
+      ajustLine.style.justifyContent = 'space-between';
+      ajustLine.innerHTML = `<span>✏️ Prix ajusté : ${ajust.valeur.toLocaleString('fr')} €/sem.${ajust.raison ? ' — <i>' + ajust.raison + '</i>' : ''}</span>`
+        + `<span style="font-weight:700;">${diff > 0 ? '−' + diff.toLocaleString('fr') + ' €' : '+' + Math.abs(diff).toLocaleString('fr') + ' €'}</span>`;
+    }
+  } else if (ajust.mode === 'remise' && ajust.valeur > 0) {
+    const reduction = Math.round(total * ajust.valeur / 100);
+    totalFinal = total - reduction;
+    if (ajustLine) {
+      ajustLine.style.display = 'flex';
+      ajustLine.style.justifyContent = 'space-between';
+      ajustLine.innerHTML = `<span>🏷️ Remise ${ajust.valeur}%${ajust.raison ? ' — <i>' + ajust.raison + '</i>' : ''}</span>`
+        + `<span style="font-weight:700;">−${reduction.toLocaleString('fr')} €</span>`;
+    }
+  } else {
+    if (ajustLine) ajustLine.style.display = 'none';
+  }
+
+  document.getElementById('calc-total').textContent = totalFinal.toLocaleString('fr') + ' €';
 
   const econEl = document.getElementById('calc-economie');
   if (economie > 0) {
@@ -4313,7 +4775,7 @@ function updateCalcLocation() {
 // ================================================================
 //  GÉNÉRATION DEVIS LOCATION
 // ================================================================
-function genererDevisLocation() {
+async function genererDevisLocation() {
   const v = APP.devisLocation.vehiculesSelectionnes;
   if (!v.length) { toast('Sélectionnez au moins un véhicule', 'error'); return; }
 
@@ -4339,17 +4801,39 @@ function genererDevisLocation() {
   const numParcs    = v.map(x => x['Numéro Parc']).join(', ');
 
   // Calcul avec moteur de règles
-  const { total, detail, economie } = calculerPrixAvecOptions(nbBus, duree, optionNom, prixStd, APP._promoActive);
+  const { total: totalBrut, detail, economie } = calculerPrixAvecOptions(nbBus, duree, optionNom, prixStd, APP._promoActive);
+
+  // Ajustement tarifaire manuel (geste commercial)
+  const ajust = getAjustement();
+  let total = totalBrut;
+  let ajustLabel = '';
+  let ajustDiff  = 0;
+  if (ajust.mode === 'prix' && ajust.valeur > 0) {
+    total = nbBus * duree * ajust.valeur;
+    ajustDiff = totalBrut - total;
+    ajustLabel = `✏️ Prix ajusté : ${ajust.valeur.toLocaleString('fr')} €/sem. (-${ajustDiff.toLocaleString('fr')} €)${ajust.raison ? ' — ' + ajust.raison : ''}`;
+  } else if (ajust.mode === 'remise' && ajust.valeur > 0) {
+    const reduction = Math.round(totalBrut * ajust.valeur / 100);
+    total = totalBrut - reduction;
+    ajustDiff = reduction;
+    ajustLabel = `🏷️ Remise ${ajust.valeur}% (-${reduction.toLocaleString('fr')} €)${ajust.raison ? ' — ' + ajust.raison : ''}`;
+  }
 
   // Enregistrer l'usage du code promo
   if (APP._promoActive) enregistrerUsagePromo(pseudo);
   const prixSansOption = nbBus * duree * prixStd;
 
+  // Attribuer le numéro à la génération
+  const numero = await genNumeroDevis('location', pseudo);
+  APP._currentDevisNumero = APP._currentDevisNumero || {};
+  APP._currentDevisNumero['location'] = numero;
+
   const html = buildDevisLocationHTML({
     pseudo, pseudoForum, niveau, option: optionLabel, dateDemande, dateCreation,
     debut, fin: finDate, busRemplaces,
     nbBus, totalPlaces, energies, types, marques, modeles, numParcs,
-    duree, detail, total, economie, prixSansOption, prixStd
+    duree, detail, total, economie, prixSansOption, prixStd, numero,
+    ajustLabel, ajustDiff
   });
 
   const preview = document.getElementById('devis-location-preview');
@@ -4385,6 +4869,13 @@ function buildDevisLocationHTML(d) {
       </td>
     </tr>` : '';
 
+  const ligneAjust = d.ajustLabel ? `
+    <tr style="background:#e8f5e9;">
+      <td colspan="2" style="padding:6px 12px;border-top:2px solid #a5d6a7;font-size:10px;color:#2e7d32;font-weight:600;">
+        ${d.ajustLabel}
+      </td>
+    </tr>` : '';
+
   return `<div id="devis-loc-content" style="background:white;color:#1a1a1a;font-family:'Exo 2',sans-serif;width:794px;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:16px 24px 14px;border-bottom:3px solid #2e7d32;background:#f9fafb;">
     <div style="display:flex;align-items:center;gap:12px;">
@@ -4397,6 +4888,7 @@ function buildDevisLocationHTML(d) {
       <div style="font-size:10px;color:#333;">
         <div>Date de demande : <b>${d.dateDemande}</b></div>
         <div>Date de création : <b>${d.dateCreation}</b></div>
+        ${d.numero ? `<div style="margin-top:4px;font-size:11px;color:#2e7d32;font-weight:700;">Numéro devis : ${d.numero}</div>` : ''}
       </div>
     </div>
   </div>
@@ -4437,6 +4929,7 @@ function buildDevisLocationHTML(d) {
       <tbody>
         ${lignesTarif}
         ${ligneEconomie}
+        ${ligneAjust}
         <tr style="background:#e8f5e9;">
           <td style="padding:8px 12px;border-top:2px solid #2e7d32;font-size:14px;font-weight:900;color:#2e7d32;">Montant Total :</td>
           <td style="text-align:center;padding:8px 12px;border-top:2px solid #2e7d32;font-size:15px;font-weight:900;color:#2e7d32;">${d.total.toLocaleString('fr')} €</td>
@@ -4472,7 +4965,7 @@ function devisRow(label, value) {
 // ================================================================
 //  GÉNÉRATION DEVIS AE
 // ================================================================
-function genererDevisAE() {
+async function genererDevisAE() {
   const v = APP.devisAE.vehiculesSelectionnes;
   if (!v.length) { toast('Sélectionnez au moins un véhicule', 'error'); return; }
   const pseudo = document.getElementById('ae-pseudo').value || '—';
@@ -4496,10 +4989,15 @@ function genererDevisAE() {
   const modeles = [...new Set(v.map(x => x['Modèle']))].join(', ');
   const numParcs = v.map(x => x['Numéro Parc']).join(', ');
 
+  // Attribuer le numéro à la génération
+  const numero = await genNumeroDevis('ae', pseudo);
+  APP._currentDevisNumero = APP._currentDevisNumero || {};
+  APP._currentDevisNumero['ae'] = numero;
+
   const html = buildDevisAEHTML({
     pseudo, pseudoForum, niveau, option, dateDemande, dateCreation,
     debut, fin, duree, conducteurs, montant, consoType, description,
-    nbVeh, energies, types, marques, modeles, numParcs
+    nbVeh, energies, types, marques, modeles, numParcs, numero
   });
 
   const preview = document.getElementById('devis-ae-preview');
@@ -4525,6 +5023,7 @@ function buildDevisAEHTML(d) {
       <div style="font-size:10px;color:#333;">
         <div>Date de demande : <b>${d.dateDemande}</b></div>
         <div>Date de création : <b>${d.dateCreation}</b></div>
+        ${d.numero ? `<div style="margin-top:4px;font-size:11px;color:#2e7d32;font-weight:700;">Numéro devis : ${d.numero}</div>` : ''}
       </div>
     </div>
   </div>
@@ -4663,7 +5162,9 @@ async function saveDevis(type) {
     dateFin = document.getElementById('ae-fin').value || null;
   }
 
-  const numero = await genNumeroDevis(type, pseudo);
+  // Réutiliser le numéro déjà attribué à la génération (évite les doublons)
+  APP._currentDevisNumero = APP._currentDevisNumero || {};
+  const numero = APP._currentDevisNumero[type] || await genNumeroDevis(type, pseudo);
   const devis  = {
     numero, type, pseudo,
     date: new Date().toISOString(),
@@ -4673,10 +5174,18 @@ async function saveDevis(type) {
     statut: 'en_attente',
     imageUrl: APP._lastDevisUrl && APP._lastDevisType === type ? APP._lastDevisUrl : null
   };
-  const id = genId();
-  await sbInsert('devis_sauvegardes', { id, numero, type, pseudo, data: devis });
+  // Vérifier si ce numéro existe déjà en base (double-clic ou sauvegarder + publier)
   APP.devisSauvegardes = APP.devisSauvegardes || [];
-  APP.devisSauvegardes.unshift({ _id: id, ...devis });
+  const existe = APP.devisSauvegardes.find(d => d.numero === numero);
+  if (existe) {
+    await sbUpdate('devis_sauvegardes', { data: { ...devis } }, { numero });
+    const idx = APP.devisSauvegardes.findIndex(d => d.numero === numero);
+    if (idx !== -1) APP.devisSauvegardes[idx] = { ...APP.devisSauvegardes[idx], ...devis };
+  } else {
+    const id = genId();
+    await sbInsert('devis_sauvegardes', { id, numero, type, pseudo, data: devis });
+    APP.devisSauvegardes.unshift({ _id: id, ...devis });
+  }
 
   // Créer les réservations pour chaque bus sélectionné
   if (v.length && dateFin) {
@@ -4708,20 +5217,7 @@ async function saveDevis(type) {
   renderDevisSauvegardes();
 }
 
-function _afficherNumeroDevis(type, numero) {
-  const contentId = type === 'location' ? 'devis-loc-content' : 'devis-ae-content';
-  const el = document.getElementById(contentId);
-  if (!el) return;
-  // Retirer un badge existant
-  const old = el.querySelector('.devis-numero-badge');
-  if (old) old.remove();
-  const badge = document.createElement('div');
-  badge.className = 'devis-numero-badge';
-  badge.style.cssText = 'position:absolute;top:8px;right:12px;background:#2e7d32;color:white;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;font-family:monospace;z-index:10;letter-spacing:0.5px;';
-  badge.textContent = numero;
-  el.style.position = 'relative';
-  el.appendChild(badge);
-}
+function _afficherNumeroDevis(type, numero) { /* numéro affiché dans le template */ }
 
 // ================================================================
 //  RESERVATIONS — Fonctions principales
@@ -5567,6 +6063,10 @@ async function saveEditMembre() {
   };
 
   await sbUpdate('membres', { data }, { id });
+  // Mise à jour locale immédiate (sans attendre le realtime)
+  const idx = APP.membres.findIndex(m => m.id === id);
+  if (idx !== -1) APP.membres[idx] = { ...APP.membres[idx], ...data };
+  renderMembres();
   journalLog(`Membre modifié : ${pseudo}`, 'info');
   toast(`Membre "${pseudo}" mis à jour`, 'success');
   closeModal('modal-edit-membre');
@@ -6312,11 +6812,13 @@ async function doLogin() {
 }
 
 async function doLogout() {
-  await supa.auth.signOut();
+  // 403 session_not_found = session deja expiree, on ignore et on nettoie quand meme
+  try { await supa.auth.signOut(); } catch(_) {}
   CURRENT_USER.uid = null;
   CURRENT_USER.pseudo = null;
   CURRENT_USER.role = null;
   APP.devBypass = false;
+  window._mdpJustChanged = false;
   document.getElementById('topbar-user').style.display = 'none';
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('login-pseudo').value = '';
@@ -6478,6 +6980,7 @@ async function loadComptes() {
               ${u.actif ? '🚫' : '✅'}
             </button>
             <button class="btn btn-danger btn-sm" onclick="deleteCompte('${u.id}','${u.pseudo||''}')">⛔ Suspendre</button>
+            <button class="btn btn-danger btn-sm btn-icon" onclick="supprimerDefinitivement('${u.id}','${u.pseudo||''}')" title="Supprimer définitivement le compte">🗑️</button>
           ` : ''}
         </div>
       </div>
@@ -6487,10 +6990,44 @@ async function loadComptes() {
   container.innerHTML = html || `<div style="color:var(--text3);text-align:center;padding:30px;">Aucun compte</div>`;
 }
 
+async function adminUpdateProfile(uid, fields) {
+  const { error } = await supa.functions.invoke('admin-update-profile', {
+    body: { user_id: uid, ...fields }
+  });
+  if (error) {
+    // Fallback sbUpdate si l'edge function n'est pas déployée
+    return await sbUpdate('profiles', fields, { id: uid });
+  }
+  return true;
+}
+
 async function validerCompte(uid, pseudo) {
   const roleSelect = document.getElementById('role-select-' + uid);
   const role = roleSelect ? roleSelect.value : 'membre';
-  await sbUpdate('profiles', { role, actif: true }, { id: uid });
+
+  // 1. Tenter via edge function validate-user (service_role, bypasse la RLS)
+  const { error: efErr } = await supa.functions.invoke('validate-user', {
+    body: { user_id: uid, role, actif: true }
+  });
+
+  if (efErr) {
+    // 2. Fallback : update direct (fonctionne si la RLS admin est bien configurée)
+    const { error, count } = await supa.from('profiles')
+      .update({ role, actif: true })
+      .eq('id', uid)
+      .select();
+    if (error) {
+      toast('Erreur validation : ' + error.message, 'error');
+      console.error('validerCompte update', error);
+      return;
+    }
+    if (!count && count !== null) {
+      toast('Aucune ligne mise à jour — vérifiez les politiques RLS Supabase', 'error');
+      console.warn('validerCompte: 0 rows updated for uid', uid);
+      return;
+    }
+  }
+
   journalLog(`Compte validé : ${pseudo} (rôle: ${role})`, 'ok');
   toast(`Compte "${pseudo}" validé avec le rôle ${role}`, 'success');
   loadComptes();
@@ -6499,9 +7036,8 @@ async function validerCompte(uid, pseudo) {
 
 async function refuserCompte(uid, pseudo) {
   if (!confirm(`Refuser la demande de "${pseudo}" ?\n\nLe compte sera supprimé.`)) return;
-  await sbDelete('profiles', { id: uid });
-  // Supprimer le compte auth via edge function
-  await supa.functions.invoke('delete-user', { body: { user_id: uid } });
+  // Suppression auth + profil via admin-update-profile (delete_user: true)
+  await supa.functions.invoke('admin-update-profile', { body: { user_id: uid, delete_user: true } });
   journalLog(`Demande refusée : ${pseudo}`, 'warn');
   toast(`Demande de "${pseudo}" refusée`, 'info');
   loadComptes();
@@ -6527,7 +7063,7 @@ async function savePseudo(uid) {
   const input = document.getElementById('pseudo-input-' + uid);
   const newPseudo = input.value.trim();
   if (!newPseudo) { toast('Le pseudo ne peut pas être vide', 'error'); return; }
-  await sbUpdate('profiles', { pseudo: newPseudo }, { id: uid });
+  await adminUpdateProfile(uid, { pseudo: newPseudo });
   document.getElementById('pseudo-display-' + uid).textContent = newPseudo;
   document.getElementById('pseudo-edit-' + uid).style.display = 'none';
   document.getElementById('pseudo-display-' + uid).style.display = '';
@@ -6541,39 +7077,51 @@ async function savePseudo(uid) {
 
 async function deleteCompte(uid, pseudo) {
   if (!confirm(`Suspendre le compte "${pseudo}" ?\n\nL'utilisateur ne pourra plus se connecter.`)) return;
-  await sbUpdate('profiles', {
+  await adminUpdateProfile(uid, {
     actif: false, role: 'suspendu',
     suspendedAt: new Date().toISOString(),
     suspendedBy: CURRENT_USER.pseudo || 'admin'
-  }, { id: uid });
+  });
   journalLog(`Compte suspendu : ${pseudo}`, 'warn');
   toast(`Compte "${pseudo}" suspendu`, 'info');
   loadComptes();
 }
 
 async function reactiverCompte(uid, pseudo) {
-  await sbUpdate('profiles', { actif: true, role: 'membre', suspendedAt: null, suspendedBy: null }, { id: uid });
+  await adminUpdateProfile(uid, { actif: true, role: 'membre', suspendedAt: null, suspendedBy: null });
   journalLog(`Compte réactivé : ${pseudo}`, 'ok');
   toast(`Compte "${pseudo}" réactivé`, 'success');
   loadComptes();
 }
 
 async function supprimerDefinitivement(uid, pseudo) {
-  if (!confirm(`Supprimer définitivement "${pseudo}" ?\n\nCette action est irréversible.`)) return;
-  await sbDelete('profiles', { id: uid });
-  await supa.functions.invoke('delete-user', { body: { user_id: uid } });
-  journalLog(`Compte supprimé : ${pseudo}`, 'danger');
+  if (!confirm(`⚠️ Supprimer définitivement le compte "${pseudo}" ?\n\nCela supprimera la ligne de la base ET le compte d'authentification.\nCette action est irréversible.`)) return;
+  if (!confirm(`Dernière confirmation — supprimer "${pseudo}" définitivement ?`)) return;
+
+  // Suppression auth + profil en un appel (admin-update-profile gère les deux)
+  const { error: efErr } = await supa.functions.invoke('admin-update-profile', {
+    body: { user_id: uid, delete_user: true }
+  });
+  if (efErr) {
+    // Fallback : suppression directe si edge function pas encore redéployée
+    await sbDelete('profiles', { id: uid });
+    toast('Suppression partielle (profil seulement) : ' + efErr.message, 'error');
+    console.error('supprimerDefinitivement', efErr);
+  }
+
+  journalLog(`Compte supprimé définitivement : ${pseudo}`, 'danger');
   toast(`Compte "${pseudo}" supprimé`, 'info');
   loadComptes();
+  refreshBadgeAttente();
 }
 
 async function changeRole(uid, newRole) {
-  await sbUpdate('profiles', { role: newRole }, { id: uid });
+  await adminUpdateProfile(uid, { role: newRole });
   toast('Rôle mis à jour', 'success');
 }
 
 async function toggleActif(uid, currentActif) {
-  await sbUpdate('profiles', { actif: !currentActif }, { id: uid });
+  await adminUpdateProfile(uid, { actif: !currentActif });
   toast(currentActif ? 'Compte désactivé' : 'Compte activé', 'success');
   loadComptes();
 }
@@ -6581,11 +7129,12 @@ async function toggleActif(uid, currentActif) {
 async function resetMdpAdmin(uid, pseudo) {
   if (!confirm(`Réinitialiser le mot de passe de "${pseudo}" ?\n\nUn mot de passe temporaire sera généré. L'utilisateur devra le changer à sa prochaine connexion.`)) return;
   const newMdp = genMdpAleatoire();
-  const { error } = await supa.functions.invoke('reset-password', { body: { user_id: uid, password: newMdp } });
+  // Utilise admin-update-profile (new_password + must_change_password) — evite reset-password qui crashe
+  const { error } = await supa.functions.invoke('admin-update-profile', {
+    body: { user_id: uid, new_password: newMdp, must_change_password: true }
+  });
   if (error) { toast('Erreur reset MDP : ' + error.message, 'error'); return; }
-  await sbUpdate('profiles', { must_change_password: true }, { id: uid });
   journalLog(`MDP réinitialisé pour : ${pseudo}`, 'warn');
-  // Afficher le MDP temporaire à l'admin
   alert(`✅ Mot de passe temporaire pour "${pseudo}" :\n\n${newMdp}\n\nCommuniquez-le à l'utilisateur. Il devra le changer à la prochaine connexion.`);
 }
 
@@ -6854,15 +7403,26 @@ async function publierDevis(contentId, type) {
     APP._lastDevisUrl  = imageUrl;
     APP._lastDevisType = type;
 
-    // 7. Auto-sauvegarder avec numéro unique
+    // 7. Auto-sauvegarder — réutiliser le numéro généré, check doublon
     const pseudoSave = document.getElementById(type === 'location' ? 'dl-pseudo' : 'ae-pseudo')?.value || 'ADTEM';
-    const numero = await genNumeroDevis(type, pseudoSave);
+    APP._currentDevisNumero = APP._currentDevisNumero || {};
+    const numero = APP._currentDevisNumero[type] || await genNumeroDevis(type, pseudoSave);
+    APP._currentDevisNumero[type] = numero;
     const vSel = type === 'location' ? APP.devisLocation.vehiculesSelectionnes : APP.devisAE.vehiculesSelectionnes;
     const montantAuto = type === 'location'
       ? parseInt(document.getElementById('calc-total').textContent.replace(/\s|€/g,'')) || 0
       : parseInt(document.getElementById('ae-montant').value) || 0;
     const devisAuto = { numero, type, pseudo: pseudoSave, date: new Date().toISOString(), vehicules: vSel.map(x => x['Numéro Parc']), montant: montantAuto, imageUrl, statut: 'en_attente' };
-    await sbInsert('devis_sauvegardes', { id: genId(), numero, type, pseudo, data: devisAuto });
+    APP.devisSauvegardes = APP.devisSauvegardes || [];
+    const existePub = APP.devisSauvegardes.find(d => d.numero === numero);
+    if (existePub) {
+      await sbUpdate('devis_sauvegardes', { data: { ...devisAuto } }, { numero });
+      const idx = APP.devisSauvegardes.findIndex(d => d.numero === numero);
+      if (idx !== -1) APP.devisSauvegardes[idx] = { ...APP.devisSauvegardes[idx], ...devisAuto, imageUrl };
+    } else {
+      await sbInsert('devis_sauvegardes', { id: genId(), numero, type, pseudo, data: devisAuto });
+      APP.devisSauvegardes.unshift({ ...devisAuto });
+    }
     _afficherNumeroDevis(type, numero);
 
     journalLog(`Devis ${type.toUpperCase()} publié pour ${pseudo}`, 'ok');
@@ -7359,7 +7919,7 @@ async function importerPersonnel() {
       matricule,
       nom:       parts[1] || '',
       poste:     parts[2] || '',
-      fco:       parseDateFR(parts[3]),
+      fco:       parseDateFRtoISO(parts[3]),
       formation: parts[4] || '—',
       updatedAt: new Date().toISOString()
     };
@@ -7379,7 +7939,7 @@ async function importerPersonnel() {
   renderPersonnel();
 }
 
-function parseDateFR(str) {
+function parseDateFRtoISO(str) {
   if (!str || str === '—' || str === '-') return null;
   const m = str.match(/(\d{2})\/(\d{2})\/(\d{4})/);
   if (!m) return null;
@@ -8263,6 +8823,679 @@ function enregistrerUsagePromo(pseudo) {
 }
 
 // ================================================================
+//  RESET FORMULAIRES DEVIS
+// ================================================================
+function resetDevisLocation() {
+  if (!confirm('Vider le formulaire de devis location ?')) return;
+  const today = new Date().toISOString().slice(0, 10);
+  // Champs texte / date / nombre
+  ['dl-pseudo','dl-pseudo-forum','dl-niveau','dl-bus-remplaces','dl-code-promo'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('dl-date-demande').value  = today;
+  document.getElementById('dl-date-creation').value = today;
+  document.getElementById('dl-debut').value  = '';
+  document.getElementById('dl-duree').value  = '1';
+  document.getElementById('dl-option').value = document.getElementById('dl-option').options[0]?.value || '';
+  document.getElementById('dl-filtre-energie').value = '';
+  document.getElementById('dl-filtre-type').value    = '';
+  // Véhicules sélectionnés
+  APP.devisLocation.vehiculesSelectionnes = [];
+  // Numéro en cours
+  if (APP._currentDevisNumero) delete APP._currentDevisNumero['location'];
+  APP._promoActive = null;
+  clearAjustTarif();
+  const panel = document.getElementById('ajust-tarif-panel');
+  if (panel) panel.style.display = 'none';
+  // Preview + actions
+  const preview = document.getElementById('devis-location-preview');
+  if (preview) preview.innerHTML = '';
+  const actions = document.getElementById('devis-location-actions');
+  if (actions) actions.style.display = 'none';
+  const urlBox = document.getElementById('devis-location-url');
+  if (urlBox) { urlBox.style.display = 'none'; urlBox.innerHTML = ''; }
+  // Recalculer
+  updateCalcLocation();
+  renderVehiculesDisponibles('vehicules-disponibles', [], 'location');
+  toast('Formulaire vidé', 'info');
+}
+
+function resetDevisAE() {
+  if (!confirm('Vider le formulaire de devis AE ?')) return;
+  const today = new Date().toISOString().slice(0, 10);
+  ['ae-pseudo','ae-pseudo-forum','ae-niveau','ae-description','ae-conso-type'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('ae-date-demande').value  = today;
+  document.getElementById('ae-date-creation').value = today;
+  document.getElementById('ae-debut').value      = '';
+  document.getElementById('ae-fin').value        = '';
+  document.getElementById('ae-conducteurs').value = '1';
+  document.getElementById('ae-duree-sem').value   = '1';
+  document.getElementById('ae-montant').value     = '';
+  document.getElementById('ae-option').value      = document.getElementById('ae-option').options[0]?.value || '';
+  document.getElementById('ae-filtre-energie').value = '';
+  document.getElementById('ae-filtre-type').value    = '';
+  // Véhicules sélectionnés
+  APP.devisAE.vehiculesSelectionnes = [];
+  // Numéro en cours
+  if (APP._currentDevisNumero) delete APP._currentDevisNumero['ae'];
+  // Preview + actions
+  const preview = document.getElementById('devis-ae-preview');
+  if (preview) preview.innerHTML = '';
+  const actions = document.getElementById('devis-ae-actions');
+  if (actions) actions.style.display = 'none';
+  const urlBox = document.getElementById('devis-ae-url');
+  if (urlBox) { urlBox.style.display = 'none'; urlBox.innerHTML = ''; }
+  renderVehiculesDisponibles('ae-vehicules-disponibles', [], 'ae');
+  toast('Formulaire vidé', 'info');
+}
+// ================================================================
+//  PRIME INFRA — DONNÉES
+// ================================================================
+APP.piRegles = [];
+APP.piPrimes = [];
+
+async function piLoadAll() {
+  const [regles, primes] = await Promise.all([
+    sbGet('prime_infra_regles'),
+    sbGet('prime_infra')
+  ]);
+  APP.piRegles = regles || [];
+  APP.piPrimes = primes || [];
+  piRenderRegles();
+  piRenderPrimes();
+  piPopulateRegleSelects();
+  piRenderBilan();
+}
+
+// ================================================================
+//  PRIME INFRA — ONGLETS
+// ================================================================
+function piSwitchTab(tab) {
+  document.querySelectorAll('.pi-tab').forEach(function(b) {
+    var active = b.dataset.tab === 'pi-tab-' + tab;
+    b.style.color        = active ? 'var(--green2)' : 'var(--text2)';
+    b.style.fontWeight   = active ? '600' : '500';
+    b.style.borderBottom = active ? '2px solid var(--green2)' : '2px solid transparent';
+  });
+  document.querySelectorAll('.pi-tabcontent').forEach(function(d) { d.style.display = 'none'; });
+  var el = document.getElementById('pi-tab-' + tab);
+  if (el) el.style.display = 'block';
+  if (tab === 'bilan') piRenderBilan();
+}
+
+// ================================================================
+//  PRIME INFRA — RÈGLES
+// ================================================================
+function piToggleRegleType() {
+  var t = document.getElementById('pi-regle-type').value;
+  document.getElementById('pi-regle-fixe-block').style.display   = t === 'fixe'     ? '' : 'none';
+  document.getElementById('pi-regle-pct-block').style.display    = t === 'pourcent' ? '' : 'none';
+}
+
+function piResetRegleForm() {
+  ['pi-regle-nom','pi-regle-montant','pi-regle-adtem','pi-regle-infra',
+   'pi-regle-adtem-pct','pi-regle-infra-pct','pi-regle-keywords','pi-regle-desc'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('pi-regle-type').value   = 'fixe';
+  document.getElementById('pi-regle-niveau').value = '';
+  piToggleRegleType();
+  APP._piEditRegleId = null;
+}
+
+function piEditRegle(id) {
+  var r = APP.piRegles.find(function(x) { return x.id === id; });
+  if (!r) return;
+  document.getElementById('pi-regle-nom').value       = r.nom || '';
+  document.getElementById('pi-regle-montant').value   = r.montant_joueur || '';
+  document.getElementById('pi-regle-type').value      = r.type_calcul || 'fixe';
+  document.getElementById('pi-regle-adtem').value     = r.part_adtem || '';
+  document.getElementById('pi-regle-infra').value     = r.part_infra || '';
+  document.getElementById('pi-regle-adtem-pct').value = r.part_adtem_pct || '';
+  document.getElementById('pi-regle-infra-pct').value = r.part_infra_pct || '';
+  document.getElementById('pi-regle-keywords').value  = (r.keywords || []).join(';');
+  document.getElementById('pi-regle-niveau').value    = r.niveau_min || '';
+  document.getElementById('pi-regle-desc').value      = r.description || '';
+  piToggleRegleType();
+  APP._piEditRegleId = id;
+  piSwitchTab('regles');
+}
+
+async function piSauvegarderRegle() {
+  var nom = document.getElementById('pi-regle-nom').value.trim();
+  if (!nom) { toast('Nom de la prime requis', 'error'); return; }
+  var type = document.getElementById('pi-regle-type').value;
+  var regle = {
+    id:             APP._piEditRegleId || ('regle_' + Date.now()),
+    nom:            nom,
+    montant_joueur: parseFloat(document.getElementById('pi-regle-montant').value) || 0,
+    type_calcul:    type,
+    part_adtem:     type === 'fixe'     ? parseFloat(document.getElementById('pi-regle-adtem').value)     || 0 : 0,
+    part_infra:     type === 'fixe'     ? parseFloat(document.getElementById('pi-regle-infra').value)     || 0 : 0,
+    part_adtem_pct: type === 'pourcent' ? parseFloat(document.getElementById('pi-regle-adtem-pct').value) || 0 : 0,
+    part_infra_pct: type === 'pourcent' ? parseFloat(document.getElementById('pi-regle-infra-pct').value) || 0 : 0,
+    keywords:       document.getElementById('pi-regle-keywords').value.split(';').map(function(s){return s.trim();}).filter(Boolean),
+    niveau_min:     document.getElementById('pi-regle-niveau').value,
+    description:    document.getElementById('pi-regle-desc').value.trim()
+  };
+  var ok = await sbUpsert('prime_infra_regles', regle, { onConflict: 'id' });
+  if (ok === false) { toast('Erreur Supabase', 'error'); return; }
+  var idx = APP.piRegles.findIndex(function(x) { return x.id === regle.id; });
+  if (idx >= 0) APP.piRegles[idx] = regle; else APP.piRegles.push(regle);
+  piResetRegleForm();
+  piRenderRegles();
+  piPopulateRegleSelects();
+  toast('Règle enregistrée', 'success');
+  journalLog('Prime InfrAlliance : règle "' + nom + '" enregistrée', 'ok');
+}
+
+async function piSupprimerRegle(id) {
+  if (!confirm('Supprimer cette règle de prime ?')) return;
+  await sbDelete('prime_infra_regles', { id: id });
+  APP.piRegles = APP.piRegles.filter(function(x) { return x.id !== id; });
+  piRenderRegles();
+  piPopulateRegleSelects();
+  toast('Règle supprimée', 'info');
+}
+
+function piRenderRegles() {
+  var el = document.getElementById('pi-regles-list');
+  if (!el) return;
+  if (!APP.piRegles.length) {
+    el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text3);font-size:12px;">Aucune règle configurée.</div>';
+    return;
+  }
+  el.innerHTML = APP.piRegles.map(function(r) {
+    var partAdtem = r.type_calcul === 'pourcent' ? (r.part_adtem_pct + '%') : ((r.part_adtem||0).toLocaleString('fr') + ' €');
+    var partInfra = r.type_calcul === 'pourcent' ? (r.part_infra_pct + '%') : ((r.part_infra||0).toLocaleString('fr') + ' €');
+    var kws = r.keywords && r.keywords.length ? '<div style="margin-top:4px;font-size:10px;color:var(--text3);">🔍 Mots-clés : ' + r.keywords.join(', ') + '</div>' : '';
+    var niv = r.niveau_min ? ' · Niveau min : ' + r.niveau_min : '';
+    return '<div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;background:var(--surface2);">'
+      + '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
+      + '<div><div style="font-weight:700;font-size:12px;">' + r.nom + '</div>'
+      + '<div style="font-size:10px;color:var(--text3);margin-top:2px;">' + (r.description||'') + niv + '</div></div>'
+      + '<div style="display:flex;gap:6px;">'
+      + '<button onclick="piEditRegle(\'' + r.id + '\')" style="font-size:10px;padding:2px 8px;border-radius:5px;border:1px solid var(--border);background:var(--surface);cursor:pointer;">✏️</button>'
+      + '<button onclick="piSupprimerRegle(\'' + r.id + '\')" style="font-size:10px;padding:2px 8px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--red);cursor:pointer;">✕</button>'
+      + '</div></div>'
+      + '<div style="display:flex;gap:16px;margin-top:8px;font-size:11px;">'
+      + '<span>👤 Joueur : <b>' + (r.montant_joueur||0).toLocaleString('fr') + ' €</b></span>'
+      + '<span style="color:var(--green3);">🏢 ADTEM : <b>' + partAdtem + '</b></span>'
+      + '<span style="color:var(--blue);">🤝 Infra : <b>' + partInfra + '</b></span>'
+      + '</div>' + kws + '</div>';
+  }).join('');
+}
+
+// ================================================================
+//  PRIME INFRA — PRIMES VERSÉES
+// ================================================================
+function piPopulateRegleSelects() {
+  ['pi-filtre-regle','pi-man-regle'].forEach(function(id) {
+    var sel = document.getElementById(id);
+    if (!sel) return;
+    var cur  = sel.value;
+    var opts = id === 'pi-filtre-regle' ? '<option value="">Toutes les primes</option>' : '<option value="">— Choisir —</option>';
+    sel.innerHTML = opts + APP.piRegles.map(function(r) {
+      return '<option value="' + r.id + '">' + r.nom + '</option>';
+    }).join('');
+    sel.value = cur;
+  });
+}
+
+function piOpenAddManuel() {
+  var box = document.getElementById('pi-add-manuel');
+  box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  document.getElementById('pi-man-date').value = new Date().toISOString().slice(0,10);
+}
+
+function piAutoMontantManuel() {
+  var regleId = document.getElementById('pi-man-regle').value;
+  var r = APP.piRegles.find(function(x) { return x.id === regleId; });
+  if (r && r.montant_joueur) {
+    document.getElementById('pi-man-montant').value = r.montant_joueur;
+    piCalcManuelParts();
+  }
+}
+
+function piCalcParts(montant, regle) {
+  if (!regle) return { adtem: 0, infra: 0 };
+  if (regle.type_calcul === 'pourcent') {
+    return {
+      adtem: Math.round(montant * (regle.part_adtem_pct || 0) / 100),
+      infra: Math.round(montant * (regle.part_infra_pct || 0) / 100)
+    };
+  }
+  return { adtem: regle.part_adtem || 0, infra: regle.part_infra || 0 };
+}
+
+function piCalcManuelParts() {
+  var regleId = document.getElementById('pi-man-regle').value;
+  var montant = parseFloat(document.getElementById('pi-man-montant').value) || 0;
+  var r   = APP.piRegles.find(function(x) { return x.id === regleId; });
+  var box = document.getElementById('pi-man-parts');
+  var txt = document.getElementById('pi-man-parts-txt');
+  if (!r || !montant) { box.style.display = 'none'; return; }
+  var parts = piCalcParts(montant, r);
+  box.style.display = 'block';
+  txt.innerHTML = '🏢 ADTEM : <b>' + parts.adtem.toLocaleString('fr') + ' €</b> &nbsp;·&nbsp; 🤝 InfrAlliance : <b>' + parts.infra.toLocaleString('fr') + ' €</b>';
+}
+
+async function piSauvegarderManuel() {
+  var regleId = document.getElementById('pi-man-regle').value;
+  var pseudo  = document.getElementById('pi-man-pseudo').value.trim();
+  var montant = parseFloat(document.getElementById('pi-man-montant').value) || 0;
+  var date    = document.getElementById('pi-man-date').value;
+  if (!regleId) { toast('Sélectionnez une règle de prime', 'error'); return; }
+  if (!pseudo)  { toast('Pseudo requis', 'error'); return; }
+  if (!montant) { toast('Montant requis', 'error'); return; }
+  var r = APP.piRegles.find(function(x) { return x.id === regleId; });
+  var parts = piCalcParts(montant, r);
+  var prime = {
+    id:             'pi_' + Date.now(),
+    date:           date,
+    pseudo:         pseudo,
+    regle_id:       regleId,
+    regle_nom:      r ? r.nom : '',
+    libelle:        document.getElementById('pi-man-libelle').value.trim() || ((r ? r.nom : '') + ' ' + pseudo),
+    montant_joueur: montant,
+    part_adtem:     parts.adtem,
+    part_infra:     parts.infra,
+    note:           document.getElementById('pi-man-note').value.trim(),
+    statut:         'en_attente',
+    source:         'manuel'
+  };
+  var ok = await sbUpsert('prime_infra', prime, { onConflict: 'id' });
+  if (ok === false) { toast('Erreur Supabase', 'error'); return; }
+  APP.piPrimes.unshift(prime);
+  piRenderPrimes();
+  piRenderBilan();
+  document.getElementById('pi-add-manuel').style.display = 'none';
+  toast('Prime enregistrée', 'success');
+  journalLog('Prime InfrAlliance : ' + (r ? r.nom : '') + ' → ' + pseudo + ' — ' + montant.toLocaleString('fr') + ' €', 'ok');
+}
+
+async function piImportCompta() {
+  if (!APP.compta || !APP.compta.length) { toast('Chargez d\'abord la comptabilité', 'info'); return; }
+  if (!APP.piRegles.length) { toast('Configurez d\'abord au moins une règle', 'info'); return; }
+  var importes = 0;
+  for (var i = 0; i < APP.compta.length; i++) {
+    var op      = APP.compta[i];
+    var libelle = (op['Libellé de l\'opération'] || '').toLowerCase();
+    var dateParts = (op['Date de l\'opération'] || '').split(' ')[0].split('/');
+    var date    = dateParts.length === 3 ? dateParts[2] + '-' + dateParts[1] + '-' + dateParts[0] : '';
+    var montant = parseFloat(op['Dépenses']) || 0;
+    if (!montant) continue;
+    for (var j = 0; j < APP.piRegles.length; j++) {
+      var r   = APP.piRegles[j];
+      var kws = r.keywords || [];
+      if (!kws.length) continue;
+      var match = kws.some(function(kw) { return libelle.includes(kw.toLowerCase()); });
+      if (!match) continue;
+      var pseudo = '';
+      var parenMatch = op['Libellé de l\'opération'].match(/\(([^)]+)\)/);
+      if (parenMatch) {
+        pseudo = parenMatch[1].trim();
+      } else {
+        var words = op['Libellé de l\'opération'].trim().split(/\s+/);
+        pseudo = words[words.length - 1];
+      }
+      var doublon = APP.piPrimes.find(function(p) {
+        return p.date === date && p.regle_id === r.id && Math.abs(p.montant_joueur - montant) < 1;
+      });
+      if (doublon) continue;
+      var parts = piCalcParts(montant, r);
+      var prime = {
+        id:             'pi_' + Date.now() + '_' + importes,
+        date:           date,
+        pseudo:         pseudo,
+        regle_id:       r.id,
+        regle_nom:      r.nom,
+        libelle:        op['Libellé de l\'opération'],
+        montant_joueur: montant,
+        part_adtem:     parts.adtem,
+        part_infra:     parts.infra,
+        note:           'Import automatique compta',
+        statut:         'en_attente',
+        source:         'compta'
+      };
+      await sbUpsert('prime_infra', prime, { onConflict: 'id' });
+      APP.piPrimes.unshift(prime);
+      importes++;
+    }
+  }
+  piRenderPrimes();
+  piRenderBilan();
+  if (importes > 0) {
+    toast(importes + ' prime(s) importée(s) depuis la compta', 'success');
+    journalLog('Prime InfrAlliance : ' + importes + ' prime(s) détectées automatiquement', 'ok');
+  } else {
+    toast('Aucune nouvelle prime détectée', 'info');
+  }
+}
+
+function piRenderPrimes() {
+  var tbody = document.getElementById('pi-primes-tbody');
+  if (!tbody) return;
+  var search  = (document.getElementById('pi-search')  ? document.getElementById('pi-search').value  : '').toLowerCase();
+  var filtreR = document.getElementById('pi-filtre-regle')  ? document.getElementById('pi-filtre-regle').value  : '';
+  var filtreS = document.getElementById('pi-filtre-statut') ? document.getElementById('pi-filtre-statut').value : '';
+
+  var list = APP.piPrimes.filter(function(p) {
+    if (search  && !((p.pseudo||'').toLowerCase().includes(search) || (p.libelle||'').toLowerCase().includes(search))) return false;
+    if (filtreR && p.regle_id !== filtreR) return false;
+    if (filtreS && p.statut   !== filtreS) return false;
+    return true;
+  });
+
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text3);">Aucune prime enregistrée.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(function(p) {
+    var badge = p.statut === 'pointe'
+      ? '<span style="background:var(--greenbg);color:var(--green3);border:1px solid var(--greenl);border-radius:10px;padding:2px 8px;font-size:10px;font-weight:600;">✅ Pointé</span>'
+      : '<span style="background:var(--yellowbg);color:var(--yellow);border:1px solid rgba(201,134,10,0.3);border-radius:10px;padding:2px 8px;font-size:10px;font-weight:600;">⏳ En attente</span>';
+    var dateAff = (p.date||'').split('-').reverse().join('/');
+    var libCourt = (p.libelle||'').substring(0,50);
+    return '<tr style="border-bottom:1px solid var(--border);">'
+      + '<td style="padding:8px 12px;white-space:nowrap;font-size:10.5px;color:var(--text3);">' + dateAff + '</td>'
+      + '<td style="padding:8px 12px;font-weight:600;">' + (p.pseudo||'—') + '</td>'
+      + '<td style="padding:8px 12px;"><span style="background:var(--greenbg);color:var(--green3);border-radius:4px;padding:2px 6px;font-size:10px;">' + (p.regle_nom||'—') + '</span></td>'
+      + '<td style="padding:8px 12px;font-size:11px;color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + (p.libelle||'') + '">' + libCourt + '</td>'
+      + '<td style="padding:8px 12px;text-align:right;font-weight:700;">' + (p.montant_joueur||0).toLocaleString('fr') + ' €</td>'
+      + '<td style="padding:8px 12px;text-align:right;font-weight:700;color:var(--green3);">' + (p.part_adtem||0).toLocaleString('fr') + ' €</td>'
+      + '<td style="padding:8px 12px;text-align:right;font-weight:700;color:var(--blue);">' + (p.part_infra||0).toLocaleString('fr') + ' €</td>'
+      + '<td style="padding:8px 12px;text-align:center;">' + badge + '</td>'
+      + '<td style="padding:8px 12px;text-align:center;">'
+      + '<button onclick="piTogglePointer(\'' + p.id + '\')" style="font-size:10px;padding:2px 8px;border-radius:5px;border:1px solid var(--border);background:var(--surface);cursor:pointer;" title="Basculer statut">' + (p.statut==='pointe'?'↩':'✅') + '</button>'
+      + '<button onclick="piSupprimerPrime(\'' + p.id + '\')" style="font-size:10px;padding:2px 8px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--red);cursor:pointer;margin-left:4px;">✕</button>'
+      + '</td></tr>';
+  }).join('');
+}
+
+async function piTogglePointer(id) {
+  var p = APP.piPrimes.find(function(x) { return x.id === id; });
+  if (!p) return;
+  p.statut = p.statut === 'pointe' ? 'en_attente' : 'pointe';
+  await sbUpdate('prime_infra', { statut: p.statut }, { id: id });
+  piRenderPrimes();
+  piRenderBilan();
+}
+
+async function piSupprimerPrime(id) {
+  if (!confirm('Supprimer cette prime ?')) return;
+  await sbDelete('prime_infra', { id: id });
+  APP.piPrimes = APP.piPrimes.filter(function(x) { return x.id !== id; });
+  piRenderPrimes();
+  piRenderBilan();
+  toast('Prime supprimée', 'info');
+}
+
+// ================================================================
+//  PRIME INFRA — BILAN TRIMESTRIEL
+// ================================================================
+function piSetTrimestre() {
+  var now = new Date();
+  var m   = now.getMonth();
+  var y   = now.getFullYear();
+  var t   = Math.floor(m / 3);
+  var debuts = ['-01-01','-04-01','-07-01','-10-01'];
+  var fins   = ['-03-31','-06-30','-09-30','-12-31'];
+  document.getElementById('pi-bilan-depuis').value  = y + debuts[t];
+  document.getElementById('pi-bilan-jusqua').value  = y + fins[t];
+  piRenderBilan();
+}
+
+function piRenderBilan() {
+  var depuis = document.getElementById('pi-bilan-depuis')  ? document.getElementById('pi-bilan-depuis').value  : '';
+  var jusqua = document.getElementById('pi-bilan-jusqua')  ? document.getElementById('pi-bilan-jusqua').value  : '';
+  var detail = document.getElementById('pi-bilan-detail');
+  if (!detail) return;
+
+  var primes = APP.piPrimes.filter(function(p) {
+    if (p.statut === 'pointe') return false;
+    if (depuis && p.date < depuis) return false;
+    if (jusqua && p.date > jusqua) return false;
+    return true;
+  });
+
+  var totJoueur = primes.reduce(function(s,p){ return s+(p.montant_joueur||0); }, 0);
+  var totAdtem  = primes.reduce(function(s,p){ return s+(p.part_adtem||0); },   0);
+  var totInfra  = primes.reduce(function(s,p){ return s+(p.part_infra||0); },   0);
+
+  var kpiTot = document.getElementById('pi-kpi-total');
+  var kpiAdt = document.getElementById('pi-kpi-adtem');
+  var kpiInf = document.getElementById('pi-kpi-infra');
+  var kpiNb  = document.getElementById('pi-kpi-nb');
+  if (kpiTot) kpiTot.textContent = totJoueur.toLocaleString('fr') + ' €';
+  if (kpiAdt) kpiAdt.textContent = totAdtem.toLocaleString('fr')  + ' €';
+  if (kpiInf) kpiInf.textContent = totInfra.toLocaleString('fr')  + ' €';
+  if (kpiNb)  kpiNb.textContent  = primes.length;
+
+  if (!primes.length) {
+    detail.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px;">Aucune prime en attente sur cette période.</div>';
+    return;
+  }
+
+  var byRegle = {};
+  primes.forEach(function(p) {
+    var k = p.regle_nom || '—';
+    if (!byRegle[k]) byRegle[k] = { primes: [], adtem: 0, infra: 0, joueur: 0 };
+    byRegle[k].primes.push(p);
+    byRegle[k].adtem  += p.part_adtem  || 0;
+    byRegle[k].infra  += p.part_infra  || 0;
+    byRegle[k].joueur += p.montant_joueur || 0;
+  });
+
+  var html = '';
+  for (var nom in byRegle) {
+    var g = byRegle[nom];
+    html += '<div style="margin-bottom:12px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">'
+      + '<div style="background:var(--surface3);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;">'
+      + '<span style="font-weight:700;font-size:12px;">' + nom + ' <span style="font-weight:400;color:var(--text3);font-size:10px;">(' + g.primes.length + ' prime(s))</span></span>'
+      + '<div style="display:flex;gap:12px;font-size:11px;">'
+      + '<span style="color:var(--green3);">ADTEM : <b>' + g.adtem.toLocaleString('fr') + ' €</b></span>'
+      + '<span style="color:var(--blue);">Infra : <b>' + g.infra.toLocaleString('fr') + ' €</b></span>'
+      + '</div></div>'
+      + '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+    g.primes.forEach(function(p) {
+      html += '<tr style="border-top:1px solid var(--border);">'
+        + '<td style="padding:5px 12px;color:var(--text3);">' + (p.date||'').split('-').reverse().join('/') + '</td>'
+        + '<td style="padding:5px 12px;font-weight:600;">' + (p.pseudo||'') + '</td>'
+        + '<td style="padding:5px 12px;color:var(--text2);">' + (p.libelle||'').substring(0,50) + '</td>'
+        + '<td style="padding:5px 12px;text-align:right;">' + (p.montant_joueur||0).toLocaleString('fr') + ' €</td>'
+        + '<td style="padding:5px 12px;text-align:right;color:var(--green3);">' + (p.part_adtem||0).toLocaleString('fr') + ' €</td>'
+        + '<td style="padding:5px 12px;text-align:right;color:var(--blue);">' + (p.part_infra||0).toLocaleString('fr') + ' €</td>'
+        + '</tr>';
+    });
+    html += '</table></div>';
+  }
+  html += '<div style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">'
+    + '<span style="font-weight:800;font-size:13px;">TOTAL</span>'
+    + '<div style="display:flex;gap:16px;font-size:12px;">'
+    + '<span>Joueurs : <b>' + totJoueur.toLocaleString('fr') + ' €</b></span>'
+    + '<span style="color:var(--green3);">ADTEM doit : <b>' + totAdtem.toLocaleString('fr') + ' €</b></span>'
+    + '<span style="color:var(--blue);">Infra doit : <b>' + totInfra.toLocaleString('fr') + ' €</b></span>'
+    + '</div></div>';
+
+  detail.innerHTML = html;
+}
+
+async function piPointerRemboursement() {
+  var datePointage = document.getElementById('pi-pointer-date').value;
+  if (!datePointage) { toast('Renseignez la date du remboursement', 'error'); return; }
+  var depuis = document.getElementById('pi-bilan-depuis') ? document.getElementById('pi-bilan-depuis').value : '';
+  var jusqua = document.getElementById('pi-bilan-jusqua') ? document.getElementById('pi-bilan-jusqua').value : '';
+
+  var aPointer = APP.piPrimes.filter(function(p) {
+    if (p.statut === 'pointe') return false;
+    if (depuis && p.date < depuis) return false;
+    if (jusqua && p.date > jusqua) return false;
+    return true;
+  });
+
+  if (!aPointer.length) { toast('Aucune prime à pointer sur cette période', 'info'); return; }
+  if (!confirm('Pointer ' + aPointer.length + ' prime(s) comme remboursées le ' + datePointage + ' ? Le bilan sera remis à zéro pour cette période.')) return;
+
+  for (var i = 0; i < aPointer.length; i++) {
+    aPointer[i].statut = 'pointe';
+    aPointer[i].date_pointage = datePointage;
+    await sbUpdate('prime_infra', { statut: 'pointe', date_pointage: datePointage }, { id: aPointer[i].id });
+  }
+
+  piRenderPrimes();
+  piRenderBilan();
+  toast(aPointer.length + ' prime(s) pointée(s) — bilan remis à zéro', 'success');
+  journalLog('Prime InfrAlliance : remboursement pointé le ' + datePointage + ' (' + aPointer.length + ' primes)', 'ok');
+}
+
+// ================================================================
+//  PRIME INFRA — EXPORT BILAN
+// ================================================================
+function piGenererBilanDevis() {
+  var depuis = document.getElementById('pi-bilan-depuis') ? document.getElementById('pi-bilan-depuis').value : '';
+  var jusqua = document.getElementById('pi-bilan-jusqua') ? document.getElementById('pi-bilan-jusqua').value : '';
+
+  var primes = APP.piPrimes.filter(function(p) {
+    if (p.statut === 'pointe') return false;
+    if (depuis && p.date < depuis) return false;
+    if (jusqua && p.date > jusqua) return false;
+    return true;
+  });
+
+  if (!primes.length) { toast('Aucune prime à exporter', 'info'); return; }
+
+  var totAdtem  = primes.reduce(function(s,p){ return s+(p.part_adtem||0); }, 0);
+  var totInfra  = primes.reduce(function(s,p){ return s+(p.part_infra||0); }, 0);
+  var totJoueur = primes.reduce(function(s,p){ return s+(p.montant_joueur||0); }, 0);
+
+  var byRegle = {};
+  primes.forEach(function(p) {
+    var k = p.regle_nom || '—';
+    if (!byRegle[k]) byRegle[k] = [];
+    byRegle[k].push(p);
+  });
+
+  function fmtDate(d) { return d ? d.split('-').reverse().join('/') : '—'; }
+  var periode  = fmtDate(depuis) + ' – ' + fmtDate(jusqua);
+  var now      = new Date();
+  var dateGen  = fmtDate(now.toISOString().slice(0,10)) + ' ' + now.toTimeString().slice(0,5);
+
+  var lignesParGroupe = '';
+  for (var nom in byRegle) {
+    var list    = byRegle[nom];
+    var subAdt  = list.reduce(function(s,p){ return s+(p.part_adtem||0); }, 0);
+    var subInf  = list.reduce(function(s,p){ return s+(p.part_infra||0); }, 0);
+    lignesParGroupe += '<tr style="background:#f1f8e9;">'
+      + '<td colspan="3" style="padding:7px 10px;font-size:11px;font-weight:700;color:#2e7d32;">' + nom + '</td>'
+      + '<td></td>'
+      + '<td style="text-align:right;color:#2e7d32;font-weight:700;font-size:11px;">' + subAdt.toLocaleString('fr') + ' €</td>'
+      + '<td style="text-align:right;color:#1565c0;font-weight:700;font-size:11px;">' + subInf.toLocaleString('fr') + ' €</td>'
+      + '</tr>';
+    list.forEach(function(p) {
+      lignesParGroupe += '<tr>'
+        + '<td style="padding:5px 10px;border-top:1px solid #e0e0e0;font-size:10px;color:#555;">' + fmtDate(p.date) + '</td>'
+        + '<td style="padding:5px 10px;border-top:1px solid #e0e0e0;font-size:10.5px;font-weight:600;">' + (p.pseudo||'') + '</td>'
+        + '<td style="padding:5px 10px;border-top:1px solid #e0e0e0;font-size:10px;color:#444;">' + (p.libelle||'').substring(0,60) + '</td>'
+        + '<td style="padding:5px 10px;border-top:1px solid #e0e0e0;text-align:right;font-size:10.5px;">' + (p.montant_joueur||0).toLocaleString('fr') + ' €</td>'
+        + '<td style="padding:5px 10px;border-top:1px solid #e0e0e0;text-align:right;font-size:10.5px;color:#2e7d32;font-weight:700;">' + (p.part_adtem||0).toLocaleString('fr') + ' €</td>'
+        + '<td style="padding:5px 10px;border-top:1px solid #e0e0e0;text-align:right;font-size:10.5px;color:#1565c0;font-weight:700;">' + (p.part_infra||0).toLocaleString('fr') + ' €</td>'
+        + '</tr>';
+    });
+  }
+
+  var html = '<div id="pi-bilan-content" style="background:white;color:#1a1a1a;font-family:\'Exo 2\',sans-serif;width:794px;padding:0;">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 24px;border-bottom:3px solid #2e7d32;background:#f9fafb;">'
+    + '<div style="display:flex;align-items:center;gap:12px;">'
+    + '<img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/Logo%20Alliance.png" style="height:50px;" crossorigin="anonymous" onerror="this.style.display=\'none\'">'
+    + '<div><div style="font-size:18px;font-weight:800;color:#2e7d32;">Bilan InfrAlliance</div>'
+    + '<div style="font-size:11px;color:#555;">Période : ' + periode + '</div></div></div>'
+    + '<div style="text-align:right;font-size:10px;color:#555;"><div>Généré le ' + dateGen + '</div>'
+    + '<div style="margin-top:4px;font-size:9px;color:#888;">CONFIDENTIEL — Usage interne ADTEM</div></div></div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-bottom:2px solid #2e7d32;">'
+    + '<div style="padding:12px 20px;border-right:1px solid #e0e0e0;text-align:center;">'
+    + '<div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;">Total versé joueurs</div>'
+    + '<div style="font-size:18px;font-weight:800;color:#1a1a1a;margin-top:4px;">' + totJoueur.toLocaleString('fr') + ' €</div></div>'
+    + '<div style="padding:12px 20px;border-right:1px solid #e0e0e0;text-align:center;background:#f1f8e9;">'
+    + '<div style="font-size:10px;color:#2e7d32;text-transform:uppercase;letter-spacing:1px;font-weight:700;">ADTEM doit à Infra</div>'
+    + '<div style="font-size:18px;font-weight:800;color:#2e7d32;margin-top:4px;">' + totAdtem.toLocaleString('fr') + ' €</div></div>'
+    + '<div style="padding:12px 20px;text-align:center;background:#e3f2fd;">'
+    + '<div style="font-size:10px;color:#1565c0;text-transform:uppercase;letter-spacing:1px;font-weight:700;">InfrAlliance doit à ADTEM</div>'
+    + '<div style="font-size:18px;font-weight:800;color:#1565c0;margin-top:4px;">' + totInfra.toLocaleString('fr') + ' €</div></div></div>'
+    + '<table style="width:100%;border-collapse:collapse;">'
+    + '<thead><tr style="background:#2e7d32;">'
+    + '<th style="padding:7px 10px;text-align:left;color:white;font-size:10px;">Date</th>'
+    + '<th style="padding:7px 10px;text-align:left;color:white;font-size:10px;">Pseudo</th>'
+    + '<th style="padding:7px 10px;text-align:left;color:white;font-size:10px;">Libellé</th>'
+    + '<th style="padding:7px 10px;text-align:right;color:white;font-size:10px;">Joueur</th>'
+    + '<th style="padding:7px 10px;text-align:right;color:#a5d6a7;font-size:10px;">ADTEM</th>'
+    + '<th style="padding:7px 10px;text-align:right;color:#90caf9;font-size:10px;">InfrAlliance</th>'
+    + '</tr></thead>'
+    + '<tbody>' + lignesParGroupe + '</tbody>'
+    + '<tfoot><tr style="background:#e8f5e9;border-top:2px solid #2e7d32;">'
+    + '<td colspan="3" style="padding:8px 10px;font-size:13px;font-weight:900;color:#2e7d32;">TOTAL</td>'
+    + '<td style="padding:8px 10px;text-align:right;font-weight:800;">' + totJoueur.toLocaleString('fr') + ' €</td>'
+    + '<td style="padding:8px 10px;text-align:right;font-weight:900;color:#2e7d32;font-size:13px;">' + totAdtem.toLocaleString('fr') + ' €</td>'
+    + '<td style="padding:8px 10px;text-align:right;font-weight:900;color:#1565c0;font-size:13px;">' + totInfra.toLocaleString('fr') + ' €</td>'
+    + '</tr></tfoot></table>'
+    + '<div style="padding:10px 24px;background:#f9fafb;border-top:1px solid #e0e0e0;font-size:9px;color:#888;text-align:center;">'
+    + 'Document interne ADTEM · Partenariat InfrAlliance</div></div>';
+
+  var card    = document.getElementById('pi-bilan-export-card');
+  var preview = document.getElementById('pi-bilan-preview');
+  card.style.display = 'block';
+  preview.innerHTML  = '<div style="transform:scale(0.6);transform-origin:top left;width:794px;">' + html + '</div>';
+  preview.style.height   = Math.round(794 * 0.6 * 1.2) + 'px';
+  preview.style.overflow = 'hidden';
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function piExportBilanPNG() {
+  var el = document.getElementById('pi-bilan-content');
+  if (!el) { toast('Générez d\'abord le bilan', 'error'); return; }
+  var canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+  var a = document.createElement('a');
+  a.download = 'bilan-infra-' + new Date().toISOString().slice(0,10) + '.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+  toast('Export PNG généré', 'success');
+}
+
+async function piPublierBilan() {
+  var el = document.getElementById('pi-bilan-content');
+  if (!el) { toast('Générez d\'abord le bilan', 'error'); return; }
+  toast('Publication en cours...', 'info');
+  try {
+    var clone = el.cloneNode(true);
+    clone.style.transform = 'none'; clone.style.position = 'fixed'; clone.style.top = '-9999px'; clone.style.left = '0';
+    document.body.appendChild(clone);
+    var canvas = await html2canvas(clone, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+    document.body.removeChild(clone);
+    var blob = await new Promise(function(r) { canvas.toBlob(r, 'image/png'); });
+    var ts = new Date().toISOString().slice(0,10);
+    var formData = new FormData();
+    formData.append('file', blob, 'bilan-infra-' + ts + '.png');
+    formData.append('upload_preset', CLOUDINARY.uploadPreset);
+    formData.append('public_id', 'adtem/bilans/infra-' + ts);
+    var resp = await fetch(CLOUDINARY.url(), { method: 'POST', body: formData });
+    if (!resp.ok) throw new Error('Cloudinary ' + resp.status);
+    var data = await resp.json();
+    var urlBox = document.getElementById('pi-bilan-url');
+    urlBox.style.display = 'block';
+    urlBox.innerHTML = '<div class="url-box" style="flex-direction:column;align-items:flex-start;">'
+      + '<div style="display:flex;align-items:center;gap:8px;width:100%;">'
+      + '<a href="' + data.secure_url + '" target="_blank" style="flex:1;font-size:11px;">🔗 ' + data.secure_url + '</a>'
+      + '<button class="url-copy-btn" onclick="copyUrl(\'' + data.secure_url + '\')">📋 URL</button>'
+      + '</div></div>';
+    toast('Bilan publié !', 'success');
+  } catch(e) { toast('Erreur publication : ' + e.message, 'error'); }
+}
+
+
+// ================================================================
 //  INIT
 // ================================================================
 function init() {
@@ -8295,6 +9528,7 @@ function init() {
 }
 
 init();
+
 </script>
 </body>
 </html>
