@@ -944,7 +944,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.16</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.17</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -3209,10 +3209,27 @@ async function saveNewMdp() {
 
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Enregistrement...'; }
 
-  // 1. Changer le MDP via Supabase Auth
-  const { error } = await supa.auth.updateUser({ password: mdp });
-  if (error) {
-    errEl.textContent = 'Erreur : ' + error.message; errEl.style.display = 'block';
+  // 1. Changer le MDP — essai via supa.auth.updateUser (session active)
+  //    Si session invalide (403 session_not_found), fallback via edge function reset-password
+  let mdpOk = false;
+  const { error: authErr } = await supa.auth.updateUser({ password: mdp });
+  if (!authErr) {
+    mdpOk = true;
+  } else if (authErr.status === 403 || authErr.message?.includes('session') || authErr.message?.includes('Auth')) {
+    // Session expirée ou manquante → edge function avec service_role
+    const { error: efErr } = await supa.functions.invoke('reset-password', {
+      body: { user_id: CURRENT_USER.uid, password: mdp }
+    });
+    if (efErr) {
+      errEl.textContent = 'Erreur : ' + (efErr.message || 'Impossible de changer le mot de passe');
+      errEl.style.display = 'block';
+      if (btn) { btn.disabled = false; btn.textContent = '✅ Enregistrer le nouveau mot de passe'; }
+      _saveNewMdpRunning = false; return;
+    }
+    mdpOk = true;
+  } else {
+    errEl.textContent = 'Erreur : ' + authErr.message;
+    errEl.style.display = 'block';
     if (btn) { btn.disabled = false; btn.textContent = '✅ Enregistrer le nouveau mot de passe'; }
     _saveNewMdpRunning = false; return;
   }
