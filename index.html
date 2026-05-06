@@ -944,7 +944,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.23</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.25</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -1422,10 +1422,62 @@ body.mode-config #page-title { color: var(--cfg-green); }
         </div>
 
         <div class="card mb-16">
-          <div class="card-title"><span class="icon">💰</span> Tarification</div>
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+            <span><span class="icon">💰</span> Tarification</span>
+            <button onclick="toggleAjustTarif()" id="btn-ajust-tarif"
+              style="font-size:10px;padding:3px 9px;border-radius:6px;border:1px solid var(--border2);
+                     background:var(--surface2);color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:4px;
+                     transition:all 0.15s;" title="Ajuster le tarif manuellement">
+              ✏️ Ajuster
+            </button>
+          </div>
+
+          <!-- Panneau d'ajustement tarifaire -->
+          <div id="ajust-tarif-panel" style="display:none;background:var(--greenbg);border:1px solid var(--greenl);
+               border-radius:8px;padding:12px;margin-top:8px;margin-bottom:8px;">
+            <div style="font-size:11px;font-weight:700;color:var(--green3);margin-bottom:8px;">
+              🛠️ Ajustement tarifaire — geste commercial
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+              <div>
+                <label style="font-size:10px;color:var(--text3);font-weight:600;">Mode</label>
+                <select id="ajust-mode" onchange="onAjustModeChange()" class="form-select" style="font-size:11px;padding:4px 8px;margin-top:2px;">
+                  <option value="">— Aucun ajustement —</option>
+                  <option value="prix">💶 Prix fixe / semaine</option>
+                  <option value="remise">🏷️ Réduction (%)</option>
+                </select>
+              </div>
+              <div id="ajust-valeur-wrap">
+                <label style="font-size:10px;color:var(--text3);font-weight:600;" id="ajust-valeur-label">Valeur</label>
+                <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
+                  <input type="number" id="ajust-valeur" class="form-input" min="0"
+                    style="font-size:11px;padding:4px 8px;width:90px;"
+                    oninput="updateCalcLocation()" placeholder="0">
+                  <span id="ajust-unite" style="font-size:11px;color:var(--text3);">€/sem.</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label style="font-size:10px;color:var(--text3);font-weight:600;">Raison / note interne</label>
+              <input type="text" id="ajust-raison" class="form-input" maxlength="120"
+                placeholder="Ex: bug signalé, fidélité, premier contrat…"
+                style="font-size:11px;padding:4px 8px;margin-top:2px;width:100%;"
+                oninput="updateCalcLocation()">
+            </div>
+            <div style="margin-top:8px;text-align:right;">
+              <button onclick="clearAjustTarif()"
+                style="font-size:10px;padding:3px 10px;border-radius:5px;border:1px solid var(--border2);
+                       background:var(--surface);color:var(--red);cursor:pointer;">
+                ✕ Effacer l'ajustement
+              </button>
+            </div>
+          </div>
+
           <!-- Résumé calcul avec détail remises options -->
           <div style="background:var(--surface2);border-radius:8px;padding:12px;margin-top:4px;" id="calc-detail-box">
             <div id="calc-detail-lines" style="margin-bottom:8px;font-size:11.5px;color:var(--text2);"></div>
+            <div id="calc-ajust-line" style="display:none;margin-bottom:6px;padding:5px 8px;background:var(--greenbg);
+                 border:1px solid var(--greenl);border-radius:6px;font-size:11px;color:var(--green3);"></div>
             <div style="border-top:1px solid var(--border);padding-top:8px;">
               <div class="flex-between">
                 <span style="font-size:13px;font-weight:700;">Total sur durée :</span>
@@ -2959,12 +3011,28 @@ async function initSupabase() {
     if (label) label.textContent = 'Hors ligne';
   }
 
-  // Auth state
-  const { data: { session } } = await supa.auth.getSession();
+  // Auth state — purge si refresh token invalide
+  let session = null;
+  try {
+    const { data, error } = await supa.auth.getSession();
+    if (error) {
+      // Refresh token expiré ou invalide → on purge et on repart propre
+      if (error.message?.toLowerCase().includes('refresh token') || error.status === 400) {
+        Object.keys(localStorage).forEach(k => {
+          if (k.startsWith('sb-') || k.includes('supabase')) localStorage.removeItem(k);
+        });
+        await supa.auth.signOut().catch(() => {});
+      }
+    } else {
+      session = data.session;
+    }
+  } catch(e) {
+    console.warn('getSession error (ignored):', e.message);
+  }
   await handleAuthState(session?.user || null);
 
-  supa.auth.onAuthStateChange(async (_event, session) => {
-    await handleAuthState(session?.user || null);
+  supa.auth.onAuthStateChange(async (_event, sess) => {
+    await handleAuthState(sess?.user || null);
   });
 }
 
@@ -4318,6 +4386,58 @@ function populateOptionSelects() {
   });
 }
 
+// ================================================================
+//  AJUSTEMENT TARIFAIRE MANUEL (geste commercial)
+// ================================================================
+function toggleAjustTarif() {
+  const panel = document.getElementById('ajust-tarif-panel');
+  const btn   = document.getElementById('btn-ajust-tarif');
+  if (!panel) return;
+  const open = panel.style.display === 'none' || panel.style.display === '';
+  panel.style.display = open ? 'block' : 'none';
+  if (btn) {
+    btn.style.background = open ? 'var(--greenbg)' : 'var(--surface2)';
+    btn.style.borderColor = open ? 'var(--green)' : 'var(--border2)';
+    btn.style.color = open ? 'var(--green2)' : 'var(--text2)';
+  }
+  if (!open) clearAjustTarif();
+}
+
+function onAjustModeChange() {
+  const mode  = document.getElementById('ajust-mode').value;
+  const label = document.getElementById('ajust-valeur-label');
+  const unite = document.getElementById('ajust-unite');
+  const input = document.getElementById('ajust-valeur');
+  if (mode === 'prix') {
+    if (label) label.textContent = 'Prix / semaine (€)';
+    if (unite) unite.textContent = '€/sem.';
+    if (input) { input.placeholder = APP.config.prixSem || 1000; input.max = ''; }
+  } else if (mode === 'remise') {
+    if (label) label.textContent = 'Réduction (%)';
+    if (unite) unite.textContent = '%';
+    if (input) { input.placeholder = '10'; input.max = 100; }
+  }
+  if (input) input.value = '';
+  updateCalcLocation();
+}
+
+function clearAjustTarif() {
+  const mode  = document.getElementById('ajust-mode');
+  const val   = document.getElementById('ajust-valeur');
+  const raison= document.getElementById('ajust-raison');
+  if (mode)   mode.value   = '';
+  if (val)    val.value    = '';
+  if (raison) raison.value = '';
+  onAjustModeChange();
+}
+
+function getAjustement() {
+  const mode   = document.getElementById('ajust-mode')?.value || '';
+  const valeur = parseFloat(document.getElementById('ajust-valeur')?.value) || 0;
+  const raison = document.getElementById('ajust-raison')?.value?.trim() || '';
+  return { mode, valeur, raison };
+}
+
 function updateCalcLocation() {
   const n      = APP.devisLocation.vehiculesSelectionnes.length;
   const duree  = parseInt(document.getElementById('dl-duree').value) || 1;
@@ -4328,6 +4448,8 @@ function updateCalcLocation() {
     document.getElementById('calc-total').textContent = '—';
     document.getElementById('calc-detail-lines').innerHTML = '';
     document.getElementById('calc-economie').textContent = '';
+    const al = document.getElementById('calc-ajust-line');
+    if (al) al.style.display = 'none';
     return;
   }
 
@@ -4339,14 +4461,41 @@ function updateCalcLocation() {
 
   document.getElementById('calc-detail-lines').innerHTML = detail.map(d => `
     <div class="flex-between" style="margin-bottom:5px;">
-      <span style="color:${colors[d.type] || 'var(--text2)'};">${icons[d.type] || ''} ${d.label}</span>
+      <span style="color:${colors[d.type] || 'var(--text2)'}">${icons[d.type] || ''} ${d.label}</span>
       <span style="font-weight:700;color:${d.montant === 0 ? 'var(--green2)' : 'var(--text)'};">
         ${d.montant === 0 ? 'GRATUIT' : d.montant.toLocaleString('fr') + ' €'}
       </span>
     </div>
   `).join('');
 
-  document.getElementById('calc-total').textContent = total.toLocaleString('fr') + ' €';
+  // Ajustement manuel
+  const ajust = getAjustement();
+  let totalFinal = total;
+  const ajustLine = document.getElementById('calc-ajust-line');
+
+  if (ajust.mode === 'prix' && ajust.valeur > 0) {
+    totalFinal = n * duree * ajust.valeur;
+    const diff = total - totalFinal;
+    if (ajustLine) {
+      ajustLine.style.display = 'flex';
+      ajustLine.style.justifyContent = 'space-between';
+      ajustLine.innerHTML = `<span>✏️ Prix ajusté : ${ajust.valeur.toLocaleString('fr')} €/sem.${ajust.raison ? ' — <i>' + ajust.raison + '</i>' : ''}</span>`
+        + `<span style="font-weight:700;">${diff > 0 ? '−' + diff.toLocaleString('fr') + ' €' : '+' + Math.abs(diff).toLocaleString('fr') + ' €'}</span>`;
+    }
+  } else if (ajust.mode === 'remise' && ajust.valeur > 0) {
+    const reduction = Math.round(total * ajust.valeur / 100);
+    totalFinal = total - reduction;
+    if (ajustLine) {
+      ajustLine.style.display = 'flex';
+      ajustLine.style.justifyContent = 'space-between';
+      ajustLine.innerHTML = `<span>🏷️ Remise ${ajust.valeur}%${ajust.raison ? ' — <i>' + ajust.raison + '</i>' : ''}</span>`
+        + `<span style="font-weight:700;">−${reduction.toLocaleString('fr')} €</span>`;
+    }
+  } else {
+    if (ajustLine) ajustLine.style.display = 'none';
+  }
+
+  document.getElementById('calc-total').textContent = totalFinal.toLocaleString('fr') + ' €';
 
   const econEl = document.getElementById('calc-economie');
   if (economie > 0) {
@@ -4393,7 +4542,23 @@ async function genererDevisLocation() {
   const numParcs    = v.map(x => x['Numéro Parc']).join(', ');
 
   // Calcul avec moteur de règles
-  const { total, detail, economie } = calculerPrixAvecOptions(nbBus, duree, optionNom, prixStd, APP._promoActive);
+  const { total: totalBrut, detail, economie } = calculerPrixAvecOptions(nbBus, duree, optionNom, prixStd, APP._promoActive);
+
+  // Ajustement tarifaire manuel (geste commercial)
+  const ajust = getAjustement();
+  let total = totalBrut;
+  let ajustLabel = '';
+  let ajustDiff  = 0;
+  if (ajust.mode === 'prix' && ajust.valeur > 0) {
+    total = nbBus * duree * ajust.valeur;
+    ajustDiff = totalBrut - total;
+    ajustLabel = `✏️ Prix ajusté : ${ajust.valeur.toLocaleString('fr')} €/sem. (-${ajustDiff.toLocaleString('fr')} €)${ajust.raison ? ' — ' + ajust.raison : ''}`;
+  } else if (ajust.mode === 'remise' && ajust.valeur > 0) {
+    const reduction = Math.round(totalBrut * ajust.valeur / 100);
+    total = totalBrut - reduction;
+    ajustDiff = reduction;
+    ajustLabel = `🏷️ Remise ${ajust.valeur}% (-${reduction.toLocaleString('fr')} €)${ajust.raison ? ' — ' + ajust.raison : ''}`;
+  }
 
   // Enregistrer l'usage du code promo
   if (APP._promoActive) enregistrerUsagePromo(pseudo);
@@ -4408,7 +4573,8 @@ async function genererDevisLocation() {
     pseudo, pseudoForum, niveau, option: optionLabel, dateDemande, dateCreation,
     debut, fin: finDate, busRemplaces,
     nbBus, totalPlaces, energies, types, marques, modeles, numParcs,
-    duree, detail, total, economie, prixSansOption, prixStd, numero
+    duree, detail, total, economie, prixSansOption, prixStd, numero,
+    ajustLabel, ajustDiff
   });
 
   const preview = document.getElementById('devis-location-preview');
@@ -4441,6 +4607,13 @@ function buildDevisLocationHTML(d) {
       <td colspan="2" style="padding:6px 12px;border-top:1px solid #e0e0e0;font-size:10px;color:#b77c00;font-style:italic;">
         🎉 Économie totale grâce à l'option "${d.option}" : <b>${d.economie.toLocaleString('fr')} €</b>
         (tarif standard sans option : ${d.prixSansOption ? d.prixSansOption.toLocaleString('fr') + ' €' : '—'})
+      </td>
+    </tr>` : '';
+
+  const ligneAjust = d.ajustLabel ? `
+    <tr style="background:#e8f5e9;">
+      <td colspan="2" style="padding:6px 12px;border-top:2px solid #a5d6a7;font-size:10px;color:#2e7d32;font-weight:600;">
+        ${d.ajustLabel}
       </td>
     </tr>` : '';
 
@@ -4497,6 +4670,7 @@ function buildDevisLocationHTML(d) {
       <tbody>
         ${lignesTarif}
         ${ligneEconomie}
+        ${ligneAjust}
         <tr style="background:#e8f5e9;">
           <td style="padding:8px 12px;border-top:2px solid #2e7d32;font-size:14px;font-weight:900;color:#2e7d32;">Montant Total :</td>
           <td style="text-align:center;padding:8px 12px;border-top:2px solid #2e7d32;font-size:15px;font-weight:900;color:#2e7d32;">${d.total.toLocaleString('fr')} €</td>
@@ -8411,6 +8585,9 @@ function resetDevisLocation() {
   // Numéro en cours
   if (APP._currentDevisNumero) delete APP._currentDevisNumero['location'];
   APP._promoActive = null;
+  clearAjustTarif();
+  const panel = document.getElementById('ajust-tarif-panel');
+  if (panel) panel.style.display = 'none';
   // Preview + actions
   const preview = document.getElementById('devis-location-preview');
   if (preview) preview.innerHTML = '';
