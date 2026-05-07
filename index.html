@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.31</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.32</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -3305,13 +3305,16 @@ async function initSupabase() {
 
 async function handleAuthState(user) {
   if (user) {
+    console.log('[AUTH] User connecte:', user.email, 'id:', user.id);
     let profiles = await sbGet('profiles', { eq: ['id', user.id] });
     // Retry si null — le trigger handle_new_user peut prendre quelques ms après signUp
     if (!profiles?.length) {
+      console.warn('[AUTH] Profile non trouve, retry dans 800ms...');
       await new Promise(r => setTimeout(r, 800));
       profiles = await sbGet('profiles', { eq: ['id', user.id] });
     }
     const profile  = profiles?.[0] || {};
+    console.log('[AUTH] Profile recupere:', JSON.stringify(profile));
 
     CURRENT_USER.uid    = user.id;
     CURRENT_USER.email  = user.email;
@@ -3320,6 +3323,7 @@ async function handleAuthState(user) {
 
     // Compte en attente ou suspendu
     if (!profile.actif || profile.role === 'en_attente' || profile.role === 'suspendu') {
+      console.warn('[AUTH] Acces refuse - actif:', profile.actif, 'role:', profile.role);
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('waiting-screen').classList.remove('hidden');
       document.getElementById('waiting-pseudo').textContent = CURRENT_USER.pseudo;
@@ -3363,6 +3367,7 @@ async function handleAuthState(user) {
       document.getElementById('nav-comptes').style.display = 'none';
     }
 
+    console.log('[AUTH] Compte actif, chargement interface...');
     await loadAllData();
     setupRealtimeListeners();
 
