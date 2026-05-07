@@ -10,7 +10,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ADTEM — Alliance Manager</title>
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <style>
 :root {
@@ -827,6 +827,15 @@ body.mode-config #page-title { color: var(--cfg-green); }
 </style>
 </head>
 <body>
+<div id="tracking-warn" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;
+     background:#b71c1c;color:white;padding:10px 20px;font-size:13px;font-weight:600;
+     align-items:center;justify-content:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,0.4);">
+  ⚠️ Votre navigateur bloque un composant requis (Prévention du suivi active).
+  &nbsp;Désactivez-la pour ce site ou utilisez <b>Google Chrome</b>.
+  <button onclick="this.parentElement.style.display='none'"
+    style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:white;
+           border-radius:4px;padding:2px 10px;cursor:pointer;font-size:12px;">✕</button>
+</div>
 
 <!-- LOGIN SCREEN -->
 <div id="login-screen">
@@ -944,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.25</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.29</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -963,6 +972,9 @@ body.mode-config #page-title { color: var(--cfg-green); }
       </div>
       <div class="nav-item" data-page="tableau-financier">
         <span class="nav-icon">🧾</span> Tableau financier
+      </div>
+      <div class="nav-item" data-page="prime-infra">
+        <span class="nav-icon">🤝</span> Prime InfrAlliance
       </div>
     </div>
 
@@ -2194,6 +2206,245 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
     </div>
   </div>
 
+  <!-- ====== PRIME INFRA ====== -->
+  <div class="page" id="page-prime-infra">
+
+    <!-- Onglets internes -->
+    <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px;">
+      <button class="pi-tab active" data-tab="pi-tab-regles"  onclick="piSwitchTab('regles')"  style="padding:9px 20px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:600;color:var(--green2);border-bottom:2px solid var(--green2);margin-bottom:-2px;font-family:inherit;">⚙️ Règles</button>
+      <button class="pi-tab"        data-tab="pi-tab-primes"  onclick="piSwitchTab('primes')"  style="padding:9px 20px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:500;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-2px;font-family:inherit;">📋 Primes versées</button>
+      <button class="pi-tab"        data-tab="pi-tab-bilan"   onclick="piSwitchTab('bilan')"   style="padding:9px 20px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:500;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-2px;font-family:inherit;">📊 Bilan trimestriel</button>
+    </div>
+
+    <!-- === ONGLET RÈGLES === -->
+    <div id="pi-tab-regles" class="pi-tabcontent" style="display:block;">
+      <div class="grid-2" style="gap:16px;align-items:start;">
+        <div>
+          <div class="card mb-16">
+            <div class="card-title"><span class="icon">➕</span> Nouvelle règle</div>
+            <div class="form-group">
+              <label class="form-label">Nom de la prime</label>
+              <input type="text" class="form-input" id="pi-regle-nom" placeholder="Ex: Prime GNV, Borne électrique dépôt…">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Montant versé au joueur (€)</label>
+              <input type="number" class="form-input" id="pi-regle-montant" placeholder="300000" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Type de calcul</label>
+              <select class="form-select" id="pi-regle-type" onchange="piToggleRegleType()">
+                <option value="fixe">💶 Montants fixes</option>
+                <option value="pourcent">% du total versé</option>
+              </select>
+            </div>
+            <!-- Montants fixes -->
+            <div id="pi-regle-fixe-block">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div class="form-group">
+                  <label class="form-label">Part ADTEM (€)</label>
+                  <input type="number" class="form-input" id="pi-regle-adtem" placeholder="150000" min="0">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Part InfrAlliance (€)</label>
+                  <input type="number" class="form-input" id="pi-regle-infra" placeholder="150000" min="0">
+                </div>
+              </div>
+            </div>
+            <!-- % -->
+            <div id="pi-regle-pct-block" style="display:none;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div class="form-group">
+                  <label class="form-label">Part ADTEM (%)</label>
+                  <input type="number" class="form-input" id="pi-regle-adtem-pct" placeholder="20" min="0" max="100">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Part InfrAlliance (%)</label>
+                  <input type="number" class="form-input" id="pi-regle-infra-pct" placeholder="20" min="0" max="100">
+                </div>
+              </div>
+              <div style="font-size:10px;color:var(--text3);margin-top:-8px;">
+                Le reste (100% − ADTEM% − Infra%) est à la charge du joueur seul.
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mots-clés détection automatique <span style="color:var(--text4);font-weight:400;">(séparés par ;)</span></label>
+              <input type="text" class="form-input" id="pi-regle-keywords" placeholder="Prime GNV;citerne;GNV">
+              <div style="font-size:10px;color:var(--text3);margin-top:3px;">Utilisés pour détecter automatiquement les opérations compta associées.</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Niveau minimum requis</label>
+              <select class="form-select" id="pi-regle-niveau">
+                <option value="">Tous niveaux</option>
+                <option value="N3">N3 et +</option>
+                <option value="N4">N4 et +</option>
+                <option value="N5">N5 et +</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Description / note</label>
+              <input type="text" class="form-input" id="pi-regle-desc" placeholder="Note libre…">
+            </div>
+            <div style="display:flex;gap:8px;margin-top:4px;">
+              <button class="btn btn-primary" style="flex:1;" onclick="piSauvegarderRegle()">✅ Enregistrer la règle</button>
+              <button class="btn btn-secondary btn-sm" onclick="piResetRegleForm()">↺</button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-title"><span class="icon">📋</span> Règles configurées</div>
+            <div id="pi-regles-list" style="color:var(--text3);text-align:center;padding:30px;font-size:12px;">
+              Aucune règle configurée.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- === ONGLET PRIMES VERSÉES === -->
+    <div id="pi-tab-primes" class="pi-tabcontent" style="display:none;">
+      <div class="flex-between mb-16" style="flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input type="text" class="form-input" id="pi-search" placeholder="🔍 Pseudo, raison…" style="width:200px;" oninput="piRenderPrimes()">
+          <select class="form-select" id="pi-filtre-regle" style="width:180px;" onchange="piRenderPrimes()">
+            <option value="">Toutes les primes</option>
+          </select>
+          <select class="form-select" id="pi-filtre-statut" style="width:140px;" onchange="piRenderPrimes()">
+            <option value="">Tous statuts</option>
+            <option value="en_attente">En attente</option>
+            <option value="pointe">Pointé</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="piImportCompta()">🔄 Détecter depuis compta</button>
+          <button class="btn btn-primary btn-sm" onclick="piOpenAddManuel()">➕ Ajouter manuellement</button>
+        </div>
+      </div>
+
+      <!-- Ajout manuel -->
+      <div id="pi-add-manuel" style="display:none;" class="card mb-16" style="border-color:rgba(74,140,82,0.3);">
+        <div class="card-title"><span class="icon">➕</span> Saisie manuelle</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input type="date" class="form-input" id="pi-man-date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Pseudo</label>
+            <input type="text" class="form-input" id="pi-man-pseudo" placeholder="Pseudo du joueur">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Règle de prime</label>
+            <select class="form-select" id="pi-man-regle" onchange="piAutoMontantManuel()">
+              <option value="">— Choisir —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Montant versé au joueur (€)</label>
+            <input type="number" class="form-input" id="pi-man-montant" placeholder="300000" oninput="piCalcManuelParts()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Libellé / raison</label>
+            <input type="text" class="form-input" id="pi-man-libelle" placeholder="Ex: Prime GNV Mika9537">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Note</label>
+            <input type="text" class="form-input" id="pi-man-note" placeholder="Optionnel">
+          </div>
+        </div>
+        <div id="pi-man-parts" style="background:var(--greenbg);border:1px solid var(--greenl);border-radius:6px;padding:8px 12px;font-size:11px;color:var(--green3);margin-bottom:10px;display:none;">
+          <span id="pi-man-parts-txt"></span>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary" onclick="piSauvegarderManuel()">✅ Enregistrer</button>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('pi-add-manuel').style.display='none'">Annuler</button>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0;overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+          <thead>
+            <tr style="background:var(--surface3);">
+              <th style="padding:8px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Date</th>
+              <th style="padding:8px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Pseudo</th>
+              <th style="padding:8px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Prime</th>
+              <th style="padding:8px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Libellé</th>
+              <th style="padding:8px 12px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Joueur</th>
+              <th style="padding:8px 12px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--green3);">ADTEM</th>
+              <th style="padding:8px 12px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--blue);">InfrAlliance</th>
+              <th style="padding:8px 12px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Statut</th>
+              <th style="padding:8px 12px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="pi-primes-tbody">
+            <tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text3);">Aucune prime enregistrée.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- === ONGLET BILAN TRIMESTRIEL === -->
+    <div id="pi-tab-bilan" class="pi-tabcontent" style="display:none;">
+      <div class="grid-2 mb-16" style="gap:16px;align-items:start;">
+        <!-- Paramètres bilan -->
+        <div class="card">
+          <div class="card-title"><span class="icon">📅</span> Paramètres du bilan</div>
+          <div class="form-group">
+            <label class="form-label">Période : depuis le</label>
+            <input type="date" class="form-input" id="pi-bilan-depuis" oninput="piRenderBilan()">
+            <div style="font-size:10px;color:var(--text3);margin-top:3px;">
+              Les primes <b>pointées avant cette date</b> sont exclues du bilan.
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Jusqu'au</label>
+            <input type="date" class="form-input" id="pi-bilan-jusqua" oninput="piRenderBilan()">
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="piSetTrimestre()" style="margin-bottom:12px;width:100%;">📅 Remplir trimestre en cours</button>
+          <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
+          <div class="form-group" style="margin-top:8px;">
+            <label class="form-label" style="color:var(--yellow);font-weight:700;">🔒 Pointer le remboursement</label>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">
+              Marque toutes les primes de la période comme "pointées". Le prochain bilan repartira de zéro après cette date.
+            </div>
+            <input type="date" class="form-input" id="pi-pointer-date" placeholder="Date du remboursement reçu">
+          </div>
+          <button class="btn btn-yellow" style="width:100%;" onclick="piPointerRemboursement()">✅ Confirmer le remboursement trimestriel</button>
+        </div>
+
+        <!-- Résumé KPIs -->
+        <div>
+          <div class="kpi-grid mb-16" id="pi-kpis">
+            <div class="kpi-card green"><div class="kpi-label">Total versé joueurs</div><div class="kpi-value green" id="pi-kpi-total">—</div></div>
+            <div class="kpi-card red"><div class="kpi-label">Dû par ADTEM</div><div class="kpi-value red" id="pi-kpi-adtem">—</div></div>
+            <div class="kpi-card blue"><div class="kpi-label">Dû par InfrAlliance</div><div class="kpi-value blue" id="pi-kpi-infra">—</div></div>
+            <div class="kpi-card yellow"><div class="kpi-label">Nb primes</div><div class="kpi-value yellow" id="pi-kpi-nb">—</div></div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+              <span><span class="icon">📊</span> Détail par type de prime</span>
+              <button class="btn btn-primary btn-sm" onclick="piGenererBilanDevis()">📄 Exporter bilan</button>
+            </div>
+            <div id="pi-bilan-detail" style="color:var(--text3);text-align:center;padding:20px;font-size:12px;">
+              Sélectionnez une période pour calculer.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Aperçu / URL export -->
+      <div class="card" id="pi-bilan-export-card" style="display:none;">
+        <div class="card-title"><span class="icon">📄</span> Export bilan</div>
+        <div id="pi-bilan-preview" style="overflow:auto;"></div>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" onclick="piExportBilanPNG()">📥 Export PNG</button>
+          <button class="btn btn-yellow btn-sm" onclick="piPublierBilan()">☁️ Publier & URL</button>
+        </div>
+        <div id="pi-bilan-url" style="display:none;margin-top:10px;"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ====== MESSAGES FORUM ====== -->
   <div class="page" id="page-messages-forum">
     <div class="flex-between mb-20">
@@ -2917,13 +3168,27 @@ function pseudoToEmail(pseudo) {
   return pseudo.toLowerCase().replace(/[^a-z0-9]/g, '') + '@adtem.internal';
 }
 async function sbGet(table, opts = {}) {
-  let q = supa.from(table).select(opts.select || '*');
-  if (opts.eq)    q = q.eq(...opts.eq);
-  if (opts.order) q = q.order(...opts.order);
-  if (opts.limit) q = q.limit(opts.limit);
-  const { data, error } = await q;
-  if (error) { console.error('sbGet', table, error?.message || error?.code || JSON.stringify(error)); return null; }
-  return data;
+  try {
+    let q = supa.from(table).select(opts.select || '*');
+    if (opts.eq)    q = q.eq(...opts.eq);
+    if (opts.order) q = q.order(...opts.order);
+    if (opts.limit) q = q.limit(opts.limit);
+    const { data, error } = await q;
+    if (error) {
+      const msg = error?.message || error?.code || JSON.stringify(error);
+      // Table inexistante → retourner tableau vide silencieusement
+      if (msg && (msg.includes('does not exist') || msg.includes('relation') || msg.includes('42P01'))) {
+        console.warn('sbGet: table "' + table + '" introuvable — créez-la dans Supabase.');
+        return [];
+      }
+      console.error('sbGet', table, msg);
+      return null;
+    }
+    return data;
+  } catch(e) {
+    console.warn('sbGet exception', table, e.message);
+    return [];
+  }
 }
 async function sbUpsert(table, data, opts = {}) {
   const { error } = await supa.from(table).upsert(data, opts);
@@ -3394,6 +3659,8 @@ function showPage(pageId) {
   if (pageId === 'personnel') renderPersonnel();
   if (pageId === 'frequentation') renderFrequentation();
   if (pageId === 'tableau-financier') renderBilan();
+  if (pageId === 'prime-infra') piLoadAll();
+  if (pageId === 'prime-infra') piLoadAll();
   if (pageId === 'messages-forum') renderTemplates();
   if (pageId === 'cfg-options') renderOptions();
   if (pageId === 'cfg-assets') renderAssets();
@@ -3432,6 +3699,7 @@ function showPage(pageId) {
     personnel: ['Personnel / FCO', 'Suivi des agents et formations obligatoires'],
     frequentation: ['Fréquentation lignes', 'Objectifs de fréquentation par créneau'],
     'tableau-financier': ['Tableau financier', 'Recettes et dépenses par thème et catégorie'],
+    'prime-infra': ['Prime InfrAlliance', 'Suivi des primes partagées avec InfrAlliance'],
     'messages-forum': ['Messages forum', 'Créateur de messages formatés'],
     'cfg-options':   ['Options & Promotions',       'Règles de remise, options membres et codes promo'],
     'cfg-assets':    ['Assets ADTEM',              'Images et ressources du repo GitHub'],
@@ -8631,6 +8899,610 @@ function resetDevisAE() {
   renderVehiculesDisponibles('ae-vehicules-disponibles', [], 'ae');
   toast('Formulaire vidé', 'info');
 }
+// ================================================================
+//  PRIME INFRA — DONNÉES
+// ================================================================
+APP.piRegles = [];
+APP.piPrimes = [];
+
+async function piLoadAll() {
+  const [regles, primes] = await Promise.all([
+    sbGet('prime_infra_regles'),
+    sbGet('prime_infra')
+  ]);
+  APP.piRegles = regles || [];
+  APP.piPrimes = primes || [];
+  piRenderRegles();
+  piRenderPrimes();
+  piPopulateRegleSelects();
+  piRenderBilan();
+}
+
+// ================================================================
+//  PRIME INFRA — ONGLETS
+// ================================================================
+function piSwitchTab(tab) {
+  document.querySelectorAll('.pi-tab').forEach(function(b) {
+    var active = b.dataset.tab === 'pi-tab-' + tab;
+    b.style.color        = active ? 'var(--green2)' : 'var(--text2)';
+    b.style.fontWeight   = active ? '600' : '500';
+    b.style.borderBottom = active ? '2px solid var(--green2)' : '2px solid transparent';
+  });
+  document.querySelectorAll('.pi-tabcontent').forEach(function(d) { d.style.display = 'none'; });
+  var el = document.getElementById('pi-tab-' + tab);
+  if (el) el.style.display = 'block';
+  if (tab === 'bilan') piRenderBilan();
+}
+
+// ================================================================
+//  PRIME INFRA — RÈGLES
+// ================================================================
+function piToggleRegleType() {
+  var t = document.getElementById('pi-regle-type').value;
+  document.getElementById('pi-regle-fixe-block').style.display   = t === 'fixe'     ? '' : 'none';
+  document.getElementById('pi-regle-pct-block').style.display    = t === 'pourcent' ? '' : 'none';
+}
+
+function piResetRegleForm() {
+  ['pi-regle-nom','pi-regle-montant','pi-regle-adtem','pi-regle-infra',
+   'pi-regle-adtem-pct','pi-regle-infra-pct','pi-regle-keywords','pi-regle-desc'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('pi-regle-type').value   = 'fixe';
+  document.getElementById('pi-regle-niveau').value = '';
+  piToggleRegleType();
+  APP._piEditRegleId = null;
+}
+
+function piEditRegle(id) {
+  var r = APP.piRegles.find(function(x) { return x.id === id; });
+  if (!r) return;
+  document.getElementById('pi-regle-nom').value       = r.nom || '';
+  document.getElementById('pi-regle-montant').value   = r.montant_joueur || '';
+  document.getElementById('pi-regle-type').value      = r.type_calcul || 'fixe';
+  document.getElementById('pi-regle-adtem').value     = r.part_adtem || '';
+  document.getElementById('pi-regle-infra').value     = r.part_infra || '';
+  document.getElementById('pi-regle-adtem-pct').value = r.part_adtem_pct || '';
+  document.getElementById('pi-regle-infra-pct').value = r.part_infra_pct || '';
+  document.getElementById('pi-regle-keywords').value  = (r.keywords || []).join(';');
+  document.getElementById('pi-regle-niveau').value    = r.niveau_min || '';
+  document.getElementById('pi-regle-desc').value      = r.description || '';
+  piToggleRegleType();
+  APP._piEditRegleId = id;
+  piSwitchTab('regles');
+}
+
+async function piSauvegarderRegle() {
+  var nom = document.getElementById('pi-regle-nom').value.trim();
+  if (!nom) { toast('Nom de la prime requis', 'error'); return; }
+  var type = document.getElementById('pi-regle-type').value;
+  var regle = {
+    id:             APP._piEditRegleId || ('regle_' + Date.now()),
+    nom:            nom,
+    montant_joueur: parseFloat(document.getElementById('pi-regle-montant').value) || 0,
+    type_calcul:    type,
+    part_adtem:     type === 'fixe'     ? parseFloat(document.getElementById('pi-regle-adtem').value)     || 0 : 0,
+    part_infra:     type === 'fixe'     ? parseFloat(document.getElementById('pi-regle-infra').value)     || 0 : 0,
+    part_adtem_pct: type === 'pourcent' ? parseFloat(document.getElementById('pi-regle-adtem-pct').value) || 0 : 0,
+    part_infra_pct: type === 'pourcent' ? parseFloat(document.getElementById('pi-regle-infra-pct').value) || 0 : 0,
+    keywords:       document.getElementById('pi-regle-keywords').value.split(';').map(function(s){return s.trim();}).filter(Boolean),
+    niveau_min:     document.getElementById('pi-regle-niveau').value,
+    description:    document.getElementById('pi-regle-desc').value.trim()
+  };
+  var ok = await sbUpsert('prime_infra_regles', regle, { onConflict: 'id' });
+  if (ok === false) { toast('Erreur Supabase', 'error'); return; }
+  var idx = APP.piRegles.findIndex(function(x) { return x.id === regle.id; });
+  if (idx >= 0) APP.piRegles[idx] = regle; else APP.piRegles.push(regle);
+  piResetRegleForm();
+  piRenderRegles();
+  piPopulateRegleSelects();
+  toast('Règle enregistrée', 'success');
+  journalLog('Prime InfrAlliance : règle "' + nom + '" enregistrée', 'ok');
+}
+
+async function piSupprimerRegle(id) {
+  if (!confirm('Supprimer cette règle de prime ?')) return;
+  await sbDelete('prime_infra_regles', { id: id });
+  APP.piRegles = APP.piRegles.filter(function(x) { return x.id !== id; });
+  piRenderRegles();
+  piPopulateRegleSelects();
+  toast('Règle supprimée', 'info');
+}
+
+function piRenderRegles() {
+  var el = document.getElementById('pi-regles-list');
+  if (!el) return;
+  if (!APP.piRegles.length) {
+    el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text3);font-size:12px;">Aucune règle configurée.</div>';
+    return;
+  }
+  el.innerHTML = APP.piRegles.map(function(r) {
+    var partAdtem = r.type_calcul === 'pourcent' ? (r.part_adtem_pct + '%') : ((r.part_adtem||0).toLocaleString('fr') + ' €');
+    var partInfra = r.type_calcul === 'pourcent' ? (r.part_infra_pct + '%') : ((r.part_infra||0).toLocaleString('fr') + ' €');
+    var kws = r.keywords && r.keywords.length ? '<div style="margin-top:4px;font-size:10px;color:var(--text3);">🔍 Mots-clés : ' + r.keywords.join(', ') + '</div>' : '';
+    var niv = r.niveau_min ? ' · Niveau min : ' + r.niveau_min : '';
+    return '<div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;background:var(--surface2);">'
+      + '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
+      + '<div><div style="font-weight:700;font-size:12px;">' + r.nom + '</div>'
+      + '<div style="font-size:10px;color:var(--text3);margin-top:2px;">' + (r.description||'') + niv + '</div></div>'
+      + '<div style="display:flex;gap:6px;">'
+      + '<button onclick="piEditRegle(\'' + r.id + '\')" style="font-size:10px;padding:2px 8px;border-radius:5px;border:1px solid var(--border);background:var(--surface);cursor:pointer;">✏️</button>'
+      + '<button onclick="piSupprimerRegle(\'' + r.id + '\')" style="font-size:10px;padding:2px 8px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--red);cursor:pointer;">✕</button>'
+      + '</div></div>'
+      + '<div style="display:flex;gap:16px;margin-top:8px;font-size:11px;">'
+      + '<span>👤 Joueur : <b>' + (r.montant_joueur||0).toLocaleString('fr') + ' €</b></span>'
+      + '<span style="color:var(--green3);">🏢 ADTEM : <b>' + partAdtem + '</b></span>'
+      + '<span style="color:var(--blue);">🤝 Infra : <b>' + partInfra + '</b></span>'
+      + '</div>' + kws + '</div>';
+  }).join('');
+}
+
+// ================================================================
+//  PRIME INFRA — PRIMES VERSÉES
+// ================================================================
+function piPopulateRegleSelects() {
+  ['pi-filtre-regle','pi-man-regle'].forEach(function(id) {
+    var sel = document.getElementById(id);
+    if (!sel) return;
+    var cur  = sel.value;
+    var opts = id === 'pi-filtre-regle' ? '<option value="">Toutes les primes</option>' : '<option value="">— Choisir —</option>';
+    sel.innerHTML = opts + APP.piRegles.map(function(r) {
+      return '<option value="' + r.id + '">' + r.nom + '</option>';
+    }).join('');
+    sel.value = cur;
+  });
+}
+
+function piOpenAddManuel() {
+  var box = document.getElementById('pi-add-manuel');
+  box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  document.getElementById('pi-man-date').value = new Date().toISOString().slice(0,10);
+}
+
+function piAutoMontantManuel() {
+  var regleId = document.getElementById('pi-man-regle').value;
+  var r = APP.piRegles.find(function(x) { return x.id === regleId; });
+  if (r && r.montant_joueur) {
+    document.getElementById('pi-man-montant').value = r.montant_joueur;
+    piCalcManuelParts();
+  }
+}
+
+function piCalcParts(montant, regle) {
+  if (!regle) return { adtem: 0, infra: 0 };
+  if (regle.type_calcul === 'pourcent') {
+    return {
+      adtem: Math.round(montant * (regle.part_adtem_pct || 0) / 100),
+      infra: Math.round(montant * (regle.part_infra_pct || 0) / 100)
+    };
+  }
+  return { adtem: regle.part_adtem || 0, infra: regle.part_infra || 0 };
+}
+
+function piCalcManuelParts() {
+  var regleId = document.getElementById('pi-man-regle').value;
+  var montant = parseFloat(document.getElementById('pi-man-montant').value) || 0;
+  var r   = APP.piRegles.find(function(x) { return x.id === regleId; });
+  var box = document.getElementById('pi-man-parts');
+  var txt = document.getElementById('pi-man-parts-txt');
+  if (!r || !montant) { box.style.display = 'none'; return; }
+  var parts = piCalcParts(montant, r);
+  box.style.display = 'block';
+  txt.innerHTML = '🏢 ADTEM : <b>' + parts.adtem.toLocaleString('fr') + ' €</b> &nbsp;·&nbsp; 🤝 InfrAlliance : <b>' + parts.infra.toLocaleString('fr') + ' €</b>';
+}
+
+async function piSauvegarderManuel() {
+  var regleId = document.getElementById('pi-man-regle').value;
+  var pseudo  = document.getElementById('pi-man-pseudo').value.trim();
+  var montant = parseFloat(document.getElementById('pi-man-montant').value) || 0;
+  var date    = document.getElementById('pi-man-date').value;
+  if (!regleId) { toast('Sélectionnez une règle de prime', 'error'); return; }
+  if (!pseudo)  { toast('Pseudo requis', 'error'); return; }
+  if (!montant) { toast('Montant requis', 'error'); return; }
+  var r = APP.piRegles.find(function(x) { return x.id === regleId; });
+  var parts = piCalcParts(montant, r);
+  var prime = {
+    id:             'pi_' + Date.now(),
+    date:           date,
+    pseudo:         pseudo,
+    regle_id:       regleId,
+    regle_nom:      r ? r.nom : '',
+    libelle:        document.getElementById('pi-man-libelle').value.trim() || ((r ? r.nom : '') + ' ' + pseudo),
+    montant_joueur: montant,
+    part_adtem:     parts.adtem,
+    part_infra:     parts.infra,
+    note:           document.getElementById('pi-man-note').value.trim(),
+    statut:         'en_attente',
+    source:         'manuel'
+  };
+  var ok = await sbUpsert('prime_infra', prime, { onConflict: 'id' });
+  if (ok === false) { toast('Erreur Supabase', 'error'); return; }
+  APP.piPrimes.unshift(prime);
+  piRenderPrimes();
+  piRenderBilan();
+  document.getElementById('pi-add-manuel').style.display = 'none';
+  toast('Prime enregistrée', 'success');
+  journalLog('Prime InfrAlliance : ' + (r ? r.nom : '') + ' → ' + pseudo + ' — ' + montant.toLocaleString('fr') + ' €', 'ok');
+}
+
+async function piImportCompta() {
+  if (!APP.compta || !APP.compta.length) { toast('Chargez d\'abord la comptabilité', 'info'); return; }
+  if (!APP.piRegles.length) { toast('Configurez d\'abord au moins une règle', 'info'); return; }
+  var importes = 0;
+  for (var i = 0; i < APP.compta.length; i++) {
+    var op      = APP.compta[i];
+    var libelle = (op['Libellé de l\'opération'] || '').toLowerCase();
+    var dateParts = (op['Date de l\'opération'] || '').split(' ')[0].split('/');
+    var date    = dateParts.length === 3 ? dateParts[2] + '-' + dateParts[1] + '-' + dateParts[0] : '';
+    var montant = parseFloat(op['Dépenses']) || 0;
+    if (!montant) continue;
+    for (var j = 0; j < APP.piRegles.length; j++) {
+      var r   = APP.piRegles[j];
+      var kws = r.keywords || [];
+      if (!kws.length) continue;
+      var match = kws.some(function(kw) { return libelle.includes(kw.toLowerCase()); });
+      if (!match) continue;
+      var pseudo = '';
+      var parenMatch = op['Libellé de l\'opération'].match(/\(([^)]+)\)/);
+      if (parenMatch) {
+        pseudo = parenMatch[1].trim();
+      } else {
+        var words = op['Libellé de l\'opération'].trim().split(/\s+/);
+        pseudo = words[words.length - 1];
+      }
+      var doublon = APP.piPrimes.find(function(p) {
+        return p.date === date && p.regle_id === r.id && Math.abs(p.montant_joueur - montant) < 1;
+      });
+      if (doublon) continue;
+      var parts = piCalcParts(montant, r);
+      var prime = {
+        id:             'pi_' + Date.now() + '_' + importes,
+        date:           date,
+        pseudo:         pseudo,
+        regle_id:       r.id,
+        regle_nom:      r.nom,
+        libelle:        op['Libellé de l\'opération'],
+        montant_joueur: montant,
+        part_adtem:     parts.adtem,
+        part_infra:     parts.infra,
+        note:           'Import automatique compta',
+        statut:         'en_attente',
+        source:         'compta'
+      };
+      await sbUpsert('prime_infra', prime, { onConflict: 'id' });
+      APP.piPrimes.unshift(prime);
+      importes++;
+    }
+  }
+  piRenderPrimes();
+  piRenderBilan();
+  if (importes > 0) {
+    toast(importes + ' prime(s) importée(s) depuis la compta', 'success');
+    journalLog('Prime InfrAlliance : ' + importes + ' prime(s) détectées automatiquement', 'ok');
+  } else {
+    toast('Aucune nouvelle prime détectée', 'info');
+  }
+}
+
+function piRenderPrimes() {
+  var tbody = document.getElementById('pi-primes-tbody');
+  if (!tbody) return;
+  var search  = (document.getElementById('pi-search')  ? document.getElementById('pi-search').value  : '').toLowerCase();
+  var filtreR = document.getElementById('pi-filtre-regle')  ? document.getElementById('pi-filtre-regle').value  : '';
+  var filtreS = document.getElementById('pi-filtre-statut') ? document.getElementById('pi-filtre-statut').value : '';
+
+  var list = APP.piPrimes.filter(function(p) {
+    if (search  && !((p.pseudo||'').toLowerCase().includes(search) || (p.libelle||'').toLowerCase().includes(search))) return false;
+    if (filtreR && p.regle_id !== filtreR) return false;
+    if (filtreS && p.statut   !== filtreS) return false;
+    return true;
+  });
+
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text3);">Aucune prime enregistrée.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(function(p) {
+    var badge = p.statut === 'pointe'
+      ? '<span style="background:var(--greenbg);color:var(--green3);border:1px solid var(--greenl);border-radius:10px;padding:2px 8px;font-size:10px;font-weight:600;">✅ Pointé</span>'
+      : '<span style="background:var(--yellowbg);color:var(--yellow);border:1px solid rgba(201,134,10,0.3);border-radius:10px;padding:2px 8px;font-size:10px;font-weight:600;">⏳ En attente</span>';
+    var dateAff = (p.date||'').split('-').reverse().join('/');
+    var libCourt = (p.libelle||'').substring(0,50);
+    return '<tr style="border-bottom:1px solid var(--border);">'
+      + '<td style="padding:8px 12px;white-space:nowrap;font-size:10.5px;color:var(--text3);">' + dateAff + '</td>'
+      + '<td style="padding:8px 12px;font-weight:600;">' + (p.pseudo||'—') + '</td>'
+      + '<td style="padding:8px 12px;"><span style="background:var(--greenbg);color:var(--green3);border-radius:4px;padding:2px 6px;font-size:10px;">' + (p.regle_nom||'—') + '</span></td>'
+      + '<td style="padding:8px 12px;font-size:11px;color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + (p.libelle||'') + '">' + libCourt + '</td>'
+      + '<td style="padding:8px 12px;text-align:right;font-weight:700;">' + (p.montant_joueur||0).toLocaleString('fr') + ' €</td>'
+      + '<td style="padding:8px 12px;text-align:right;font-weight:700;color:var(--green3);">' + (p.part_adtem||0).toLocaleString('fr') + ' €</td>'
+      + '<td style="padding:8px 12px;text-align:right;font-weight:700;color:var(--blue);">' + (p.part_infra||0).toLocaleString('fr') + ' €</td>'
+      + '<td style="padding:8px 12px;text-align:center;">' + badge + '</td>'
+      + '<td style="padding:8px 12px;text-align:center;">'
+      + '<button onclick="piTogglePointer(\'' + p.id + '\')" style="font-size:10px;padding:2px 8px;border-radius:5px;border:1px solid var(--border);background:var(--surface);cursor:pointer;" title="Basculer statut">' + (p.statut==='pointe'?'↩':'✅') + '</button>'
+      + '<button onclick="piSupprimerPrime(\'' + p.id + '\')" style="font-size:10px;padding:2px 8px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--red);cursor:pointer;margin-left:4px;">✕</button>'
+      + '</td></tr>';
+  }).join('');
+}
+
+async function piTogglePointer(id) {
+  var p = APP.piPrimes.find(function(x) { return x.id === id; });
+  if (!p) return;
+  p.statut = p.statut === 'pointe' ? 'en_attente' : 'pointe';
+  await sbUpdate('prime_infra', { statut: p.statut }, { id: id });
+  piRenderPrimes();
+  piRenderBilan();
+}
+
+async function piSupprimerPrime(id) {
+  if (!confirm('Supprimer cette prime ?')) return;
+  await sbDelete('prime_infra', { id: id });
+  APP.piPrimes = APP.piPrimes.filter(function(x) { return x.id !== id; });
+  piRenderPrimes();
+  piRenderBilan();
+  toast('Prime supprimée', 'info');
+}
+
+// ================================================================
+//  PRIME INFRA — BILAN TRIMESTRIEL
+// ================================================================
+function piSetTrimestre() {
+  var now = new Date();
+  var m   = now.getMonth();
+  var y   = now.getFullYear();
+  var t   = Math.floor(m / 3);
+  var debuts = ['-01-01','-04-01','-07-01','-10-01'];
+  var fins   = ['-03-31','-06-30','-09-30','-12-31'];
+  document.getElementById('pi-bilan-depuis').value  = y + debuts[t];
+  document.getElementById('pi-bilan-jusqua').value  = y + fins[t];
+  piRenderBilan();
+}
+
+function piRenderBilan() {
+  var depuis = document.getElementById('pi-bilan-depuis')  ? document.getElementById('pi-bilan-depuis').value  : '';
+  var jusqua = document.getElementById('pi-bilan-jusqua')  ? document.getElementById('pi-bilan-jusqua').value  : '';
+  var detail = document.getElementById('pi-bilan-detail');
+  if (!detail) return;
+
+  var primes = APP.piPrimes.filter(function(p) {
+    if (p.statut === 'pointe') return false;
+    if (depuis && p.date < depuis) return false;
+    if (jusqua && p.date > jusqua) return false;
+    return true;
+  });
+
+  var totJoueur = primes.reduce(function(s,p){ return s+(p.montant_joueur||0); }, 0);
+  var totAdtem  = primes.reduce(function(s,p){ return s+(p.part_adtem||0); },   0);
+  var totInfra  = primes.reduce(function(s,p){ return s+(p.part_infra||0); },   0);
+
+  var kpiTot = document.getElementById('pi-kpi-total');
+  var kpiAdt = document.getElementById('pi-kpi-adtem');
+  var kpiInf = document.getElementById('pi-kpi-infra');
+  var kpiNb  = document.getElementById('pi-kpi-nb');
+  if (kpiTot) kpiTot.textContent = totJoueur.toLocaleString('fr') + ' €';
+  if (kpiAdt) kpiAdt.textContent = totAdtem.toLocaleString('fr')  + ' €';
+  if (kpiInf) kpiInf.textContent = totInfra.toLocaleString('fr')  + ' €';
+  if (kpiNb)  kpiNb.textContent  = primes.length;
+
+  if (!primes.length) {
+    detail.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px;">Aucune prime en attente sur cette période.</div>';
+    return;
+  }
+
+  var byRegle = {};
+  primes.forEach(function(p) {
+    var k = p.regle_nom || '—';
+    if (!byRegle[k]) byRegle[k] = { primes: [], adtem: 0, infra: 0, joueur: 0 };
+    byRegle[k].primes.push(p);
+    byRegle[k].adtem  += p.part_adtem  || 0;
+    byRegle[k].infra  += p.part_infra  || 0;
+    byRegle[k].joueur += p.montant_joueur || 0;
+  });
+
+  var html = '';
+  for (var nom in byRegle) {
+    var g = byRegle[nom];
+    html += '<div style="margin-bottom:12px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">'
+      + '<div style="background:var(--surface3);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;">'
+      + '<span style="font-weight:700;font-size:12px;">' + nom + ' <span style="font-weight:400;color:var(--text3);font-size:10px;">(' + g.primes.length + ' prime(s))</span></span>'
+      + '<div style="display:flex;gap:12px;font-size:11px;">'
+      + '<span style="color:var(--green3);">ADTEM : <b>' + g.adtem.toLocaleString('fr') + ' €</b></span>'
+      + '<span style="color:var(--blue);">Infra : <b>' + g.infra.toLocaleString('fr') + ' €</b></span>'
+      + '</div></div>'
+      + '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+    g.primes.forEach(function(p) {
+      html += '<tr style="border-top:1px solid var(--border);">'
+        + '<td style="padding:5px 12px;color:var(--text3);">' + (p.date||'').split('-').reverse().join('/') + '</td>'
+        + '<td style="padding:5px 12px;font-weight:600;">' + (p.pseudo||'') + '</td>'
+        + '<td style="padding:5px 12px;color:var(--text2);">' + (p.libelle||'').substring(0,50) + '</td>'
+        + '<td style="padding:5px 12px;text-align:right;">' + (p.montant_joueur||0).toLocaleString('fr') + ' €</td>'
+        + '<td style="padding:5px 12px;text-align:right;color:var(--green3);">' + (p.part_adtem||0).toLocaleString('fr') + ' €</td>'
+        + '<td style="padding:5px 12px;text-align:right;color:var(--blue);">' + (p.part_infra||0).toLocaleString('fr') + ' €</td>'
+        + '</tr>';
+    });
+    html += '</table></div>';
+  }
+  html += '<div style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;">'
+    + '<span style="font-weight:800;font-size:13px;">TOTAL</span>'
+    + '<div style="display:flex;gap:16px;font-size:12px;">'
+    + '<span>Joueurs : <b>' + totJoueur.toLocaleString('fr') + ' €</b></span>'
+    + '<span style="color:var(--green3);">ADTEM doit : <b>' + totAdtem.toLocaleString('fr') + ' €</b></span>'
+    + '<span style="color:var(--blue);">Infra doit : <b>' + totInfra.toLocaleString('fr') + ' €</b></span>'
+    + '</div></div>';
+
+  detail.innerHTML = html;
+}
+
+async function piPointerRemboursement() {
+  var datePointage = document.getElementById('pi-pointer-date').value;
+  if (!datePointage) { toast('Renseignez la date du remboursement', 'error'); return; }
+  var depuis = document.getElementById('pi-bilan-depuis') ? document.getElementById('pi-bilan-depuis').value : '';
+  var jusqua = document.getElementById('pi-bilan-jusqua') ? document.getElementById('pi-bilan-jusqua').value : '';
+
+  var aPointer = APP.piPrimes.filter(function(p) {
+    if (p.statut === 'pointe') return false;
+    if (depuis && p.date < depuis) return false;
+    if (jusqua && p.date > jusqua) return false;
+    return true;
+  });
+
+  if (!aPointer.length) { toast('Aucune prime à pointer sur cette période', 'info'); return; }
+  if (!confirm('Pointer ' + aPointer.length + ' prime(s) comme remboursées le ' + datePointage + ' ? Le bilan sera remis à zéro pour cette période.')) return;
+
+  for (var i = 0; i < aPointer.length; i++) {
+    aPointer[i].statut = 'pointe';
+    aPointer[i].date_pointage = datePointage;
+    await sbUpdate('prime_infra', { statut: 'pointe', date_pointage: datePointage }, { id: aPointer[i].id });
+  }
+
+  piRenderPrimes();
+  piRenderBilan();
+  toast(aPointer.length + ' prime(s) pointée(s) — bilan remis à zéro', 'success');
+  journalLog('Prime InfrAlliance : remboursement pointé le ' + datePointage + ' (' + aPointer.length + ' primes)', 'ok');
+}
+
+// ================================================================
+//  PRIME INFRA — EXPORT BILAN
+// ================================================================
+function piGenererBilanDevis() {
+  var depuis = document.getElementById('pi-bilan-depuis') ? document.getElementById('pi-bilan-depuis').value : '';
+  var jusqua = document.getElementById('pi-bilan-jusqua') ? document.getElementById('pi-bilan-jusqua').value : '';
+
+  var primes = APP.piPrimes.filter(function(p) {
+    if (p.statut === 'pointe') return false;
+    if (depuis && p.date < depuis) return false;
+    if (jusqua && p.date > jusqua) return false;
+    return true;
+  });
+
+  if (!primes.length) { toast('Aucune prime à exporter', 'info'); return; }
+
+  var totAdtem  = primes.reduce(function(s,p){ return s+(p.part_adtem||0); }, 0);
+  var totInfra  = primes.reduce(function(s,p){ return s+(p.part_infra||0); }, 0);
+  var totJoueur = primes.reduce(function(s,p){ return s+(p.montant_joueur||0); }, 0);
+
+  var byRegle = {};
+  primes.forEach(function(p) {
+    var k = p.regle_nom || '—';
+    if (!byRegle[k]) byRegle[k] = [];
+    byRegle[k].push(p);
+  });
+
+  function fmtDate(d) { return d ? d.split('-').reverse().join('/') : '—'; }
+  var periode  = fmtDate(depuis) + ' – ' + fmtDate(jusqua);
+  var now      = new Date();
+  var dateGen  = fmtDate(now.toISOString().slice(0,10)) + ' ' + now.toTimeString().slice(0,5);
+
+  var lignesParGroupe = '';
+  for (var nom in byRegle) {
+    var list    = byRegle[nom];
+    var subAdt  = list.reduce(function(s,p){ return s+(p.part_adtem||0); }, 0);
+    var subInf  = list.reduce(function(s,p){ return s+(p.part_infra||0); }, 0);
+    lignesParGroupe += '<tr style="background:#f1f8e9;">'
+      + '<td colspan="3" style="padding:7px 10px;font-size:11px;font-weight:700;color:#2e7d32;">' + nom + '</td>'
+      + '<td></td>'
+      + '<td style="text-align:right;color:#2e7d32;font-weight:700;font-size:11px;">' + subAdt.toLocaleString('fr') + ' €</td>'
+      + '<td style="text-align:right;color:#1565c0;font-weight:700;font-size:11px;">' + subInf.toLocaleString('fr') + ' €</td>'
+      + '</tr>';
+    list.forEach(function(p) {
+      lignesParGroupe += '<tr>'
+        + '<td style="padding:5px 10px;border-top:1px solid #e0e0e0;font-size:10px;color:#555;">' + fmtDate(p.date) + '</td>'
+        + '<td style="padding:5px 10px;border-top:1px solid #e0e0e0;font-size:10.5px;font-weight:600;">' + (p.pseudo||'') + '</td>'
+        + '<td style="padding:5px 10px;border-top:1px solid #e0e0e0;font-size:10px;color:#444;">' + (p.libelle||'').substring(0,60) + '</td>'
+        + '<td style="padding:5px 10px;border-top:1px solid #e0e0e0;text-align:right;font-size:10.5px;">' + (p.montant_joueur||0).toLocaleString('fr') + ' €</td>'
+        + '<td style="padding:5px 10px;border-top:1px solid #e0e0e0;text-align:right;font-size:10.5px;color:#2e7d32;font-weight:700;">' + (p.part_adtem||0).toLocaleString('fr') + ' €</td>'
+        + '<td style="padding:5px 10px;border-top:1px solid #e0e0e0;text-align:right;font-size:10.5px;color:#1565c0;font-weight:700;">' + (p.part_infra||0).toLocaleString('fr') + ' €</td>'
+        + '</tr>';
+    });
+  }
+
+  var html = '<div id="pi-bilan-content" style="background:white;color:#1a1a1a;font-family:\'Exo 2\',sans-serif;width:794px;padding:0;">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 24px;border-bottom:3px solid #2e7d32;background:#f9fafb;">'
+    + '<div style="display:flex;align-items:center;gap:12px;">'
+    + '<img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/Logo%20Alliance.png" style="height:50px;" crossorigin="anonymous" onerror="this.style.display=\'none\'">'
+    + '<div><div style="font-size:18px;font-weight:800;color:#2e7d32;">Bilan InfrAlliance</div>'
+    + '<div style="font-size:11px;color:#555;">Période : ' + periode + '</div></div></div>'
+    + '<div style="text-align:right;font-size:10px;color:#555;"><div>Généré le ' + dateGen + '</div>'
+    + '<div style="margin-top:4px;font-size:9px;color:#888;">CONFIDENTIEL — Usage interne ADTEM</div></div></div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-bottom:2px solid #2e7d32;">'
+    + '<div style="padding:12px 20px;border-right:1px solid #e0e0e0;text-align:center;">'
+    + '<div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;">Total versé joueurs</div>'
+    + '<div style="font-size:18px;font-weight:800;color:#1a1a1a;margin-top:4px;">' + totJoueur.toLocaleString('fr') + ' €</div></div>'
+    + '<div style="padding:12px 20px;border-right:1px solid #e0e0e0;text-align:center;background:#f1f8e9;">'
+    + '<div style="font-size:10px;color:#2e7d32;text-transform:uppercase;letter-spacing:1px;font-weight:700;">ADTEM doit à Infra</div>'
+    + '<div style="font-size:18px;font-weight:800;color:#2e7d32;margin-top:4px;">' + totAdtem.toLocaleString('fr') + ' €</div></div>'
+    + '<div style="padding:12px 20px;text-align:center;background:#e3f2fd;">'
+    + '<div style="font-size:10px;color:#1565c0;text-transform:uppercase;letter-spacing:1px;font-weight:700;">InfrAlliance doit à ADTEM</div>'
+    + '<div style="font-size:18px;font-weight:800;color:#1565c0;margin-top:4px;">' + totInfra.toLocaleString('fr') + ' €</div></div></div>'
+    + '<table style="width:100%;border-collapse:collapse;">'
+    + '<thead><tr style="background:#2e7d32;">'
+    + '<th style="padding:7px 10px;text-align:left;color:white;font-size:10px;">Date</th>'
+    + '<th style="padding:7px 10px;text-align:left;color:white;font-size:10px;">Pseudo</th>'
+    + '<th style="padding:7px 10px;text-align:left;color:white;font-size:10px;">Libellé</th>'
+    + '<th style="padding:7px 10px;text-align:right;color:white;font-size:10px;">Joueur</th>'
+    + '<th style="padding:7px 10px;text-align:right;color:#a5d6a7;font-size:10px;">ADTEM</th>'
+    + '<th style="padding:7px 10px;text-align:right;color:#90caf9;font-size:10px;">InfrAlliance</th>'
+    + '</tr></thead>'
+    + '<tbody>' + lignesParGroupe + '</tbody>'
+    + '<tfoot><tr style="background:#e8f5e9;border-top:2px solid #2e7d32;">'
+    + '<td colspan="3" style="padding:8px 10px;font-size:13px;font-weight:900;color:#2e7d32;">TOTAL</td>'
+    + '<td style="padding:8px 10px;text-align:right;font-weight:800;">' + totJoueur.toLocaleString('fr') + ' €</td>'
+    + '<td style="padding:8px 10px;text-align:right;font-weight:900;color:#2e7d32;font-size:13px;">' + totAdtem.toLocaleString('fr') + ' €</td>'
+    + '<td style="padding:8px 10px;text-align:right;font-weight:900;color:#1565c0;font-size:13px;">' + totInfra.toLocaleString('fr') + ' €</td>'
+    + '</tr></tfoot></table>'
+    + '<div style="padding:10px 24px;background:#f9fafb;border-top:1px solid #e0e0e0;font-size:9px;color:#888;text-align:center;">'
+    + 'Document interne ADTEM · Partenariat InfrAlliance</div></div>';
+
+  var card    = document.getElementById('pi-bilan-export-card');
+  var preview = document.getElementById('pi-bilan-preview');
+  card.style.display = 'block';
+  preview.innerHTML  = '<div style="transform:scale(0.6);transform-origin:top left;width:794px;">' + html + '</div>';
+  preview.style.height   = Math.round(794 * 0.6 * 1.2) + 'px';
+  preview.style.overflow = 'hidden';
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function piExportBilanPNG() {
+  var el = document.getElementById('pi-bilan-content');
+  if (!el) { toast('Générez d\'abord le bilan', 'error'); return; }
+  var canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+  var a = document.createElement('a');
+  a.download = 'bilan-infra-' + new Date().toISOString().slice(0,10) + '.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+  toast('Export PNG généré', 'success');
+}
+
+async function piPublierBilan() {
+  var el = document.getElementById('pi-bilan-content');
+  if (!el) { toast('Générez d\'abord le bilan', 'error'); return; }
+  toast('Publication en cours...', 'info');
+  try {
+    var clone = el.cloneNode(true);
+    clone.style.transform = 'none'; clone.style.position = 'fixed'; clone.style.top = '-9999px'; clone.style.left = '0';
+    document.body.appendChild(clone);
+    var canvas = await html2canvas(clone, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+    document.body.removeChild(clone);
+    var blob = await new Promise(function(r) { canvas.toBlob(r, 'image/png'); });
+    var ts = new Date().toISOString().slice(0,10);
+    var formData = new FormData();
+    formData.append('file', blob, 'bilan-infra-' + ts + '.png');
+    formData.append('upload_preset', CLOUDINARY.uploadPreset);
+    formData.append('public_id', 'adtem/bilans/infra-' + ts);
+    var resp = await fetch(CLOUDINARY.url(), { method: 'POST', body: formData });
+    if (!resp.ok) throw new Error('Cloudinary ' + resp.status);
+    var data = await resp.json();
+    var urlBox = document.getElementById('pi-bilan-url');
+    urlBox.style.display = 'block';
+    urlBox.innerHTML = '<div class="url-box" style="flex-direction:column;align-items:flex-start;">'
+      + '<div style="display:flex;align-items:center;gap:8px;width:100%;">'
+      + '<a href="' + data.secure_url + '" target="_blank" style="flex:1;font-size:11px;">🔗 ' + data.secure_url + '</a>'
+      + '<button class="url-copy-btn" onclick="copyUrl(\'' + data.secure_url + '\')">📋 URL</button>'
+      + '</div></div>';
+    toast('Bilan publié !', 'success');
+  } catch(e) { toast('Erreur publication : ' + e.message, 'error'); }
+}
+
 
 // ================================================================
 //  INIT
@@ -8665,6 +9537,7 @@ function init() {
 }
 
 init();
+
 </script>
 </body>
 </html>
