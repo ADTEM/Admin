@@ -3857,7 +3857,7 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
     if (!data.comptabilite) throw new Error('Clé "comptabilite" manquante');
     const avant = APP.compta.length;
     await sbUpsert('compta', { periode: 'current', data });
-    APP.compta = data.comptabilite;   // ← mise à jour mémoire immédiate
+    APP.compta = data.comptabilite;   // mise à jour mémoire immédiate
     renderCompta();
     updateDashboardCompta();
     const nb = data.comptabilite.length;
@@ -3879,7 +3879,7 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
     if (!data.comptabilite) throw new Error('Clé "comptabilite" manquante');
     const avant = (APP.comptaLast || []).length;
     await sbUpsert('compta', { periode: 'last', data });
-    APP.comptaLast = data.comptabilite;   // ← mise à jour mémoire immédiate
+    APP.comptaLast = data.comptabilite;   // mise à jour mémoire immédiate
     const nb = data.comptabilite.length;
     const nouvelles = nb - avant;
     addResult('📅', 'Comptabilité — mois précédent',
@@ -4799,90 +4799,79 @@ function updateCalcLocation() {
 //  GÉNÉRATION DEVIS LOCATION
 // ================================================================
 async function genererDevisLocation() {
-  console.log('[DEVIS-LOC] ▶ Début génération devis location');
+  console.log('[DEVIS-LOC] Debut generation devis location');
   try {
-    const v = APP.devisLocation.vehiculesSelectionnes;
-    console.log('[DEVIS-LOC] Véhicules sélectionnés :', v.length, v.map(x => x['Numéro Parc']));
-    if (!v.length) { toast('Sélectionnez au moins un véhicule', 'error'); return; }
+  const v = APP.devisLocation.vehiculesSelectionnes;
+  console.log('[DEVIS-LOC] Vehicules selectionnes :', v.length);
+  if (!v.length) { toast('Sélectionnez au moins un véhicule', 'error'); return; }
 
-    const pseudo      = document.getElementById('dl-pseudo').value || '—';
-    const pseudoForum = document.getElementById('dl-pseudo-forum').value || pseudo;
-    const niveau      = document.getElementById('dl-niveau').value || '—';
-    const optionNom   = document.getElementById('dl-option').value || '';
-    const optionLabel = optionNom || 'Aucune';
-    const dateDemande = formatDateFR(document.getElementById('dl-date-demande').value);
-    const dateCreation= formatDateFR(document.getElementById('dl-date-creation').value);
-    const debut       = formatDateFR(document.getElementById('dl-debut').value);
-    const duree       = parseInt(document.getElementById('dl-duree').value) || 1;
-    const finDate     = calcFinDate(document.getElementById('dl-debut').value, duree);
-    const busRemplaces= document.getElementById('dl-bus-remplaces').value;
-    const prixStd     = APP.config.prixSem || 1000;
-    console.log('[DEVIS-LOC] Params :', { pseudo, niveau, optionNom, debut, duree, prixStd });
+  const pseudo      = document.getElementById('dl-pseudo').value || '—';
+  const pseudoForum = document.getElementById('dl-pseudo-forum').value || pseudo;
+  const niveau      = document.getElementById('dl-niveau').value || '—';
+  const optionNom   = document.getElementById('dl-option').value || '';
+  const optionLabel = optionNom || 'Aucune';
+  const dateDemande = formatDateFR(document.getElementById('dl-date-demande').value);
+  const dateCreation= formatDateFR(document.getElementById('dl-date-creation').value);
+  const debut       = formatDateFR(document.getElementById('dl-debut').value);
+  const duree       = parseInt(document.getElementById('dl-duree').value) || 1;
+  const finDate     = calcFinDate(document.getElementById('dl-debut').value, duree);
+  const busRemplaces= document.getElementById('dl-bus-remplaces').value;
+  const prixStd     = APP.config.prixSem || 1000;
 
-    const nbBus       = v.length;
-    const totalPlaces = v.reduce((s, x) => s + parseInt(x['Places'] || 0), 0);
-    const energies    = [...new Set(v.map(x => x['Energie']))].join(', ');
-    const types       = [...new Set(v.map(x => x['Type']))].join(', ');
-    const marques     = [...new Set(v.map(x => x['Marque']))].join(', ');
-    const modeles     = [...new Set(v.map(x => x['Modèle']))].join(', ');
-    const numParcs    = v.map(x => x['Numéro Parc']).join(', ');
+  const nbBus       = v.length;
+  const totalPlaces = v.reduce((s, x) => s + parseInt(x['Places'] || 0), 0);
+  const energies    = [...new Set(v.map(x => x['Energie']))].join(', ');
+  const types       = [...new Set(v.map(x => x['Type']))].join(', ');
+  const marques     = [...new Set(v.map(x => x['Marque']))].join(', ');
+  const modeles     = [...new Set(v.map(x => x['Modèle']))].join(', ');
+  const numParcs    = v.map(x => x['Numéro Parc']).join(', ');
 
-    // Calcul avec moteur de règles
-    console.log('[DEVIS-LOC] Calcul prix avec options...');
-    const { total: totalBrut, detail, economie } = calculerPrixAvecOptions(nbBus, duree, optionNom, prixStd, APP._promoActive);
-    console.log('[DEVIS-LOC] Prix calculé :', { totalBrut, economie, detail });
+  // Calcul avec moteur de règles
+  const { total: totalBrut, detail, economie } = calculerPrixAvecOptions(nbBus, duree, optionNom, prixStd, APP._promoActive);
 
-    // Ajustement tarifaire manuel (geste commercial)
-    const ajust = getAjustement();
-    let total = totalBrut;
-    let ajustLabel = '';
-    let ajustDiff  = 0;
-    if (ajust.mode === 'prix' && ajust.valeur > 0) {
-      total = nbBus * duree * ajust.valeur;
-      ajustDiff = totalBrut - total;
-      ajustLabel = `✏️ Prix ajusté : ${ajust.valeur.toLocaleString('fr')} €/sem. (-${ajustDiff.toLocaleString('fr')} €)${ajust.raison ? ' — ' + ajust.raison : ''}`;
-    } else if (ajust.mode === 'remise' && ajust.valeur > 0) {
-      const reduction = Math.round(totalBrut * ajust.valeur / 100);
-      total = totalBrut - reduction;
-      ajustDiff = reduction;
-      ajustLabel = `🏷️ Remise ${ajust.valeur}% (-${reduction.toLocaleString('fr')} €)${ajust.raison ? ' — ' + ajust.raison : ''}`;
-    }
+  // Ajustement tarifaire manuel (geste commercial)
+  const ajust = getAjustement();
+  let total = totalBrut;
+  let ajustLabel = '';
+  let ajustDiff  = 0;
+  if (ajust.mode === 'prix' && ajust.valeur > 0) {
+    total = nbBus * duree * ajust.valeur;
+    ajustDiff = totalBrut - total;
+    ajustLabel = `✏️ Prix ajusté : ${ajust.valeur.toLocaleString('fr')} €/sem. (-${ajustDiff.toLocaleString('fr')} €)${ajust.raison ? ' — ' + ajust.raison : ''}`;
+  } else if (ajust.mode === 'remise' && ajust.valeur > 0) {
+    const reduction = Math.round(totalBrut * ajust.valeur / 100);
+    total = totalBrut - reduction;
+    ajustDiff = reduction;
+    ajustLabel = `🏷️ Remise ${ajust.valeur}% (-${reduction.toLocaleString('fr')} €)${ajust.raison ? ' — ' + ajust.raison : ''}`;
+  }
 
-    // Enregistrer l'usage du code promo
-    if (APP._promoActive) enregistrerUsagePromo(pseudo);
-    const prixSansOption = nbBus * duree * prixStd;
+  // Enregistrer l'usage du code promo
+  if (APP._promoActive) enregistrerUsagePromo(pseudo);
+  const prixSansOption = nbBus * duree * prixStd;
 
-    // Attribuer le numéro à la génération
-    console.log('[DEVIS-LOC] Génération numéro devis...');
-    const numero = await genNumeroDevis('location', pseudo);
-    console.log('[DEVIS-LOC] Numéro obtenu :', numero);
-    APP._currentDevisNumero = APP._currentDevisNumero || {};
-    APP._currentDevisNumero['location'] = numero;
+  // Attribuer le numéro à la génération
+  const numero = await genNumeroDevis('location', pseudo);
+  APP._currentDevisNumero = APP._currentDevisNumero || {};
+  APP._currentDevisNumero['location'] = numero;
 
-    console.log('[DEVIS-LOC] Construction HTML...');
-    const html = buildDevisLocationHTML({
-      pseudo, pseudoForum, niveau, option: optionLabel, dateDemande, dateCreation,
-      debut, fin: finDate, busRemplaces,
-      nbBus, totalPlaces, energies, types, marques, modeles, numParcs,
-      duree, detail, total, economie, prixSansOption, prixStd, numero,
-      ajustLabel, ajustDiff
-    });
-    console.log('[DEVIS-LOC] HTML construit, longueur :', html?.length);
+  const html = buildDevisLocationHTML({
+    pseudo, pseudoForum, niveau, option: optionLabel, dateDemande, dateCreation,
+    debut, fin: finDate, busRemplaces,
+    nbBus, totalPlaces, energies, types, marques, modeles, numParcs,
+    duree, detail, total, economie, prixSansOption, prixStd, numero,
+    ajustLabel, ajustDiff
+  });
 
-    const preview = document.getElementById('devis-location-preview');
-    if (!preview) { console.error('[DEVIS-LOC] ❌ Element #devis-location-preview introuvable !'); toast('Erreur interne : preview introuvable', 'error'); return; }
-    preview.innerHTML = `<div id="devis-loc-content" style="transform:scale(0.55);transform-origin:top left;width:794px;position:relative;">${html}</div>`;
-    preview.style.height = `${794 * 0.55 * 1.5}px`;
-    preview.style.overflow = 'hidden';
+  const preview = document.getElementById('devis-location-preview');
+  preview.innerHTML = `<div id="devis-loc-content" style="transform:scale(0.55);transform-origin:top left;width:794px;position:relative;">${html}</div>`;
+  preview.style.height = `${794 * 0.55 * 1.5}px`;
+  preview.style.overflow = 'hidden';
 
-    const actionsEl = document.getElementById('devis-location-actions');
-    if (!actionsEl) { console.error('[DEVIS-LOC] ❌ Element #devis-location-actions introuvable !'); }
-    else actionsEl.style.display = 'flex';
-
-    console.log('[DEVIS-LOC] ✅ Devis généré avec succès');
-    toast('Devis généré !', 'success');
+  document.getElementById('devis-location-actions').style.display = 'flex';
+  console.log('[DEVIS-LOC] Devis genere avec succes');
+  toast('Devis généré !', 'success');
   } catch(e) {
-    console.error('[DEVIS-LOC] ❌ Exception lors de la génération :', e);
+    console.error('[DEVIS-LOC] Exception :', e.message, e);
     toast('Erreur génération devis : ' + e.message, 'error');
   }
 }
@@ -5008,62 +4997,53 @@ function devisRow(label, value) {
 //  GÉNÉRATION DEVIS AE
 // ================================================================
 async function genererDevisAE() {
-  console.log('[DEVIS-AE] ▶ Début génération devis AE');
+  console.log('[DEVIS-AE] Debut generation devis AE');
   try {
-    const v = APP.devisAE.vehiculesSelectionnes;
-    console.log('[DEVIS-AE] Véhicules sélectionnés :', v.length, v.map(x => x['Numéro Parc']));
-    if (!v.length) { toast('Sélectionnez au moins un véhicule', 'error'); return; }
-    const pseudo = document.getElementById('ae-pseudo').value || '—';
-    const pseudoForum = document.getElementById('ae-pseudo-forum').value || pseudo;
-    const niveau = document.getElementById('ae-niveau').value || '—';
-    const option = document.getElementById('ae-option').options[document.getElementById('ae-option').selectedIndex].text;
-    const dateDemande = formatDateFR(document.getElementById('ae-date-demande').value);
-    const dateCreation = formatDateFR(document.getElementById('ae-date-creation').value);
-    const debut = formatDateFR(document.getElementById('ae-debut').value);
-    const fin = formatDateFR(document.getElementById('ae-fin').value);
-    const duree = parseInt(document.getElementById('ae-duree-sem').value) || 1;
-    const conducteurs = parseInt(document.getElementById('ae-conducteurs').value) || 1;
-    const montant = parseInt(document.getElementById('ae-montant').value) || 0;
-    const consoType = document.getElementById('ae-conso-type').value || '';
-    const description = document.getElementById('ae-description').value || '';
-    console.log('[DEVIS-AE] Params :', { pseudo, niveau, debut, fin, duree, montant });
+  const v = APP.devisAE.vehiculesSelectionnes;
+  console.log('[DEVIS-AE] Vehicules selectionnes :', v.length);
+  if (!v.length) { toast('Sélectionnez au moins un véhicule', 'error'); return; }
+  const pseudo = document.getElementById('ae-pseudo').value || '—';
+  const pseudoForum = document.getElementById('ae-pseudo-forum').value || pseudo;
+  const niveau = document.getElementById('ae-niveau').value || '—';
+  const option = document.getElementById('ae-option').options[document.getElementById('ae-option').selectedIndex].text;
+  const dateDemande = formatDateFR(document.getElementById('ae-date-demande').value);
+  const dateCreation = formatDateFR(document.getElementById('ae-date-creation').value);
+  const debut = formatDateFR(document.getElementById('ae-debut').value);
+  const fin = formatDateFR(document.getElementById('ae-fin').value);
+  const duree = parseInt(document.getElementById('ae-duree-sem').value) || 1;
+  const conducteurs = parseInt(document.getElementById('ae-conducteurs').value) || 1;
+  const montant = parseInt(document.getElementById('ae-montant').value) || 0;
+  const consoType = document.getElementById('ae-conso-type').value || '';
+  const description = document.getElementById('ae-description').value || '';
 
-    const nbVeh = v.length;
-    const energies = [...new Set(v.map(x => x['Energie']))].join(', ');
-    const types = [...new Set(v.map(x => x['Type']))].join(', ');
-    const marques = [...new Set(v.map(x => x['Marque']))].join(', ');
-    const modeles = [...new Set(v.map(x => x['Modèle']))].join(', ');
-    const numParcs = v.map(x => x['Numéro Parc']).join(', ');
+  const nbVeh = v.length;
+  const energies = [...new Set(v.map(x => x['Energie']))].join(', ');
+  const types = [...new Set(v.map(x => x['Type']))].join(', ');
+  const marques = [...new Set(v.map(x => x['Marque']))].join(', ');
+  const modeles = [...new Set(v.map(x => x['Modèle']))].join(', ');
+  const numParcs = v.map(x => x['Numéro Parc']).join(', ');
 
-    // Attribuer le numéro à la génération
-    console.log('[DEVIS-AE] Génération numéro devis...');
-    const numero = await genNumeroDevis('ae', pseudo);
-    console.log('[DEVIS-AE] Numéro obtenu :', numero);
-    APP._currentDevisNumero = APP._currentDevisNumero || {};
-    APP._currentDevisNumero['ae'] = numero;
+  // Attribuer le numéro à la génération
+  const numero = await genNumeroDevis('ae', pseudo);
+  APP._currentDevisNumero = APP._currentDevisNumero || {};
+  APP._currentDevisNumero['ae'] = numero;
 
-    console.log('[DEVIS-AE] Construction HTML...');
-    const html = buildDevisAEHTML({
-      pseudo, pseudoForum, niveau, option, dateDemande, dateCreation,
-      debut, fin, duree, conducteurs, montant, consoType, description,
-      nbVeh, energies, types, marques, modeles, numParcs, numero
-    });
-    console.log('[DEVIS-AE] HTML construit, longueur :', html?.length);
+  const html = buildDevisAEHTML({
+    pseudo, pseudoForum, niveau, option, dateDemande, dateCreation,
+    debut, fin, duree, conducteurs, montant, consoType, description,
+    nbVeh, energies, types, marques, modeles, numParcs, numero
+  });
 
-    const preview = document.getElementById('devis-ae-preview');
-    if (!preview) { console.error('[DEVIS-AE] ❌ Element #devis-ae-preview introuvable !'); toast('Erreur interne : preview introuvable', 'error'); return; }
-    preview.innerHTML = `<div id="devis-ae-content" style="transform:scale(0.55);transform-origin:top left;width:794px;position:relative;">${html}</div>`;
-    preview.style.height = `${794 * 0.55 * 1.5}px`;
-    preview.style.overflow = 'hidden';
+  const preview = document.getElementById('devis-ae-preview');
+  preview.innerHTML = `<div id="devis-ae-content" style="transform:scale(0.55);transform-origin:top left;width:794px;position:relative;">${html}</div>`;
+  preview.style.height = `${794 * 0.55 * 1.5}px`;
+  preview.style.overflow = 'hidden';
 
-    const actionsEl = document.getElementById('devis-ae-actions');
-    if (!actionsEl) { console.error('[DEVIS-AE] ❌ Element #devis-ae-actions introuvable !'); }
-    else actionsEl.style.display = 'flex';
-
-    console.log('[DEVIS-AE] ✅ Devis AE généré avec succès');
-    toast('Devis AE généré !', 'success');
+  document.getElementById('devis-ae-actions').style.display = 'flex';
+  console.log('[DEVIS-AE] Devis AE genere avec succes');
+  toast('Devis AE généré !', 'success');
   } catch(e) {
-    console.error('[DEVIS-AE] ❌ Exception lors de la génération :', e);
+    console.error('[DEVIS-AE] Exception :', e.message, e);
     toast('Erreur génération devis AE : ' + e.message, 'error');
   }
 }
