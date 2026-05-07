@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.29</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.30</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -3191,9 +3191,11 @@ async function sbGet(table, opts = {}) {
   }
 }
 async function sbUpsert(table, data, opts = {}) {
-  const { error } = await supa.from(table).upsert(data, opts);
-  if (error) { console.error('sbUpsert', table, error); return false; }
-  return true;
+  try {
+    const { error } = await supa.from(table).upsert(data, opts);
+    if (error) { console.error('sbUpsert', table, error?.message || error?.code, error); return false; }
+    return true;
+  } catch(e) { console.error('sbUpsert exception', table, e); return false; }
 }
 async function sbInsert(table, data) {
   const { error } = await supa.from(table).insert(data);
@@ -3420,6 +3422,14 @@ async function loadAllData() {
     const comptaLast = await sbGet('compta', { eq: ['periode', 'last'] });
     if (comptaLast?.[0]?.data?.comptabilite) {
       APP.comptaLast = comptaLast[0].data.comptabilite;
+    }
+
+    // Compta ALL périodes (pour détection Prime InfrAlliance sur tous les mois)
+    const comptaAllRows = await sbGet('compta');
+    if (comptaAllRows && comptaAllRows.length) {
+      APP.comptaAll = comptaAllRows
+        .filter(function(r) { return r.data && r.data.comptabilite; })
+        .flatMap(function(r) { return r.data.comptabilite; });
     }
 
     // Personnel
@@ -9116,21 +9126,38 @@ async function piSauvegarderManuel() {
     source:         'manuel'
   };
   var ok = await sbUpsert('prime_infra', prime, { onConflict: 'id' });
-  if (ok === false) { toast('Erreur Supabase', 'error'); return; }
+  if (ok === false) {
+    toast('Erreur enregistrement — vérifiez la console (RLS ?)', 'error');
+    return;
+  }
   APP.piPrimes.unshift(prime);
   piRenderPrimes();
   piRenderBilan();
+  // Vider le formulaire
+  ['pi-man-pseudo','pi-man-libelle','pi-man-note'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('pi-man-montant').value = '';
+  document.getElementById('pi-man-regle').value = '';
+  document.getElementById('pi-man-parts').style.display = 'none';
   document.getElementById('pi-add-manuel').style.display = 'none';
-  toast('Prime enregistrée', 'success');
+  toast('Prime enregistrée ✅', 'success');
   journalLog('Prime InfrAlliance : ' + (r ? r.nom : '') + ' → ' + pseudo + ' — ' + montant.toLocaleString('fr') + ' €', 'ok');
 }
 
 async function piImportCompta() {
-  if (!APP.compta || !APP.compta.length) { toast('Chargez d\'abord la comptabilité', 'info'); return; }
+  // Construire la liste complète depuis tous les mois chargés
+  var allOps = [];
+  if (APP.comptaAll && APP.comptaAll.length) {
+    allOps = APP.comptaAll;
+  } else if (APP.compta && APP.compta.length) {
+    allOps = APP.compta;
+  }
+  if (!allOps.length) { toast('Chargez d\'abord la comptabilité (onglet Comptabilité)', 'info'); return; }
   if (!APP.piRegles.length) { toast('Configurez d\'abord au moins une règle', 'info'); return; }
   var importes = 0;
-  for (var i = 0; i < APP.compta.length; i++) {
-    var op      = APP.compta[i];
+  for (var i = 0; i < allOps.length; i++) {
+    var op      = allOps[i];
     var libelle = (op['Libellé de l\'opération'] || '').toLowerCase();
     var dateParts = (op['Date de l\'opération'] || '').split(' ')[0].split('/');
     var date    = dateParts.length === 3 ? dateParts[2] + '-' + dateParts[1] + '-' + dateParts[0] : '';
