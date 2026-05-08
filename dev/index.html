@@ -3311,6 +3311,7 @@ async function initSupabase() {
 }
 
 async function handleAuthState(user) {
+  try {
   if (user) {
     console.log('[AUTH] User connecte:', user.email, 'id:', user.id);
     let profiles = await sbGet('profiles', { eq: ['id', user.id] });
@@ -3387,6 +3388,10 @@ async function handleAuthState(user) {
       document.getElementById('login-screen').classList.remove('hidden');
       showPanelLogin();
     }
+  }
+  } catch(e) {
+    console.error('[handleAuthState] ERREUR:', e);
+    toast('Erreur d\'authentification : ' + e.message, 'error');
   }
 }
 
