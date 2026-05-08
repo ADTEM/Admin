@@ -10,7 +10,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ADTEM — Alliance Manager</title>
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <style>
 :root {
@@ -827,6 +827,15 @@ body.mode-config #page-title { color: var(--cfg-green); }
 </style>
 </head>
 <body>
+<div id="tracking-warn" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;
+     background:#b71c1c;color:white;padding:10px 20px;font-size:13px;font-weight:600;
+     align-items:center;justify-content:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,0.4);">
+  ⚠️ Votre navigateur bloque un composant requis (Prévention du suivi active).
+  &nbsp;Désactivez-la pour ce site ou utilisez <b>Google Chrome</b>.
+  <button onclick="this.parentElement.style.display='none'"
+    style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:white;
+           border-radius:4px;padding:2px 10px;cursor:pointer;font-size:12px;">✕</button>
+</div>
 
 <!-- LOGIN SCREEN -->
 <div id="login-screen">
@@ -944,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.27</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.34</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -3182,9 +3191,11 @@ async function sbGet(table, opts = {}) {
   }
 }
 async function sbUpsert(table, data, opts = {}) {
-  const { error } = await supa.from(table).upsert(data, opts);
-  if (error) { console.error('sbUpsert', table, error); return false; }
-  return true;
+  try {
+    const { error } = await supa.from(table).upsert(data, opts);
+    if (error) { console.error('sbUpsert', table, error?.message || error?.code, error); return false; }
+    return true;
+  } catch(e) { console.error('sbUpsert exception', table, e); return false; }
 }
 async function sbInsert(table, data) {
   const { error } = await supa.from(table).insert(data);
@@ -3255,6 +3266,16 @@ const APP = {
 function initFirebase() { initSupabase(); } // alias
 
 async function initSupabase() {
+  // Enregistrer onAuthStateChange EN PREMIER avant tout await
+  // pour ne jamais manquer un event SIGNED_IN (race condition)
+  let _initialSessionHandled = false;
+  supa.auth.onAuthStateChange(async (_event, sess) => {
+    console.log('[AUTH] onAuthStateChange event:', _event);
+    // Ignorer le premier SIGNED_IN si on a déjà traité la session initiale via getSession
+    if (_event === 'INITIAL_SESSION') return;
+    await handleAuthState(sess?.user || null);
+  });
+
   // Test connexion
   const dot   = document.getElementById('db-dot');
   const label = document.getElementById('db-label');
@@ -3285,22 +3306,22 @@ async function initSupabase() {
   } catch(e) {
     console.warn('getSession error (ignored):', e.message);
   }
+  // Traiter la session initiale manuellement (reconnexion après refresh)
   await handleAuthState(session?.user || null);
-
-  supa.auth.onAuthStateChange(async (_event, sess) => {
-    await handleAuthState(sess?.user || null);
-  });
 }
 
 async function handleAuthState(user) {
   if (user) {
+    console.log('[AUTH] User connecte:', user.email, 'id:', user.id);
     let profiles = await sbGet('profiles', { eq: ['id', user.id] });
     // Retry si null — le trigger handle_new_user peut prendre quelques ms après signUp
     if (!profiles?.length) {
+      console.warn('[AUTH] Profile non trouve, retry dans 800ms...');
       await new Promise(r => setTimeout(r, 800));
       profiles = await sbGet('profiles', { eq: ['id', user.id] });
     }
     const profile  = profiles?.[0] || {};
+    console.log('[AUTH] Profile recupere:', JSON.stringify(profile));
 
     CURRENT_USER.uid    = user.id;
     CURRENT_USER.email  = user.email;
@@ -3309,6 +3330,7 @@ async function handleAuthState(user) {
 
     // Compte en attente ou suspendu
     if (!profile.actif || profile.role === 'en_attente' || profile.role === 'suspendu') {
+      console.warn('[AUTH] Acces refuse - actif:', profile.actif, 'role:', profile.role);
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('waiting-screen').classList.remove('hidden');
       document.getElementById('waiting-pseudo').textContent = CURRENT_USER.pseudo;
@@ -3352,6 +3374,7 @@ async function handleAuthState(user) {
       document.getElementById('nav-comptes').style.display = 'none';
     }
 
+    console.log('[AUTH] Compte actif, chargement interface...');
     await loadAllData();
     setupRealtimeListeners();
 
@@ -3411,6 +3434,14 @@ async function loadAllData() {
     const comptaLast = await sbGet('compta', { eq: ['periode', 'last'] });
     if (comptaLast?.[0]?.data?.comptabilite) {
       APP.comptaLast = comptaLast[0].data.comptabilite;
+    }
+
+    // Compta ALL périodes (pour détection Prime InfrAlliance sur tous les mois)
+    const comptaAllRows = await sbGet('compta');
+    if (comptaAllRows && comptaAllRows.length) {
+      APP.comptaAll = comptaAllRows
+        .filter(function(r) { return r.data && r.data.comptabilite; })
+        .flatMap(function(r) { return r.data.comptabilite; });
     }
 
     // Personnel
@@ -3838,6 +3869,9 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
     if (!data.comptabilite) throw new Error('Clé "comptabilite" manquante');
     const avant = APP.compta.length;
     await sbUpsert('compta', { periode: 'current', data });
+    APP.compta = data.comptabilite;   // mise à jour mémoire immédiate
+    renderCompta();
+    updateDashboardCompta();
     const nb = data.comptabilite.length;
     const nouvelles = nb - avant;
     addResult('📊', 'Comptabilité — mois en cours',
@@ -3857,6 +3891,7 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
     if (!data.comptabilite) throw new Error('Clé "comptabilite" manquante');
     const avant = (APP.comptaLast || []).length;
     await sbUpsert('compta', { periode: 'last', data });
+    APP.comptaLast = data.comptabilite;   // mise à jour mémoire immédiate
     const nb = data.comptabilite.length;
     const nouvelles = nb - avant;
     addResult('📅', 'Comptabilité — mois précédent',
@@ -4776,7 +4811,10 @@ function updateCalcLocation() {
 //  GÉNÉRATION DEVIS LOCATION
 // ================================================================
 async function genererDevisLocation() {
+  console.log('[DEVIS-LOC] Debut generation devis location');
+  try {
   const v = APP.devisLocation.vehiculesSelectionnes;
+  console.log('[DEVIS-LOC] Vehicules selectionnes :', v.length);
   if (!v.length) { toast('Sélectionnez au moins un véhicule', 'error'); return; }
 
   const pseudo      = document.getElementById('dl-pseudo').value || '—';
@@ -4842,7 +4880,12 @@ async function genererDevisLocation() {
   preview.style.overflow = 'hidden';
 
   document.getElementById('devis-location-actions').style.display = 'flex';
+  console.log('[DEVIS-LOC] Devis genere avec succes');
   toast('Devis généré !', 'success');
+  } catch(e) {
+    console.error('[DEVIS-LOC] Exception :', e.message, e);
+    toast('Erreur génération devis : ' + e.message, 'error');
+  }
 }
 
 function buildDevisLocationHTML(d) {
@@ -4966,7 +5009,10 @@ function devisRow(label, value) {
 //  GÉNÉRATION DEVIS AE
 // ================================================================
 async function genererDevisAE() {
+  console.log('[DEVIS-AE] Debut generation devis AE');
+  try {
   const v = APP.devisAE.vehiculesSelectionnes;
+  console.log('[DEVIS-AE] Vehicules selectionnes :', v.length);
   if (!v.length) { toast('Sélectionnez au moins un véhicule', 'error'); return; }
   const pseudo = document.getElementById('ae-pseudo').value || '—';
   const pseudoForum = document.getElementById('ae-pseudo-forum').value || pseudo;
@@ -5006,7 +5052,12 @@ async function genererDevisAE() {
   preview.style.overflow = 'hidden';
 
   document.getElementById('devis-ae-actions').style.display = 'flex';
+  console.log('[DEVIS-AE] Devis AE genere avec succes');
   toast('Devis AE généré !', 'success');
+  } catch(e) {
+    console.error('[DEVIS-AE] Exception :', e.message, e);
+    toast('Erreur génération devis AE : ' + e.message, 'error');
+  }
 }
 
 function buildDevisAEHTML(d) {
@@ -5425,7 +5476,9 @@ async function confirmerReservationManuelle() {
 // ================================================================
 //  TRI GÉNÉRIQUE DES TABLEAUX
 // ================================================================
-const _sortState = {};
+const _sortState = {
+  'membres': { col: 'pseudo', dir: -1 }
+};
 
 function makeSortable(tableId, data, renderFn) {
   // Attache les écouteurs sur les th.sortable d'un tableau donné
@@ -5896,6 +5949,9 @@ function previewImport() {
 }
 
 async function parseMembresImport() {
+  const btn = document.querySelector('#modal-import-membres .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Import...'; }
+  try {
   const membresText  = document.getElementById('membres-paste').value.trim();
   const contratsText = document.getElementById('contrats-paste').value.trim();
 
@@ -5965,7 +6021,13 @@ async function parseMembresImport() {
         updated++;
       }
     }
-    if (toUpsert.length) await supa.from('membres').upsert(toUpsert);
+    if (toUpsert.length) {
+      const { error } = await supa.from('membres').upsert(toUpsert);
+      if (error) { toast('Erreur import contrats : ' + error.message, 'error'); return; }
+    } else {
+      toast('Aucun membre existant ne correspond aux pseudos des contrats collés.', 'warning');
+      return;
+    }
   }
 
   const msg = [
@@ -5975,8 +6037,14 @@ async function parseMembresImport() {
   ].filter(Boolean).join(' · ');
 
   journalLog(`Import membres : ${msg}`, 'ok');
-  toast(`Import terminé — ${msg}`, 'success');
+  toast(`Import terminé — ${msg || 'aucune modification'}`, 'success');
   closeModal('modal-import-membres');
+  } catch(e) {
+    console.error('[parseMembresImport]', e);
+    toast('Erreur lors de l\'import : ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📥 Importer'; }
+  }
 }
 
 // ================================================================
@@ -5997,10 +6065,15 @@ async function saveMembre() {
     notes:        document.getElementById('add-notes').value
   };
   const newId = genId();
-  await sbInsert('membres', { id: newId, pseudo: membre.pseudo || '', data: membre });
-  toast('Membre ajouté', 'success');
-  closeModal('modal-add-membre');
-  journalLog(`Membre ajouté manuellement : ${pseudo}`, 'ok');
+  try {
+    await sbInsert('membres', { id: newId, pseudo: membre.pseudo || '', data: membre });
+    toast('Membre ajouté', 'success');
+    closeModal('modal-add-membre');
+    journalLog(`Membre ajouté manuellement : ${pseudo}`, 'ok');
+  } catch(e) {
+    console.error('[saveMembre]', e);
+    toast('Erreur lors de l\'ajout : ' + e.message, 'error');
+  }
 }
 
 // ================================================================
@@ -6062,14 +6135,19 @@ async function saveEditMembre() {
     updatedAt:    new Date().toISOString()
   };
 
-  await sbUpdate('membres', { data }, { id });
-  // Mise à jour locale immédiate (sans attendre le realtime)
-  const idx = APP.membres.findIndex(m => m.id === id);
-  if (idx !== -1) APP.membres[idx] = { ...APP.membres[idx], ...data };
-  renderMembres();
-  journalLog(`Membre modifié : ${pseudo}`, 'info');
-  toast(`Membre "${pseudo}" mis à jour`, 'success');
-  closeModal('modal-edit-membre');
+  try {
+    await sbUpdate('membres', { data }, { id });
+    // Mise à jour locale immédiate (sans attendre le realtime)
+    const idx = APP.membres.findIndex(m => m.id === id);
+    if (idx !== -1) APP.membres[idx] = { ...APP.membres[idx], ...data };
+    renderMembres();
+    journalLog(`Membre modifié : ${pseudo}`, 'info');
+    toast(`Membre "${pseudo}" mis à jour`, 'success');
+    closeModal('modal-edit-membre');
+  } catch(e) {
+    console.error('[saveEditMembre]', e);
+    toast('Erreur lors de la modification : ' + e.message, 'error');
+  }
 }
 
 // ================================================================
@@ -6239,6 +6317,9 @@ function deleteMembre(id) {
   sbDelete('membres', { id }).then(() => {
     journalLog(`Membre supprimé : ${pseudo}`, 'warn');
     toast('Membre supprimé', 'success');
+  }).catch(e => {
+    console.error('[deleteMembre]', e);
+    toast('Erreur lors de la suppression : ' + e.message, 'error');
   });
 }
 
@@ -6449,11 +6530,16 @@ async function saveConfig() {
     regles
   };
 
-  await sbUpsert('config', { id: 1, data: config });
-  Object.assign(APP.config, config);
-  populateOptionSelects();
-  toast('Configuration sauvegardée', 'success');
-  journalLog('Configuration sauvegardée', 'ok');
+  try {
+    await sbUpsert('config', { id: 1, data: config });
+    Object.assign(APP.config, config);
+    populateOptionSelects();
+    toast('Configuration sauvegardée', 'success');
+    journalLog('Configuration sauvegardée', 'ok');
+  } catch(e) {
+    console.error('[saveConfig]', e);
+    toast('Erreur sauvegarde config : ' + e.message, 'error');
+  }
 }
 
 function toggleTokenVisibility() {
@@ -7839,6 +7925,7 @@ async function importerCSV() {
 
   const reader = new FileReader();
   reader.onload = async (e) => {
+    try {
     const text = e.target.result;
     const lines = text.split('\n').filter(l => l.trim());
     const sep = ';';
@@ -7891,6 +7978,10 @@ async function importerCSV() {
       toast(`✅ ${ops.length} opérations importées depuis CSV`, 'success');
       closeModal('modal-import-csv');
     }
+  } catch(e) {
+    console.error('[importerCSV]', e);
+    toast('Erreur import CSV : ' + e.message, 'error');
+  }
   };
   reader.readAsText(file, 'UTF-8');
 }
@@ -9107,21 +9198,38 @@ async function piSauvegarderManuel() {
     source:         'manuel'
   };
   var ok = await sbUpsert('prime_infra', prime, { onConflict: 'id' });
-  if (ok === false) { toast('Erreur Supabase', 'error'); return; }
+  if (ok === false) {
+    toast('Erreur enregistrement — vérifiez la console (RLS ?)', 'error');
+    return;
+  }
   APP.piPrimes.unshift(prime);
   piRenderPrimes();
   piRenderBilan();
+  // Vider le formulaire
+  ['pi-man-pseudo','pi-man-libelle','pi-man-note'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('pi-man-montant').value = '';
+  document.getElementById('pi-man-regle').value = '';
+  document.getElementById('pi-man-parts').style.display = 'none';
   document.getElementById('pi-add-manuel').style.display = 'none';
-  toast('Prime enregistrée', 'success');
+  toast('Prime enregistrée ✅', 'success');
   journalLog('Prime InfrAlliance : ' + (r ? r.nom : '') + ' → ' + pseudo + ' — ' + montant.toLocaleString('fr') + ' €', 'ok');
 }
 
 async function piImportCompta() {
-  if (!APP.compta || !APP.compta.length) { toast('Chargez d\'abord la comptabilité', 'info'); return; }
+  // Construire la liste complète depuis tous les mois chargés
+  var allOps = [];
+  if (APP.comptaAll && APP.comptaAll.length) {
+    allOps = APP.comptaAll;
+  } else if (APP.compta && APP.compta.length) {
+    allOps = APP.compta;
+  }
+  if (!allOps.length) { toast('Chargez d\'abord la comptabilité (onglet Comptabilité)', 'info'); return; }
   if (!APP.piRegles.length) { toast('Configurez d\'abord au moins une règle', 'info'); return; }
   var importes = 0;
-  for (var i = 0; i < APP.compta.length; i++) {
-    var op      = APP.compta[i];
+  for (var i = 0; i < allOps.length; i++) {
+    var op      = allOps[i];
     var libelle = (op['Libellé de l\'opération'] || '').toLowerCase();
     var dateParts = (op['Date de l\'opération'] || '').split(' ')[0].split('/');
     var date    = dateParts.length === 3 ? dateParts[2] + '-' + dateParts[1] + '-' + dateParts[0] : '';
@@ -9503,6 +9611,10 @@ function init() {
   const v = document.getElementById('github-version');
   const vLogin = document.getElementById('login-version');
   if (v && vLogin) vLogin.textContent = v.textContent;
+
+  // Indicateur visuel tri par défaut : membres → pseudo décroissant
+  const thPseudo = document.querySelector('th[data-table="membres"][data-col="pseudo"]');
+  if (thPseudo) thPseudo.classList.add('sort-desc');
 
   // Restaurer pseudo mémorisé
   const savedPseudo = localStorage.getItem('adtem_remember_pseudo');
