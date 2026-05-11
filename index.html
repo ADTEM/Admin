@@ -911,7 +911,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
     </div>
 
     <div style="text-align:center;margin-top:20px;font-size:10px;color:var(--text4);">
-      ADTEM · Transport Manager · <span id="login-version">V1.6</span>
+      ADTEM · Transport Manager · <span id="login-version">V1.7</span>
     </div>
   </div>
 </div>
@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.38</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.41</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -1085,8 +1085,19 @@ body.mode-config #page-title { color: var(--cfg-green); }
 <!-- TOPBAR -->
 <div id="topbar">
   <div id="page-title">Tableau de bord <small>Vue générale de l'alliance</small></div>
+  <!-- Solde centré absolument dans la topbar -->
+  <div id="topbar-solde" style="display:none;position:absolute;left:50%;transform:translateX(-50%);
+       align-items:center;gap:6px;padding:4px 14px;border-radius:8px;
+       background:rgba(74,140,82,0.08);border:1px solid rgba(74,140,82,0.2);pointer-events:none;">
+    <span style="font-size:10px;color:var(--text3);font-weight:600;letter-spacing:0.5px;">SOLDE</span>
+    <span id="topbar-solde-val" style="font-size:14px;font-weight:800;color:var(--green2);font-family:'Fira Code',monospace;">—</span>
+  </div>
   <div class="topbar-actions">
     <button class="btn btn-secondary btn-sm" id="btn-sync-data">📡 Télécharger les données</button>
+    <div id="sync-timestamps" style="display:flex;flex-direction:column;gap:2px;font-size:9px;color:var(--text3);font-family:'Fira Code',monospace;line-height:1.3;">
+      <span id="ts-data">🚌 —</span>
+      <span id="ts-membres">👥 —</span>
+    </div>
     <button class="btn btn-primary btn-sm" id="btn-import-csv" style="display:none;">📥 Import CSV</button>
     <div class="topbar-user" id="topbar-user" style="display:none;">
       <div class="topbar-user-avatar" id="user-avatar">?</div>
@@ -1338,10 +1349,14 @@ body.mode-config #page-title { color: var(--cfg-green); }
       <div>
       </div>
       <div class="flex gap-8">
+        <button class="btn btn-secondary btn-sm" onclick="openImportDemande()">📨 Importer message</button>
         <button class="btn btn-secondary btn-sm" onclick="resetDevisLocation()">🗑️ Vider</button>
         <button class="btn btn-secondary btn-sm" id="btn-historique-devis" onclick="showPage('devis-sauvegardes')">📋 Historique</button>
       </div>
     </div>
+
+    <!-- Bandeau alertes alternatives (visible après import) -->
+    <div id="import-demande-alts" style="display:none;margin-bottom:16px;padding:10px 14px;border-radius:8px;background:var(--yellowbg);border:1px solid rgba(201,134,10,0.2);font-size:12px;"></div>
 
     <div class="grid-2" style="gap:20px;">
       <!-- Formulaire -->
@@ -1414,6 +1429,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <div class="card mb-16">
           <div class="card-title"><span class="icon">🚌</span> Sélection des véhicules</div>
           <div class="filter-bar mb-16" style="margin-bottom:10px;">
+            <input type="text" class="form-input" id="dl-filtre-search" placeholder="🔍 Numéro ou modèle..." style="flex:1.5;" oninput="renderVehiculesDisponibles('vehicules-disponibles', APP.devisLocation.vehiculesSelectionnes, 'location')">
             <select class="form-select" id="dl-filtre-energie" style="flex:1;">
               <option value="">Toutes énergies</option>
               <option value="Hybride">Hybride</option>
@@ -1427,10 +1443,30 @@ body.mode-config #page-title { color: var(--cfg-green); }
               <option value="Midibus">Midibus</option>
             </select>
           </div>
-          <div id="vehicules-disponibles" style="max-height:280px;overflow-y:auto;">
-            <div style="color:var(--text3);font-size:12px;">Sélectionnez une date de début et une durée pour voir les véhicules disponibles</div>
+          <!-- Colonnes disponibles / sélectionnés -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <!-- Colonne gauche : disponibles -->
+            <div>
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text4);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border);">
+                🟢 Disponibles
+              </div>
+              <div id="vehicules-disponibles" style="max-height:300px;overflow-y:auto;">
+                <div style="color:var(--text3);font-size:12px;">Sélectionnez une date de début et une durée</div>
+              </div>
+            </div>
+            <!-- Colonne droite : sélectionnés -->
+            <div>
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text4);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border);">
+                ✅ Sélectionnés — <span id="dl-selected-count-inline">0</span>
+              </div>
+              <div id="vehicules-selectionnes-panel" style="max-height:300px;overflow-y:auto;">
+                <div style="color:var(--text3);font-size:12px;padding:8px 0;">Aucun véhicule sélectionné</div>
+              </div>
+            </div>
           </div>
-          <div style="margin-top:10px;font-size:11px;color:var(--text3);" id="dl-selected-count">0 véhicule(s) sélectionné(s)</div>
+          <div style="margin-top:8px;font-size:11px;color:var(--text3);display:flex;gap:12px;">
+            <span id="dl-selected-count">0 véhicule(s) sélectionné(s)</span>
+          </div>
         </div>
 
         <div class="card mb-16">
@@ -2929,6 +2965,29 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
 </div>
 
 <!-- MODAL IMPORT MEMBRES -->
+<!-- MODAL IMPORT DEMANDE DE LOCATION -->
+<div class="modal-overlay hidden" id="modal-import-demande">
+  <div class="modal" style="max-width:620px;">
+    <div class="modal-header">
+      <span class="modal-title">📨 Importer une demande de location</span>
+      <button class="modal-close" onclick="closeModal('modal-import-demande')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:11.5px;color:var(--text3);margin-bottom:12px;">
+        Copiez-collez le message de demande de location reçu dans le jeu. Le formulaire sera rempli automatiquement.
+      </p>
+      <textarea id="import-demande-text" class="form-textarea" rows="10"
+        placeholder="Demande de location de véhicules&#10;Envoyé par Marwan le 2026-05-11 00:39:48&#10;Je demande la location de 12 véhicule(s) à partir du 14/05/2026 pour une durée de 5 semaine(s) :&#10;    ADTEM-ART-8026 (Heuliez GX 427)&#10;    ADTEM-ART-8027 (Heuliez GX 427)&#10;    ..."
+        style="font-family:'Fira Code',monospace;font-size:11px;"></textarea>
+      <div id="import-demande-status" style="font-size:11px;color:var(--text3);margin-top:8px;min-height:16px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-import-demande')">Annuler</button>
+      <button class="btn btn-primary" onclick="importDemandeLocation()">🚀 Importer</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL IMPORT MEMBRES C/C -->
 <div class="modal-overlay hidden" id="modal-import-membres">
   <div class="modal" style="max-width:680px;">
@@ -3426,6 +3485,8 @@ async function loadAllData() {
       Object.assign(APP.config, cfgRows[0].data);
       if (cfgRows[0].data.themes) APP.themes = cfgRows[0].data.themes;
       applyConfig();
+      updateSyncTimestamps();
+      updateTopbarSolde();
     }
 
     // Membres
@@ -3898,6 +3959,9 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
     const avant = APP.compta.length;
     await sbUpsert('compta', { periode: 'current', data });
     APP.compta = data.comptabilite;   // mise à jour mémoire immédiate
+    // Forcer le sélecteur sur "mois en cours" et re-render
+    const monthSel = document.getElementById('compta-month-select');
+    if (monthSel) monthSel.value = 'current';
     renderCompta();
     updateDashboardCompta();
     const nb = data.comptabilite.length;
@@ -3935,6 +3999,11 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
   document.getElementById('sync-result-body').innerHTML =
     `<div style="margin:-4px 0;">${resultLines.join('')}</div>`;
   openModal('modal-sync-result');
+
+  // Sauvegarder timestamp de dernière MAJ données
+  APP.config.lastSyncData = new Date().toISOString();
+  sbUpdate('config', { data: { ...APP.config } }, { id: 1 }).catch(() => {});
+  updateSyncTimestamps();
 
   btn.disabled = false;
   btn.textContent = '📡 Télécharger les données';
@@ -4327,9 +4396,17 @@ function renderVehiculesDisponibles(containerId, selectedArr, type) {
   const duree = parseInt(document.getElementById(type === 'location' ? 'dl-duree' : 'ae-duree-sem').value) || 1;
   const filterEnergie = document.getElementById(type === 'location' ? 'dl-filtre-energie' : 'ae-filtre-energie').value;
   const filterType = document.getElementById(type === 'location' ? 'dl-filtre-type' : 'ae-filtre-type').value;
+  const searchEl = document.getElementById(type === 'location' ? 'dl-filtre-search' : null);
+  const filterSearch = (searchEl ? searchEl.value : '').toLowerCase().trim();
 
   // Bus disponibles (sans réservation bloquante)
-  const dispo = getVehiculesDisponibles(debut, duree, filterEnergie, filterType);
+  let dispo = getVehiculesDisponibles(debut, duree, filterEnergie, filterType);
+  if (filterSearch) {
+    dispo = dispo.filter(v => {
+      const str = ((v['Numéro Parc'] || '') + ' ' + (v['Marque'] || '') + ' ' + (v['Modèle'] || '')).toLowerCase();
+      return str.includes(filterSearch);
+    });
+  }
 
   // Bus réservés (on les montre mais grisés)
   let [yD, mD, dD] = debut ? debut.split('-') : [];
@@ -4340,65 +4417,138 @@ function renderVehiculesDisponibles(containerId, selectedArr, type) {
     if (dispo.some(d => d['Numéro Parc'] === v['Numéro Parc'])) return false; // Déjà dans dispo
     // Seulement ceux sur parc location (éligibles au fond)
     if (!['SUR PARC LOCATION','ADTEM'].includes(v['Patrimoine']) && !(v['Patrimoine']||'').startsWith('EN LOCATION')) return false;
+    if (filterSearch) {
+      const str = ((v['Numéro Parc'] || '') + ' ' + (v['Marque'] || '') + ' ' + (v['Modèle'] || '')).toLowerCase();
+      if (!str.includes(filterSearch)) return false;
+    }
     const res = getReservationBus(v['Numéro Parc']);
     return !!res;
   }) : [];
 
   const container = document.getElementById(containerId);
 
+  // Fonction interne : rendre la colonne droite "sélectionnés" (toujours, même sans date)
+  function _renderSelectedPanel() {
+    if (type !== 'location') return;
+    const panelSel = document.getElementById('vehicules-selectionnes-panel');
+    const countInline = document.getElementById('dl-selected-count-inline');
+    const countEl = document.getElementById('dl-selected-count');
+    if (panelSel) {
+      if (!selectedArr.length) {
+        panelSel.innerHTML = `<div style="color:var(--text3);font-size:12px;padding:8px 0;">Aucun véhicule sélectionné</div>`;
+      } else {
+        panelSel.innerHTML = selectedArr.map(v => {
+          return `
+            <div class="flex-between" style="padding:7px 8px;border-radius:6px;border:1px solid var(--green);
+              background:rgba(74,140,82,0.08);margin-bottom:5px;cursor:pointer;transition:all 0.15s;"
+              onclick="toggleVehiculeDevis('${v['Numéro Parc']}','${type}')"
+              title="Cliquer pour retirer">
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--green2);">${v['Numéro Parc']}</div>
+                <div style="font-size:10px;color:var(--text3);">${v['Marque']} ${v['Modèle']} · ${v['Places']} pl.</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:12px;">${getEnergieIconImg(v['Energie'], 12) || '🚌'}</span>
+                <span class="badge badge-gray">${v['Type']}</span>
+                <span style="color:var(--red);font-size:14px;font-weight:700;" title="Retirer">✕</span>
+              </div>
+            </div>`;
+        }).join('');
+      }
+    }
+    if (countInline) countInline.textContent = selectedArr.length;
+    if (countEl) countEl.textContent = `${selectedArr.length} véhicule(s) sélectionné(s)`;
+  }
+
   if (!debut) {
     container.innerHTML = `<div style="color:var(--text3);font-size:12px;">Sélectionnez une date de début</div>`;
+    _renderSelectedPanel();
     return;
   }
   if (!dispo.length && !reservesVisibles.length) {
     container.innerHTML = `<div style="color:var(--text3);font-size:12px;">Aucun véhicule disponible pour ces critères</div>`;
+    _renderSelectedPanel();
     return;
   }
 
   // energieIcon → utilise getEnergieIconImg centralisé
 
-  const renderCard = (v, isReserved) => {
-    const selected = selectedArr.some(s => s['Numéro Parc'] === v['Numéro Parc']);
-    const res = isReserved ? getReservationBus(v['Numéro Parc']) : null;
-    const finRes = res && res.date_fin ? res.date_fin.split('-').reverse().join('/') : '—';
-    if (isReserved) {
-      return `
-        <div class="flex-between veh-reserved-card" style="padding:8px;border-radius:6px;border:1px solid var(--yellow);
-          background:rgba(201,134,10,0.05);margin-bottom:6px;opacity:0.7;" title="Bus réservé — non disponible">
-          <div>
-            <div style="font-size:12px;font-weight:700;">${v['Numéro Parc']}</div>
-            <div style="font-size:10px;color:var(--text3);">${v['Marque']} ${v['Modèle']} · ${v['Places']} pl.</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
-            <span style="font-size:13px;">${getEnergieIconImg(v['Energie'], 13) || '🚌'}</span>
-            <span class="badge badge-gray">${v['Type']}</span>
-            <span class="badge-reserved">🔒 ${res.devis_id}</span>
-            <span style="font-size:9px;color:var(--yellow);">jusqu'au ${finRes}</span>
-          </div>
-        </div>`;
-    }
+  // Carte bus disponible (non sélectionné) — colonne gauche
+  const renderCardDispo = (v) => {
     return `
-      <div class="flex-between" style="padding:8px;border-radius:6px;border:1px solid ${selected ? 'var(--green)' : 'var(--border)'};
-        background:${selected ? 'rgba(76,175,80,0.1)' : 'var(--surface2)'};margin-bottom:6px;cursor:pointer;transition:all 0.15s;"
-        onclick="toggleVehiculeDevis('${v['Numéro Parc']}','${type}')">
+      <div class="flex-between veh-dispo-card" style="padding:7px 8px;border-radius:6px;border:1px solid var(--border);
+        background:var(--surface2);margin-bottom:5px;cursor:pointer;transition:all 0.15s;"
+        onclick="toggleVehiculeDevis('${v['Numéro Parc']}','${type}')"
+        title="Cliquer pour sélectionner">
         <div>
           <div style="font-size:12px;font-weight:700;">${v['Numéro Parc']}</div>
           <div style="font-size:10px;color:var(--text3);">${v['Marque']} ${v['Modèle']} · ${v['Places']} pl.</div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:13px;">${getEnergieIconImg(v['Energie'], 13) || '🚌'}</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:12px;">${getEnergieIconImg(v['Energie'], 12) || '🚌'}</span>
           <span class="badge badge-gray">${v['Type']}</span>
-          ${selected ? '<span style="color:var(--green);font-size:16px;">✓</span>' : ''}
+          <span style="color:var(--green2);font-size:14px;font-weight:700;">+</span>
         </div>
       </div>`;
   };
 
-  let html = dispo.map(v => renderCard(v, false)).join('');
-  if (reservesVisibles.length) {
-    html += `<div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text4);margin:10px 0 6px;font-weight:700;">🔒 Réservés — non disponibles</div>`;
-    html += reservesVisibles.map(v => renderCard(v, true)).join('');
+  // Carte bus réservé — colonne gauche grisée
+  const renderCardReserved = (v) => {
+    const res = getReservationBus(v['Numéro Parc']);
+    const finRes = res && res.date_fin ? res.date_fin.split('-').reverse().join('/') : '—';
+    return `
+      <div class="flex-between" style="padding:7px 8px;border-radius:6px;border:1px solid var(--yellow);
+        background:rgba(201,134,10,0.04);margin-bottom:5px;opacity:0.65;" title="Bus réservé — non disponible">
+        <div>
+          <div style="font-size:12px;font-weight:700;">${v['Numéro Parc']}</div>
+          <div style="font-size:10px;color:var(--text3);">${v['Marque']} ${v['Modèle']} · ${v['Places']} pl.</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end;">
+          <span style="font-size:12px;">${getEnergieIconImg(v['Energie'], 12) || '🚌'}</span>
+          <span class="badge-reserved" style="font-size:9px;">🔒 ${res ? res.devis_id : ''}</span>
+          <span style="font-size:9px;color:var(--yellow);">→${finRes}</span>
+        </div>
+      </div>`;
+  };
+
+  // Carte bus sélectionné — colonne droite
+  const renderCardSelected = (v) => {
+    return `
+      <div class="flex-between" style="padding:7px 8px;border-radius:6px;border:1px solid var(--green);
+        background:rgba(74,140,82,0.08);margin-bottom:5px;cursor:pointer;transition:all 0.15s;"
+        onclick="toggleVehiculeDevis('${v['Numéro Parc']}','${type}')"
+        title="Cliquer pour retirer">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--green2);">${v['Numéro Parc']}</div>
+          <div style="font-size:10px;color:var(--text3);">${v['Marque']} ${v['Modèle']} · ${v['Places']} pl.</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:12px;">${getEnergieIconImg(v['Energie'], 12) || '🚌'}</span>
+          <span class="badge badge-gray">${v['Type']}</span>
+          <span style="color:var(--red);font-size:14px;font-weight:700;" title="Retirer">✕</span>
+        </div>
+      </div>`;
+  };
+
+  // Filtrer les disponibles : exclure ceux déjà sélectionnés (ils passent côté droit)
+  const dispoNonSelec = dispo.filter(v => !selectedArr.some(s => s['Numéro Parc'] === v['Numéro Parc']));
+
+  // Colonne gauche
+  let html = '';
+  if (!dispoNonSelec.length && !reservesVisibles.length && selectedArr.length === 0) {
+    html = `<div style="color:var(--text3);font-size:12px;">Aucun véhicule disponible pour ces critères</div>`;
+  } else {
+    html = dispoNonSelec.map(v => renderCardDispo(v)).join('');
+    if (reservesVisibles.length) {
+      html += `<div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text4);margin:8px 0 5px;font-weight:700;">🔒 Réservés — non disponibles</div>`;
+      html += reservesVisibles.map(v => renderCardReserved(v)).join('');
+    }
+    if (!dispoNonSelec.length && !reservesVisibles.length) {
+      html = `<div style="color:var(--text3);font-size:12px;padding:8px 0;">Tous les bus disponibles sont sélectionnés</div>`;
+    }
   }
   container.innerHTML = html;
+  _renderSelectedPanel();
 }
 
 function toggleVehiculeDevis(numParc, type) {
@@ -4411,7 +4561,8 @@ function toggleVehiculeDevis(numParc, type) {
 
   if (type === 'location') {
     renderVehiculesDisponibles('vehicules-disponibles', APP.devisLocation.vehiculesSelectionnes, 'location');
-    document.getElementById('dl-selected-count').textContent = `${arr.length} véhicule(s) sélectionné(s)`;
+    const countEl = document.getElementById('dl-selected-count');
+    if (countEl) countEl.textContent = `${arr.length} véhicule(s) sélectionné(s)`;
     updateCalcLocation();
   } else {
     renderVehiculesDisponibles('ae-vehicules-disponibles', APP.devisAE.vehiculesSelectionnes, 'ae');
@@ -4430,7 +4581,7 @@ function addVehiculeToDevis(v, type) {
 }
 
 // Listeners dévis location
-['dl-debut', 'dl-duree', 'dl-filtre-energie', 'dl-filtre-type'].forEach(id => {
+['dl-debut', 'dl-duree', 'dl-filtre-energie', 'dl-filtre-type', 'dl-filtre-search'].forEach(id => {
   const el = document.getElementById(id);
   if (el) el.addEventListener('change', () => {
     renderVehiculesDisponibles('vehicules-disponibles', APP.devisLocation.vehiculesSelectionnes, 'location');
@@ -5243,7 +5394,25 @@ async function saveDevis(type) {
 
   // Réutiliser le numéro déjà attribué à la génération (évite les doublons)
   APP._currentDevisNumero = APP._currentDevisNumero || {};
-  const numero = APP._currentDevisNumero[type] || await genNumeroDevis(type, pseudo);
+  // Vérifier aussi côté Supabase si le numéro courant existe déjà avant d'en générer un nouveau
+  let numero = APP._currentDevisNumero[type];
+  if (!numero) {
+    numero = await genNumeroDevis(type, pseudo);
+    APP._currentDevisNumero[type] = numero;
+  } else {
+    // On a un numéro en cours — vérifier qu'il n'a pas déjà été sauvegardé (protection double-clic / publier+sauvegarder)
+    const dejaSauve = APP.devisSauvegardes.find(d => d.numero === numero);
+    if (!dejaSauve) {
+      // Vérifier aussi en base (cas rechargement de page)
+      try {
+        const rows = await sbGet('devis_sauvegardes', { eq: ['numero', numero] });
+        if (rows && rows.length) {
+          APP.devisSauvegardes = APP.devisSauvegardes.filter(d => d.numero !== numero);
+          APP.devisSauvegardes.unshift({ _id: rows[0].id, ...rows[0].data });
+        }
+      } catch(e) {}
+    }
+  }
   const devis  = {
     numero, type, pseudo,
     date: new Date().toISOString(),
@@ -5261,9 +5430,22 @@ async function saveDevis(type) {
     const idx = APP.devisSauvegardes.findIndex(d => d.numero === numero);
     if (idx !== -1) APP.devisSauvegardes[idx] = { ...APP.devisSauvegardes[idx], ...devis };
   } else {
-    const id = genId();
-    await sbInsert('devis_sauvegardes', { id, numero, type, pseudo, data: devis });
-    APP.devisSauvegardes.unshift({ _id: id, ...devis });
+    // Vérification supplémentaire en Supabase pour éviter les doublons
+    let idExistant = null;
+    try {
+      const rows = await sbGet('devis_sauvegardes', { eq: ['numero', numero] });
+      if (rows && rows.length) idExistant = rows[0].id;
+    } catch(e) {}
+
+    if (idExistant) {
+      // Existe en base mais pas en mémoire locale → update uniquement
+      await sbUpdate('devis_sauvegardes', { data: { ...devis } }, { numero });
+      APP.devisSauvegardes.unshift({ _id: idExistant, ...devis });
+    } else {
+      const id = genId();
+      await sbInsert('devis_sauvegardes', { id, numero, type, pseudo, data: devis });
+      APP.devisSauvegardes.unshift({ _id: id, ...devis });
+    }
   }
 
   // Créer les réservations pour chaque bus sélectionné
@@ -5564,6 +5746,163 @@ document.addEventListener('click', e => {
   if (th) handleSortClick(th);
 });
 
+// ================================================================
+//  IMPORT DEMANDE DE LOCATION DEPUIS LE JEU
+// ================================================================
+function openImportDemande() {
+  document.getElementById('import-demande-text').value = '';
+  document.getElementById('import-demande-status').textContent = '';
+  document.getElementById('import-demande-alts').style.display = 'none';
+  openModal('modal-import-demande');
+}
+
+function importDemandeLocation() {
+  const text = (document.getElementById('import-demande-text').value || '').trim();
+  const statusEl = document.getElementById('import-demande-status');
+  if (!text) { if(statusEl) { statusEl.textContent = '⚠️ Texte vide'; statusEl.style.color='var(--yellow)'; } return; }
+
+  // ── Parsing du message ──────────────────────────────────────────
+  // Pseudo : "Envoyé par Marwan le 2026-05-11 00:39:48"
+  const pseudoMatch = text.match(/Envoy[ée] par ([^\s]+)\s+le\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})/i);
+  const pseudo     = pseudoMatch ? pseudoMatch[1] : '';
+  const dateDemande = pseudoMatch ? pseudoMatch[2] : ''; // YYYY-MM-DD
+
+  // Date début : "à partir du 14/05/2026" ou "Date de début : 14/05/2026"
+  let dateDebut = '';
+  const debutMatch = text.match(/(?:à partir du|Date de d[ée]but\s*:)\s*(\d{2})\/(\d{2})\/(\d{4})/i);
+  if (debutMatch) dateDebut = `${debutMatch[3]}-${debutMatch[2]}-${debutMatch[1]}`; // YYYY-MM-DD
+
+  // Durée : "pour une durée de 5 semaine(s)" ou "Durée souhaitée : 5 semaine(s)"
+  let duree = 1;
+  const dureeMatch = text.match(/(?:dur[ée]e de|Dur[ée]e souhait[ée]e\s*:)\s*(\d+)\s*semaine/i);
+  if (dureeMatch) duree = parseInt(dureeMatch[1]);
+
+  // Bus demandés : lignes "    ADTEM-XXX-NNNN (Modèle)"
+  const busMatches = [...text.matchAll(/^\s+(ADTEM-[A-Z0-9]+-\d+)\s*\(([^)]+)\)/gm)];
+  const busNums = busMatches.map(m => m[1]);
+
+  if (!busNums.length) {
+    if (statusEl) { statusEl.textContent = '❌ Aucun bus détecté dans le texte'; statusEl.style.color = 'var(--red)'; }
+    return;
+  }
+
+  // ── Remplir le formulaire ────────────────────────────────────────
+  const today = new Date().toISOString().split('T')[0];
+
+  if (pseudo) {
+    const pseudoEl = document.getElementById('dl-pseudo');
+    if (pseudoEl) {
+      pseudoEl.value = pseudo;
+      // Tenter un match exact dans les membres pour remplir niveau/option
+      const membreMatch = (APP.membres || []).find(m => (m.pseudo || '').toLowerCase() === pseudo.toLowerCase());
+      if (membreMatch) {
+        pseudoAutoFill('dl', membreMatch);
+      }
+      // Fermer le dropdown si ouvert
+      const drop = document.getElementById('dl-pseudo-dropdown');
+      if (drop) drop.style.display = 'none';
+    }
+  }
+  if (dateDemande) {
+    const ddEl = document.getElementById('dl-date-demande');
+    if (ddEl) ddEl.value = dateDemande;
+  }
+  const dcEl = document.getElementById('dl-date-creation');
+  if (dcEl) dcEl.value = today;
+
+  if (dateDebut) {
+    const dbEl = document.getElementById('dl-debut');
+    if (dbEl) { dbEl.value = dateDebut; dbEl.dispatchEvent(new Event('change')); }
+  }
+  const dureeEl = document.getElementById('dl-duree');
+  if (dureeEl) { dureeEl.value = duree; dureeEl.dispatchEvent(new Event('change')); }
+
+  // Attendre le rendu de la liste véhicules puis sélectionner
+  setTimeout(() => {
+    const alts = [];
+    APP.devisLocation.vehiculesSelectionnes = [];
+
+    busNums.forEach(num => {
+      const veh = APP.vehicules.find(v => v['Numéro Parc'] === num);
+      if (!veh) {
+        alts.push({ demande: num, trouve: false });
+        return;
+      }
+
+      // Vérifier disponibilité
+      const res = getReservationBus(num);
+      const isLoue = (veh['Patrimoine'] || '').startsWith('EN LOCATION');
+      if (res || isLoue) {
+        // Chercher un véhicule alternatif du même type/énergie/places similaires
+        const alt = trouverAlternatif(veh, dateDebut, duree);
+        alts.push({ demande: num, trouve: true, dispo: false, alt });
+        if (alt) {
+          if (!APP.devisLocation.vehiculesSelectionnes.some(s => s['Numéro Parc'] === alt['Numéro Parc'])) {
+            APP.devisLocation.vehiculesSelectionnes.push(alt);
+          }
+        }
+      } else {
+        if (!APP.devisLocation.vehiculesSelectionnes.some(s => s['Numéro Parc'] === num)) {
+          APP.devisLocation.vehiculesSelectionnes.push(veh);
+        }
+      }
+    });
+
+    renderVehiculesDisponibles('vehicules-disponibles', APP.devisLocation.vehiculesSelectionnes, 'location');
+    const nb = APP.devisLocation.vehiculesSelectionnes.length;
+    const cptEl = document.getElementById('dl-selected-count');
+    if (cptEl) cptEl.textContent = `${nb} véhicule(s) sélectionné(s)`;
+    updateCalcLocation();
+
+    // Afficher les alertes alternatives
+    const indispos = alts.filter(a => !a.dispo || !a.trouve);
+    if (indispos.length) {
+      let html = `<div style="font-weight:700;color:var(--yellow2);margin-bottom:6px;">⚠️ ${indispos.length} bus non disponible(s) à la date demandée :</div>`;
+      indispos.forEach(a => {
+        if (!a.trouve) {
+          html += `<div style="margin-bottom:4px;">❌ <b>${a.demande}</b> — introuvable dans le parc</div>`;
+        } else {
+          html += `<div style="margin-bottom:4px;">🔒 <b>${a.demande}</b> — ${a.alt ? `remplacé par <b style="color:var(--green2);">${a.alt['Numéro Parc']}</b> (${a.alt['Marque']} ${a.alt['Modèle']}, ${a.alt['Places']} pl.)` : '<span style="color:var(--red);">aucun alternatif trouvé</span>'}</div>`;
+        }
+      });
+      const altsEl = document.getElementById('import-demande-alts');
+      if (altsEl) { altsEl.innerHTML = html; altsEl.style.display = 'block'; }
+    } else {
+      const altsEl = document.getElementById('import-demande-alts');
+      if (altsEl) altsEl.style.display = 'none';
+    }
+
+    const statusEl = document.getElementById('import-demande-status');
+    if (statusEl) {
+      statusEl.textContent = `✅ ${busNums.length} bus analysés — ${nb} sélectionnés`;
+      statusEl.style.color = 'var(--green2)';
+    }
+
+    // Fermer la modale
+    closeModal('modal-import-demande');
+
+    toast(`Import demande : ${nb} bus sélectionnés pour ${pseudo || '?'}`, 'success');
+  }, 300);
+}
+
+function trouverAlternatif(vehOriginal, dateDebut, duree) {
+  // Chercher un véhicule disponible avec même énergie, même type, places proches (±10)
+  const energie = vehOriginal['Energie'] || '';
+  const type    = vehOriginal['Type']    || '';
+  const places  = parseInt(vehOriginal['Places']) || 0;
+
+  const candidats = getVehiculesDisponibles(dateDebut, duree, energie, type)
+    .filter(v => v['Numéro Parc'] !== vehOriginal['Numéro Parc'])
+    .filter(v => Math.abs((parseInt(v['Places']) || 0) - places) <= 15)
+    // Pas déjà sélectionné dans ce devis
+    .filter(v => !APP.devisLocation.vehiculesSelectionnes.some(s => s['Numéro Parc'] === v['Numéro Parc']));
+
+  if (!candidats.length) return null;
+  // Trier par proximité de places
+  candidats.sort((a, b) => Math.abs((parseInt(a['Places'])||0) - places) - Math.abs((parseInt(b['Places'])||0) - places));
+  return candidats[0];
+}
+
 function renderDevisSauvegardes() {
   const typeFilter = document.getElementById('devis-sauv-type-filter')?.value || '';
   const search     = (document.getElementById('devis-sauv-search')?.value || '').toLowerCase();
@@ -5673,6 +6012,18 @@ function filterCompta() {
     return true;
   });
 
+  // Tri par date décroissante
+  ops = ops.slice().sort((a, b) => {
+    const parseDate = s => {
+      if (!s) return 0;
+      // Format: "05/05/2026 12:00" ou "2026-05-05 12:00" ou "2026-05-05T12:00"
+      const m = s.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+      if (m) return new Date(m[3], m[2]-1, m[1], m[4], m[5]).getTime();
+      return new Date(s).getTime() || 0;
+    };
+    return parseDate(b['Date de l\'opération']) - parseDate(a['Date de l\'opération']);
+  });
+
   const tbody = document.getElementById('compta-table-body');
   tbody.innerHTML = ops.map(op => {
     const isRevenu = parseFloat(op['Revenus']) > 0;
@@ -5713,6 +6064,43 @@ if (_comtaMonthSel) _comtaMonthSel.addEventListener('change', async () => {
   }
 });
 
+// ================================================================
+//  TIMESTAMPS DE SYNCHRONISATION
+// ================================================================
+function formatSyncTs(isoStr) {
+  if (!isoStr) return '—';
+  try {
+    const d = new Date(isoStr);
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } catch(e) { return '—'; }
+}
+
+function updateSyncTimestamps() {
+  const tsData = document.getElementById('ts-data');
+  const tsMembres = document.getElementById('ts-membres');
+  if (tsData)    tsData.textContent    = '🚌 ' + formatSyncTs(APP.config.lastSyncData);
+  if (tsMembres) tsMembres.textContent = '👥 ' + formatSyncTs(APP.config.lastSyncMembres);
+}
+
+function updateTopbarSolde() {
+  const el = document.getElementById('topbar-solde');
+  const valEl = document.getElementById('topbar-solde-val');
+  if (!el || !valEl) return;
+  const argentDepart = APP.config.argentDepart || 0;
+  const ecart = APP.config.ecartFinancier || 0;
+  // Utilise toutes les données compta connues (current + last si argentDepart = 0 on utilise juste la correction)
+  const rev = APP.compta.reduce((s, op) => s + (parseFloat(op['Revenus']) || 0), 0);
+  const dep = APP.compta.reduce((s, op) => s + (parseFloat(op['Dépenses']) || 0), 0);
+  const solde = argentDepart + rev - dep + ecart;
+  if (solde === 0 && !argentDepart && !ecart) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  valEl.textContent = solde.toLocaleString('fr') + ' €';
+  valEl.style.color = solde >= 0 ? 'var(--green2)' : 'var(--red)';
+  el.style.background = solde >= 0 ? 'rgba(74,140,82,0.08)' : 'rgba(192,57,43,0.08)';
+  el.style.borderColor = solde >= 0 ? 'rgba(74,140,82,0.2)' : 'rgba(192,57,43,0.2)';
+}
+
 function updateDashboardCompta() {
   let revMois = 0, depMois = 0;
   APP.compta.forEach(op => {
@@ -5736,6 +6124,7 @@ function updateDashboardCompta() {
       </td>
     </tr>`;
   }).join('');
+  updateTopbarSolde();
 }
 
 function exportCompta() {
@@ -6066,6 +6455,10 @@ async function parseMembresImport() {
 
   journalLog(`Import membres : ${msg}`, 'ok');
   toast(`Import terminé — ${msg || 'aucune modification'}`, 'success');
+  // Sauvegarder timestamp de dernière MAJ membres
+  APP.config.lastSyncMembres = new Date().toISOString();
+  sbUpdate('config', { data: { ...APP.config } }, { id: 1 }).catch(() => {});
+  updateSyncTimestamps();
   closeModal('modal-import-membres');
   } catch(e) {
     console.error('[parseMembresImport]', e);
@@ -8252,6 +8645,7 @@ function appliquerEcart() {
     document.getElementById('cfg-ecart').value = '';
     document.getElementById('cfg-ecart-preview').style.display = 'none';
     journalLog(`Correction écart appliquée : ${(ecart>=0?'+':'')}${ecart.toLocaleString('fr')} €`, 'ok');
+    updateTopbarSolde();
     toast('Écart appliqué', 'success');
   });
 }
@@ -8960,7 +9354,7 @@ function resetDevisLocation() {
   document.getElementById('dl-option').value = document.getElementById('dl-option').options[0]?.value || '';
   document.getElementById('dl-filtre-energie').value = '';
   document.getElementById('dl-filtre-type').value    = '';
-  // Véhicules sélectionnés
+  // Véhicules sélectionnés — vider et re-render les deux colonnes
   APP.devisLocation.vehiculesSelectionnes = [];
   // Numéro en cours
   if (APP._currentDevisNumero) delete APP._currentDevisNumero['location'];
@@ -8975,9 +9369,9 @@ function resetDevisLocation() {
   if (actions) actions.style.display = 'none';
   const urlBox = document.getElementById('devis-location-url');
   if (urlBox) { urlBox.style.display = 'none'; urlBox.innerHTML = ''; }
-  // Recalculer
+  // Recalculer + re-render les deux colonnes
   updateCalcLocation();
-  renderVehiculesDisponibles('vehicules-disponibles', [], 'location');
+  renderVehiculesDisponibles('vehicules-disponibles', APP.devisLocation.vehiculesSelectionnes, 'location');
   toast('Formulaire vidé', 'info');
 }
 
