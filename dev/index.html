@@ -3310,7 +3310,10 @@ async function initSupabase() {
   await handleAuthState(session?.user || null);
 }
 
+let _handleAuthLock = false;
 async function handleAuthState(user) {
+  if (_handleAuthLock) { console.warn('[AUTH] handleAuthState ignoré (déjà en cours)'); return; }
+  _handleAuthLock = true;
   try {
   if (user) {
     console.log('[AUTH] User connecte:', user.email, 'id:', user.id);
@@ -3393,7 +3396,6 @@ async function handleAuthState(user) {
   }
   } catch(e) {
     console.error('[handleAuthState] ERREUR FATALE:', e.name, e.message, e.stack);
-    // toast peut ne pas être dispo si le DOM login est affiché
     const tc = document.getElementById('toast-container');
     if (tc) {
       const el = document.createElement('div');
@@ -3402,6 +3404,8 @@ async function handleAuthState(user) {
       tc.appendChild(el);
       setTimeout(() => el.remove(), 6000);
     }
+  } finally {
+    _handleAuthLock = false;
   }
 }
 
