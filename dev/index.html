@@ -3314,7 +3314,9 @@ async function handleAuthState(user) {
   try {
   if (user) {
     console.log('[AUTH] User connecte:', user.email, 'id:', user.id);
+    console.log('[AUTH] Appel sbGet profiles...');
     let profiles = await sbGet('profiles', { eq: ['id', user.id] });
+    console.log('[AUTH] sbGet profiles retourné:', JSON.stringify(profiles));
     // Retry si null — le trigger handle_new_user peut prendre quelques ms après signUp
     if (!profiles?.length) {
       console.warn('[AUTH] Profile non trouve, retry dans 800ms...');
@@ -3390,8 +3392,16 @@ async function handleAuthState(user) {
     }
   }
   } catch(e) {
-    console.error('[handleAuthState] ERREUR:', e);
-    toast('Erreur d\'authentification : ' + e.message, 'error');
+    console.error('[handleAuthState] ERREUR FATALE:', e.name, e.message, e.stack);
+    // toast peut ne pas être dispo si le DOM login est affiché
+    const tc = document.getElementById('toast-container');
+    if (tc) {
+      const el = document.createElement('div');
+      el.className = 'toast error';
+      el.innerHTML = '<span>❌</span><span>Erreur auth : ' + e.message + '</span>';
+      tc.appendChild(el);
+      setTimeout(() => el.remove(), 6000);
+    }
   }
 }
 
