@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.36</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.38</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -3269,25 +3269,15 @@ async function initSupabase() {
   // Enregistrer onAuthStateChange EN PREMIER avant tout await
   // pour ne jamais manquer un event SIGNED_IN (race condition)
   let _initialSessionHandled = false;
-  let _initialSessionDone = false;
   supa.auth.onAuthStateChange(async (_event, sess) => {
     console.log('[AUTH] onAuthStateChange event:', _event);
     if (_event === 'INITIAL_SESSION') {
-      // Session existante au démarrage → traiter normalement
-      _initialSessionDone = true;
-      await handleAuthState(sess?.user || null);
-    } else if (_event === 'SIGNED_IN') {
-      // Ignorer le SIGNED_IN qui arrive pendant l'init (avant INITIAL_SESSION)
-      // Ne traiter que le SIGNED_IN provenant d'une vraie connexion manuelle
-      if (!_initialSessionDone) {
-        console.warn('[AUTH] SIGNED_IN ignoré (Supabase pas encore initialisé)');
-        return;
-      }
       await handleAuthState(sess?.user || null);
     } else if (_event === 'SIGNED_OUT') {
-      _initialSessionDone = false;
       await handleAuthState(null);
     }
+    // SIGNED_IN, TOKEN_REFRESHED, USER_UPDATED → ignorés
+    // Le login manuel appelle handleAuthState directement après signInWithPassword
   });
 
   // Test connexion
@@ -3320,12 +3310,7 @@ async function initSupabase() {
   } catch(e) {
     console.warn('getSession error (ignored):', e.message);
   }
-  // INITIAL_SESSION via onAuthStateChange gère la session initiale
-  // Fallback si INITIAL_SESSION n'arrive pas (rare)
-  if (!_initialSessionDone) {
-    console.warn('[AUTH] Fallback getSession (INITIAL_SESSION non reçu)');
-    await handleAuthState(session?.user || null);
-  }
+  // INITIAL_SESSION gère la session — pas de fallback pour éviter les doublons
 }
 
 let _handleAuthLock = false;
@@ -6926,8 +6911,10 @@ async function doLogin() {
 
   try {
     const email = pseudoToEmail(pseudo);
-    const { error } = await supa.auth.signInWithPassword({ email, password: mdp });
+    const { data: signInData, error } = await supa.auth.signInWithPassword({ email, password: mdp });
     if (error) throw error;
+    // Appel direct — onAuthStateChange ignore SIGNED_IN
+    if (signInData?.user) await handleAuthState(signInData.user);
     // onAuthStateChange prend le relais
   } catch(e) {
     const msgs = {
