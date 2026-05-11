@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.40</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.42</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -3256,6 +3256,29 @@ async function sbUpsert(table, data, opts = {}) {
     return true;
   } catch(e) { console.error('sbUpsert exception', table, e); return false; }
 }
+
+// Upsert spécialisé pour la table compta (update par periode, insert si absent)
+async function sbUpsertCompta(periode, data) {
+  try {
+    // Essayer update d'abord
+    const { data: upd, error: updErr } = await supa.from('compta').update({ data }).eq('periode', periode);
+    if (updErr) throw updErr;
+    // Si aucune ligne mise à jour, insérer
+    const { data: rows } = await supa.from('compta').select('id').eq('periode', periode);
+    if (!rows || rows.length === 0) {
+      const { error: insErr } = await supa.from('compta').insert({ periode, data });
+      if (insErr) throw insErr;
+    }
+    return true;
+  } catch(e) {
+    console.error('sbUpsertCompta', periode, e);
+    // Fallback : upsert avec onConflict
+    try {
+      await supa.from('compta').upsert({ periode, data }, { onConflict: 'periode' });
+    } catch(e2) {}
+    return false;
+  }
+}
 async function sbInsert(table, data) {
   const { error } = await supa.from(table).insert(data);
   if (error) { console.error('sbInsert', table, error); return false; }
@@ -3869,7 +3892,7 @@ async function importJSON() {
     const data = JSON.parse(raw);
     if (type === 'compta') {
       if (!data.comptabilite) throw new Error('Clé "comptabilite" manquante');
-      sbUpsert('compta', { periode: 'current', data }).then(() => {
+      sbUpsertCompta('current', data).then(() => {
         APP.compta = data.comptabilite;
         journalLog(`Import comptabilité : ${data.comptabilite.length} opérations`, 'ok');
         toast('Comptabilité importée avec succès', 'success');
@@ -3957,7 +3980,7 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
     const data = await r.json();
     if (!data.comptabilite) throw new Error('Clé "comptabilite" manquante');
     const avant = APP.compta.length;
-    await sbUpsert('compta', { periode: 'current', data });
+    await sbUpsertCompta('current', data);
     APP.compta = data.comptabilite;   // mise à jour mémoire immédiate
     // Forcer le sélecteur sur "mois en cours" et re-render
     const monthSel = document.getElementById('compta-month-select');
@@ -3982,7 +4005,7 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
     const data = await r.json();
     if (!data.comptabilite) throw new Error('Clé "comptabilite" manquante');
     const avant = (APP.comptaLast || []).length;
-    await sbUpsert('compta', { periode: 'last', data });
+    await sbUpsertCompta('last', data);
     APP.comptaLast = data.comptabilite;   // mise à jour mémoire immédiate
     const nb = data.comptabilite.length;
     const nouvelles = nb - avant;
@@ -4427,12 +4450,47 @@ function renderVehiculesDisponibles(containerId, selectedArr, type) {
 
   const container = document.getElementById(containerId);
 
+  // Fonction interne : rendre la colonne droite "sélectionnés" (toujours, même sans date)
+  function _renderSelectedPanel() {
+    if (type !== 'location') return;
+    const panelSel = document.getElementById('vehicules-selectionnes-panel');
+    const countInline = document.getElementById('dl-selected-count-inline');
+    const countEl = document.getElementById('dl-selected-count');
+    if (panelSel) {
+      if (!selectedArr.length) {
+        panelSel.innerHTML = `<div style="color:var(--text3);font-size:12px;padding:8px 0;">Aucun véhicule sélectionné</div>`;
+      } else {
+        panelSel.innerHTML = selectedArr.map(v => {
+          return `
+            <div class="flex-between" style="padding:7px 8px;border-radius:6px;border:1px solid var(--green);
+              background:rgba(74,140,82,0.08);margin-bottom:5px;cursor:pointer;transition:all 0.15s;"
+              onclick="toggleVehiculeDevis('${v['Numéro Parc']}','${type}')"
+              title="Cliquer pour retirer">
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--green2);">${v['Numéro Parc']}</div>
+                <div style="font-size:10px;color:var(--text3);">${v['Marque']} ${v['Modèle']} · ${v['Places']} pl.</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:12px;">${getEnergieIconImg(v['Energie'], 12) || '🚌'}</span>
+                <span class="badge badge-gray">${v['Type']}</span>
+                <span style="color:var(--red);font-size:14px;font-weight:700;" title="Retirer">✕</span>
+              </div>
+            </div>`;
+        }).join('');
+      }
+    }
+    if (countInline) countInline.textContent = selectedArr.length;
+    if (countEl) countEl.textContent = `${selectedArr.length} véhicule(s) sélectionné(s)`;
+  }
+
   if (!debut) {
     container.innerHTML = `<div style="color:var(--text3);font-size:12px;">Sélectionnez une date de début</div>`;
+    _renderSelectedPanel();
     return;
   }
   if (!dispo.length && !reservesVisibles.length) {
     container.innerHTML = `<div style="color:var(--text3);font-size:12px;">Aucun véhicule disponible pour ces critères</div>`;
+    _renderSelectedPanel();
     return;
   }
 
@@ -4513,20 +4571,7 @@ function renderVehiculesDisponibles(containerId, selectedArr, type) {
     }
   }
   container.innerHTML = html;
-
-  // Colonne droite — seulement pour le devis location
-  if (type === 'location') {
-    const panelSel = document.getElementById('vehicules-selectionnes-panel');
-    const countInline = document.getElementById('dl-selected-count-inline');
-    if (panelSel) {
-      if (!selectedArr.length) {
-        panelSel.innerHTML = `<div style="color:var(--text3);font-size:12px;padding:8px 0;">Aucun véhicule sélectionné</div>`;
-      } else {
-        panelSel.innerHTML = selectedArr.map(v => renderCardSelected(v)).join('');
-      }
-    }
-    if (countInline) countInline.textContent = selectedArr.length;
-  }
+  _renderSelectedPanel();
 }
 
 function toggleVehiculeDevis(numParc, type) {
@@ -8106,10 +8151,10 @@ function importerSauvegarde(input) {
 
       // Compta
       if (data.compta?.current?.comptabilite) {
-        await sbUpsert('compta', { periode: 'current', data: data.compta.current });
+        await sbUpsertCompta('current', data.compta.current);
       }
       if (data.compta?.last?.comptabilite) {
-        await sbUpsert('compta', { periode: 'last', data: data.compta.last });
+        await sbUpsertCompta('last', data.compta.last);
       }
 
       // Templates
@@ -8278,9 +8323,9 @@ async function pushSupabase() {
       await sbUpsert('vehicules', { id: v['Num\u00e9ro Parc'] || ('v' + i), numero_parc: v['Num\u00e9ro Parc'] || '', data: v });
     }
     // Compta
-    await sbUpsert('compta', { periode: 'current', data: { comptabilite: APP.compta } });
+    await sbUpsertCompta('current', { comptabilite: APP.compta });
     if (APP.comptaLast?.length) {
-      await sbUpsert('compta', { periode: 'last', data: { comptabilite: APP.comptaLast } });
+      await sbUpsertCompta('last', { comptabilite: APP.comptaLast });
     }
     // Templates
     for (const t of (APP.templates || [])) {
@@ -8374,7 +8419,7 @@ async function importerCSV() {
           "Revenus":  parseFloat(cols[3]) || 0
         });
       });
-      await sbUpsert('compta', { periode: 'current', data: { comptabilite: ops } });
+      await sbUpsertCompta('current', { comptabilite: ops });
       journalLog(`Import CSV compta : ${ops.length} opérations`, 'ok');
       toast(`✅ ${ops.length} opérations importées depuis CSV`, 'success');
       closeModal('modal-import-csv');
@@ -8696,7 +8741,7 @@ function majToutesOps() {
     return { ...op, theme, cat };
   });
   APP.compta = newCompta;
-  sbUpsert('compta', { periode: 'current', data: { comptabilite: newCompta } }).then(() => {
+  sbUpsertCompta('current', { comptabilite: newCompta }).then(() => {
     toast(`${matched} opération(s) catégorisée(s)`, 'success');
     journalLog(`MAJ catégories : ${matched} opérations matchées`, 'ok');
     renderBilan();
@@ -9332,7 +9377,7 @@ function resetDevisLocation() {
   document.getElementById('dl-option').value = document.getElementById('dl-option').options[0]?.value || '';
   document.getElementById('dl-filtre-energie').value = '';
   document.getElementById('dl-filtre-type').value    = '';
-  // Véhicules sélectionnés
+  // Véhicules sélectionnés — vider et re-render les deux colonnes
   APP.devisLocation.vehiculesSelectionnes = [];
   // Numéro en cours
   if (APP._currentDevisNumero) delete APP._currentDevisNumero['location'];
@@ -9347,9 +9392,9 @@ function resetDevisLocation() {
   if (actions) actions.style.display = 'none';
   const urlBox = document.getElementById('devis-location-url');
   if (urlBox) { urlBox.style.display = 'none'; urlBox.innerHTML = ''; }
-  // Recalculer
+  // Recalculer + re-render les deux colonnes
   updateCalcLocation();
-  renderVehiculesDisponibles('vehicules-disponibles', [], 'location');
+  renderVehiculesDisponibles('vehicules-disponibles', APP.devisLocation.vehiculesSelectionnes, 'location');
   toast('Formulaire vidé', 'info');
 }
 
