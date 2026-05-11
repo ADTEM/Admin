@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.44</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.48</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -2958,6 +2958,14 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
         </div>
         <div style="font-size:10px;color:var(--text3);margin-bottom:8px;">* = wildcard. Ex: <code style="background:var(--surface2);padding:1px 5px;border-radius:3px;">*pub*</code> → contient "pub"</div>
         <div id="cat-regles-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+      <div class="form-group">
+        <div class="flex-between" style="margin-bottom:6px;">
+          <label class="form-label" style="margin-bottom:0;color:var(--red);">🚫 Règles d'exclusion <span style="font-weight:400;color:var(--text3);">(prioritaires)</span></label>
+          <button class="btn btn-secondary btn-sm" onclick="ajouterRegleExclusion()">+ Ajouter</button>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:8px;">Si le libellé matche une exclusion, la catégorie ne s'applique <b>pas</b>, même si une règle de matching correspond. Ex: <code style="background:var(--surface2);padding:1px 5px;border-radius:3px;">*facture*</code></div>
+        <div id="cat-exclusions-list" style="display:flex;flex-direction:column;gap:6px;"></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -6661,18 +6669,11 @@ function pseudoAutoFill(prefix, m) {
     }
     updateCalcLocation();
   } else if (prefix === 'ae') {
-    // Niveau
+    // Niveau — ae-niveau est un <select> avec value="1","2"...
     const nivEl = document.getElementById('ae-niveau');
-    if (nivEl) nivEl.value = m.niveau ? 'Niveau ' + m.niveau : '';
-    // Option AE
-    const optEl = document.getElementById('ae-option');
-    if (optEl && m.options && m.options.length > 0) {
-      const opt = m.options[0].toLowerCase();
-      for (let i = 0; i < optEl.options.length; i++) {
-        if (optEl.options[i].value.toLowerCase() === opt || optEl.options[i].text.toLowerCase().includes(opt.substring(0,6))) {
-          optEl.selectedIndex = i; break;
-        }
-      }
+    if (nivEl && m.niveau) {
+      nivEl.value = String(m.niveau);
+      aeOnNiveauChange();
     }
   }
   toast(`Membre ${m.pseudo} chargé`, 'success');
@@ -8693,11 +8694,19 @@ async function saveThemes() {
   await sbUpdate('config', { data: { ...APP.config, themes: APP.themes } }, { id: 1 });
 }
 
-function matchLibelle(libelle, regles) {
+function matchLibelle(libelle, regles, exclusions) {
+  const lib = libelle.toLowerCase();
+  // Exclusions prioritaires — si une exclusion matche, retourner false immédiatement
+  if ((exclusions || []).some(r => {
+    if (!r || !r.trim()) return false;
+    const pattern = r.trim().replace(/\*/g, '.*').toLowerCase();
+    return new RegExp('^' + pattern + '$').test(lib);
+  })) return false;
+  // Ensuite tester les règles d'inclusion
   return (regles || []).some(r => {
     if (!r || !r.trim()) return false;
     const pattern = r.trim().replace(/\*/g, '.*').toLowerCase();
-    return new RegExp('^' + pattern + '$').test(libelle.toLowerCase());
+    return new RegExp('^' + pattern + '$').test(lib);
   });
 }
 
@@ -8709,7 +8718,7 @@ function majToutesOps() {
     let theme = '', cat = '';
     for (const th of APP.themes) {
       for (const c of (th.categories || [])) {
-        if (matchLibelle(libelle, c.regles)) {
+        if (matchLibelle(libelle, c.regles, c.exclusions)) {
           theme = th.nom; cat = c.nom; matched++;
           break;
         }
@@ -8754,7 +8763,10 @@ function renderCategories() {
         <div class="cat-row">
           <span style="width:8px;height:8px;border-radius:50%;background:${cat.couleur||'var(--blue)'};display:inline-block;flex-shrink:0;"></span>
           <span style="font-weight:600;min-width:180px;">${cat.nom}</span>
-          <span style="flex:1;">${(cat.regles||[]).filter(r=>r.trim()).map(r=>`<span class="rule-tag">${r}</span>`).join(' ')}</span>
+          <span style="flex:1;">
+            ${(cat.regles||[]).filter(r=>r.trim()).map(r=>`<span class="rule-tag">${r}</span>`).join(' ')}
+            ${(cat.exclusions||[]).filter(r=>r.trim()).length ? '<span style="margin-left:4px;font-size:9px;color:var(--red);font-weight:600;">🚫</span> ' + (cat.exclusions||[]).filter(r=>r.trim()).map(r=>`<span class="rule-tag" style="border-color:rgba(192,57,43,0.3);background:var(--redbg);color:var(--red);">${r}</span>`).join(' ') : ''}
+          </span>
           <span style="font-size:11px;color:var(--blue);">
             ${compterOpsMatcheesCategorie(cat)} ops
           </span>
@@ -8821,6 +8833,7 @@ function ouvrirModalNouvelleCategorie(themeId) {
   document.getElementById('cat-nom').value = '';
   document.getElementById('cat-couleur').value = '#00d4ff';
   document.getElementById('cat-regles-list').innerHTML = '';
+  document.getElementById('cat-exclusions-list').innerHTML = '';
   document.getElementById('modal-cat-title').textContent = '➕ Nouvelle catégorie';
   ajouterRegleMatching();
   openModal('modal-nouvelle-categorie');
@@ -8838,6 +8851,9 @@ function editerCategorie(themeId, catId) {
   list.innerHTML = '';
   (cat.regles || []).forEach(r => ajouterRegleMatching(r));
   if (!cat.regles || !cat.regles.length) ajouterRegleMatching();
+  const excList = document.getElementById('cat-exclusions-list');
+  excList.innerHTML = '';
+  (cat.exclusions || []).forEach(r => ajouterRegleExclusion(r));
   document.getElementById('modal-cat-title').textContent = '✏️ Modifier la catégorie';
   openModal('modal-nouvelle-categorie');
 }
@@ -8852,6 +8868,16 @@ function ajouterRegleMatching(val = '') {
   list.appendChild(div);
 }
 
+function ajouterRegleExclusion(val = '') {
+  const list = document.getElementById('cat-exclusions-list');
+  const div = document.createElement('div');
+  div.style.cssText = 'display:flex;gap:6px;align-items:center;';
+  div.innerHTML = `
+    <input type="text" class="form-input" value="${val}" placeholder="*facture*" style="flex:1;font-family:'Fira Code',monospace;font-size:11px;border-color:rgba(192,57,43,0.4);background:var(--redbg);">
+    <button class="btn btn-danger btn-icon btn-sm" onclick="this.parentElement.remove()">✕</button>`;
+  list.appendChild(div);
+}
+
 async function sauvegarderCategorie() {
   const themeId = document.getElementById('cat-theme-id').value;
   const editId  = document.getElementById('cat-edit-id').value;
@@ -8860,15 +8886,16 @@ async function sauvegarderCategorie() {
   if (!nom) { toast('Nom requis', 'error'); return; }
 
   const regles = [...document.querySelectorAll('#cat-regles-list input')].map(i => i.value.trim()).filter(Boolean);
+  const exclusions = [...document.querySelectorAll('#cat-exclusions-list input')].map(i => i.value.trim()).filter(Boolean);
   const theme = (APP.themes||[]).find(t => t.id === themeId);
   if (!theme) return;
 
   if (editId) {
     const cat = (theme.categories||[]).find(c => c.id === editId);
-    if (cat) { cat.nom = nom; cat.couleur = couleur; cat.regles = regles; }
+    if (cat) { cat.nom = nom; cat.couleur = couleur; cat.regles = regles; cat.exclusions = exclusions; }
   } else {
     if (!theme.categories) theme.categories = [];
-    theme.categories.push({ id: genId(), nom, couleur, regles });
+    theme.categories.push({ id: genId(), nom, couleur, regles, exclusions });
   }
 
   saveThemes().then(() => {
@@ -10330,7 +10357,8 @@ function aeUpdateAssignation() {
     const busOptions = ['<option value="">— Ajouter un véhicule —</option>',
       ...pool.map(v => {
         const np = v['Num\u00e9ro Parc'] || '?';
-        const lbl = `${np} — ${v['Type']||''} (${v['Energie']||''})`;
+        const places = v['Type'] === 'Articulé' ? (cfg.placesArt||135) : (cfg.placesStd||110);
+        const lbl = `${np} — ${v['Type']||''} (${v['Energie']||''}) · ${places} pl.`;
         return `<option value="${np}">${lbl}</option>`;
       })
     ].join('');
@@ -10345,14 +10373,20 @@ function aeUpdateAssignation() {
       </div>`;
     }).join('');
 
+    const manque = freqPointe > 0 ? freqPointe - totalPlaces : 0;
     const okClass = freqPointe > 0 && totalPlaces >= freqPointe ? 'var(--green2)' : (totalPlaces > 0 ? 'var(--yellow)' : 'var(--text3)');
     const okIcon = freqPointe > 0 && totalPlaces >= freqPointe ? '✅' : (totalPlaces > 0 ? '⚠️' : '');
+    const placesLabel = freqPointe > 0
+      ? (manque > 0
+          ? `<span style="font-size:11px;font-weight:700;color:var(--yellow);">⚠️ manque ${manque.toLocaleString('fr')} pl.</span>`
+          : `<span style="font-size:11px;font-weight:700;color:var(--green2);">✅ +${(totalPlaces - freqPointe).toLocaleString('fr')} pl.</span>`)
+      : `<span style="font-size:11px;color:var(--text3);">${totalPlaces ? totalPlaces.toLocaleString('fr')+' pl.' : '0 pl.'}</span>`;
 
     return `<div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:var(--surface);">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
         <span style="font-weight:800;font-size:13px;">Ligne ${numLigne}</span>
         ${freqPointe ? `<span style="font-size:11px;color:var(--text3);">Fréq. pointe : ${freqPointe.toLocaleString('fr')} pass.</span>` : `<span style="font-size:10px;color:var(--yellow);">⚠️ Pas de fréquentation configurée</span>`}
-        <span style="margin-left:auto;font-size:11px;font-weight:700;color:${okClass};">${okIcon} ${totalPlaces ? totalPlaces.toLocaleString('fr')+' pl.' : '0 pl.'} / ${freqPointe ? freqPointe.toLocaleString('fr') : '?'}</span>
+        <span style="margin-left:auto;">${placesLabel}</span>
         <span style="font-size:11px;color:var(--blue);font-weight:600;">${tarifu.toLocaleString('fr')} €</span>
       </div>
       ${autoSuggestion}
@@ -10512,17 +10546,21 @@ function buildDevisAEHTML(d) {
   const cgv = (APP.config.cgv || document.getElementById('cfg-cgv').value).replace(/\n/g, '<br>');
   const lignesDetail = d.lignesDetail || [];
 
-  // Table des lignes
+  // Table des lignes — numéros de parc en blocs de 4 par ligne pour éviter l'écrasement
   const lignesRows = lignesDetail.map(ld => {
-    const numParcs = ld.bus.map(v => v['Num\u00e9ro Parc'] || '?').join(', ');
+    const parcs = ld.bus.map(v => v['Num\u00e9ro Parc'] || '?');
+    // Grouper par tranches de 4 pour les sauts de ligne
+    const parcLines = [];
+    for (let i = 0; i < parcs.length; i += 4) parcLines.push(parcs.slice(i, i + 4).join(', '));
+    const numParcsHtml = parcLines.join('<br>') || '—';
     const types = [...new Set(ld.bus.map(v => v['Type']))].join('/');
     return `<tr style="border-top:1px solid #e8f5e9;">
-      <td style="padding:6px 10px;font-weight:700;">Ligne ${ld.numLigne}</td>
-      <td style="padding:6px 10px;text-align:center;">${ld.bus.length}</td>
-      <td style="padding:6px 10px;font-size:10px;color:#555;">${numParcs || '—'}</td>
-      <td style="padding:6px 10px;font-size:10px;color:#555;">${types || '—'}</td>
-      <td style="padding:6px 10px;text-align:center;">${ld.places.toLocaleString('fr')}</td>
-      <td style="padding:6px 10px;text-align:right;font-weight:700;color:#2e7d32;">${ld.tarif.toLocaleString('fr')} €</td>
+      <td style="padding:6px 8px;font-weight:800;white-space:nowrap;width:52px;">Ligne<br>${ld.numLigne}</td>
+      <td style="padding:6px 8px;text-align:center;width:40px;">${ld.bus.length}</td>
+      <td style="padding:6px 8px;font-size:9.5px;color:#555;line-height:1.5;">${numParcsHtml}</td>
+      <td style="padding:6px 8px;font-size:10px;color:#555;white-space:nowrap;width:70px;">${types || '—'}</td>
+      <td style="padding:6px 8px;text-align:center;white-space:nowrap;width:58px;">${ld.places.toLocaleString('fr')}</td>
+      <td style="padding:6px 8px;text-align:right;font-weight:800;color:#2e7d32;white-space:nowrap;width:72px;">${ld.tarif.toLocaleString('fr')} €</td>
     </tr>`;
   }).join('');
 
@@ -10572,12 +10610,12 @@ function buildDevisAEHTML(d) {
     <table style="width:100%;border-collapse:collapse;font-size:11px;">
       <thead>
         <tr style="background:#2e7d32;color:white;">
-          <th style="padding:7px 10px;text-align:left;">Ligne</th>
-          <th style="padding:7px 10px;text-align:center;">Nb. bus</th>
-          <th style="padding:7px 10px;text-align:left;">Numéros de parc</th>
-          <th style="padding:7px 10px;text-align:left;">Type</th>
-          <th style="padding:7px 10px;text-align:center;">Capacité</th>
-          <th style="padding:7px 10px;text-align:right;">Tarif</th>
+          <th style="padding:7px 8px;text-align:left;width:52px;">Ligne</th>
+          <th style="padding:7px 8px;text-align:center;width:40px;">Bus</th>
+          <th style="padding:7px 8px;text-align:left;">Numéros de parc</th>
+          <th style="padding:7px 8px;text-align:left;width:70px;">Type</th>
+          <th style="padding:7px 8px;text-align:center;width:58px;">Capacité</th>
+          <th style="padding:7px 8px;text-align:right;width:72px;">Tarif</th>
         </tr>
       </thead>
       <tbody>
