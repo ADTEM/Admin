@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.34</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.35</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -3318,13 +3318,19 @@ async function handleAuthState(user) {
   if (user) {
     console.log('[AUTH] User connecte:', user.email, 'id:', user.id);
     console.log('[AUTH] Appel sbGet profiles...');
-    let profiles = await sbGet('profiles', { eq: ['id', user.id] });
+    let profiles = await Promise.race([
+      sbGet('profiles', { eq: ['id', user.id] }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout sbGet profiles (8s)')), 8000))
+    ]);
     console.log('[AUTH] sbGet profiles retourné:', JSON.stringify(profiles));
     // Retry si null — le trigger handle_new_user peut prendre quelques ms après signUp
     if (!profiles?.length) {
       console.warn('[AUTH] Profile non trouve, retry dans 800ms...');
       await new Promise(r => setTimeout(r, 800));
-      profiles = await sbGet('profiles', { eq: ['id', user.id] });
+      profiles = await Promise.race([
+        sbGet('profiles', { eq: ['id', user.id] }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout retry sbGet profiles (8s)')), 8000))
+      ]);
     }
     const profile  = profiles?.[0] || {};
     console.log('[AUTH] Profile recupere:', JSON.stringify(profile));
