@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.42</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.43</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -2531,28 +2531,18 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
   <!-- ====== CONFIG FINANCIER ====== -->
   <div class="page" id="page-cfg-financier">
 
-    <div class="grid-2 mb-16">
-      <div class="card">
-        <div class="card-title">💳 Solde de départ</div>
-        <p style="font-size:11.5px;color:var(--text3);margin-bottom:12px;">Montant initial avant tout import de compta. Le solde affiché = départ + recettes − dépenses + écart.</p>
-        <div class="form-group">
-          <label class="form-label">Argent de départ (€)</label>
-          <input type="number" class="form-input" id="cfg-argent-depart" placeholder="Ex: 5000000">
-        </div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">
-          Valeur actuelle : <b id="cfg-argent-actuel" style="color:var(--green2);">0 €</b>
-        </div>
-        <button class="btn btn-primary" onclick="sauvegarderArgentDepart()">✅ Enregistrer</button>
-      </div>
-
+    <div class="mb-16">
       <div class="card">
         <div class="card-title">⚖️ Correction d'écart financier</div>
-        <p style="font-size:11.5px;color:var(--text3);margin-bottom:8px;">Entrez le <b>solde affiché dans le jeu</b>. Le site calculera automatiquement l'écart à appliquer.</p>
+        <p style="font-size:11.5px;color:var(--text3);margin-bottom:8px;">Collez le <b>solde affiché dans le jeu</b> (ex : <code>5 783 734 €</code>). Le site calculera automatiquement l'écart à appliquer.</p>
         <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">
           Solde calculé actuellement : <b id="cfg-solde-calcule" style="color:var(--blue);">—</b>
         </div>
         <div style="display:flex;gap:8px;margin-bottom:10px;">
-          <input type="number" class="form-input" id="cfg-ecart" placeholder="Solde réel dans le jeu (ex: 12000000)" oninput="previewEcart()">
+          <input type="text" class="form-input" id="cfg-ecart"
+            placeholder="Ex : 5 783 734 € ou 5783734"
+            oninput="previewEcart()"
+            style="font-family:'Fira Code',monospace;">
           <button class="btn btn-primary" onclick="appliquerEcart()">✓ Appliquer</button>
         </div>
         <div style="font-size:12px;color:var(--text2);">
@@ -6110,13 +6100,11 @@ function updateTopbarSolde() {
   const el = document.getElementById('topbar-solde');
   const valEl = document.getElementById('topbar-solde-val');
   if (!el || !valEl) return;
-  const argentDepart = APP.config.argentDepart || 0;
   const ecart = APP.config.ecartFinancier || 0;
-  // Utilise toutes les données compta connues (current + last si argentDepart = 0 on utilise juste la correction)
   const rev = APP.compta.reduce((s, op) => s + (parseFloat(op['Revenus']) || 0), 0);
   const dep = APP.compta.reduce((s, op) => s + (parseFloat(op['Dépenses']) || 0), 0);
-  const solde = argentDepart + rev - dep + ecart;
-  if (solde === 0 && !argentDepart && !ecart) { el.style.display = 'none'; return; }
+  const solde = rev - dep + ecart;
+  if (solde === 0 && !ecart) { el.style.display = 'none'; return; }
   el.style.display = 'flex';
   valEl.textContent = solde.toLocaleString('fr') + ' €';
   valEl.style.color = solde >= 0 ? 'var(--green2)' : 'var(--red)';
@@ -8637,15 +8625,27 @@ function renderFrequentation() {
 // ================================================================
 //  4. ECART FINANCIER
 // ================================================================
+// Parse un montant copié depuis le jeu : "5 783 734 €" → 5783734
+function parseMontantJeu(str) {
+  if (!str) return NaN;
+  // Enlever €, espaces insécables, espaces normaux, virgules comme séparateur de milliers
+  const clean = String(str)
+    .replace(/€/g, '')
+    .replace(/\u00a0/g, '') // espace insécable
+    .replace(/\s/g, '')     // espaces
+    .replace(/,/g, '');     // virgules milliers
+  return parseFloat(clean);
+}
+
 function getSoldeCalcule() {
-  const argentDepart = APP.config.argentDepart || 0;
   const rev = APP.compta.reduce((s, op) => s + (parseFloat(op['Revenus']) || 0), 0);
   const dep = APP.compta.reduce((s, op) => s + (parseFloat(op['Dépenses']) || 0), 0);
-  return argentDepart + rev - dep;
+  return rev - dep;
 }
 
 function previewEcart() {
-  const val = parseFloat(document.getElementById('cfg-ecart').value);
+  const raw = document.getElementById('cfg-ecart').value;
+  const val = parseMontantJeu(raw);
   const preview = document.getElementById('cfg-ecart-preview');
   if (isNaN(val)) { preview.style.display = 'none'; return; }
   const soldeCalc = getSoldeCalcule();
@@ -8653,11 +8653,12 @@ function previewEcart() {
   const signe = ecart >= 0 ? '+' : '';
   preview.style.display = 'block';
   preview.style.color = ecart >= 0 ? 'var(--green2)' : 'var(--red)';
-  preview.innerHTML = `Solde calculé : <b>${soldeCalc.toLocaleString('fr')} €</b> → Écart : <b>${signe}${ecart.toLocaleString('fr')} €</b>`;
+  preview.innerHTML = `Solde calculé : <b>${soldeCalc.toLocaleString('fr')} €</b> → Solde jeu : <b>${val.toLocaleString('fr')} €</b> → Écart : <b>${signe}${ecart.toLocaleString('fr')} €</b>`;
 }
 
 function appliquerEcart() {
-  const val = parseFloat(document.getElementById('cfg-ecart').value);
+  const raw = document.getElementById('cfg-ecart').value;
+  const val = parseMontantJeu(raw);
   if (isNaN(val)) { toast('Entrez le solde réel du jeu', 'error'); return; }
   const soldeCalc = getSoldeCalcule();
   const ecart = val - soldeCalc;
@@ -8682,21 +8683,7 @@ function resetEcart() {
   });
 }
 
-function sauvegarderArgentDepart() {
-  const val = parseFloat(document.getElementById('cfg-argent-depart').value) || 0;
-  APP.config.argentDepart = val;
-  sbUpdate('config', { data: { ...APP.config, argentDepart: val } }, { id: 1 }).then(() => {
-    const el = document.getElementById('cfg-argent-actuel');
-    if (el) el.textContent = val.toLocaleString('fr') + ' €';
-    toast('Argent de départ enregistré', 'success');
-  });
-}
-
 function loadCfgFinancier() {
-  const el1 = document.getElementById('cfg-argent-depart');
-  if (el1) el1.value = APP.config.argentDepart || '';
-  const el2 = document.getElementById('cfg-argent-actuel');
-  if (el2) el2.textContent = (APP.config.argentDepart || 0).toLocaleString('fr') + ' €';
   const el3 = document.getElementById('cfg-solde-calcule');
   if (el3) el3.textContent = getSoldeCalcule().toLocaleString('fr') + ' €';
   const el4 = document.getElementById('cfg-ecart-actuel');
