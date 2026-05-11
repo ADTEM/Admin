@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.48</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.49</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -4073,8 +4073,29 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
     const data = await r.json();
     if (!data.comptabilite) throw new Error('Clé "comptabilite" manquante');
     const avant = APP.compta.length;
-    await sbUpsertCompta('current', data);
-    APP.compta = data.comptabilite;   // mise à jour mémoire immédiate
+    // Préserver les champs cat/theme issus de la catégorisation manuelle
+    const opsCatMap = {};
+    APP.compta.forEach(op => {
+      const key = op["Libellé de l'opération"] + '|' + op["Date de l'opération"] + '|' + (op['Revenus']||'') + '|' + (op['Dépenses']||'');
+      if (op.cat || op.theme) opsCatMap[key] = { cat: op.cat, theme: op.theme };
+    });
+    // Re-catégoriser automatiquement avec les thèmes connus, puis appliquer les overrides manuels
+    const enriched = data.comptabilite.map(op => {
+      const key = op["Libellé de l'opération"] + '|' + op["Date de l'opération"] + '|' + (op['Revenus']||'') + '|' + (op['Dépenses']||'');
+      if (opsCatMap[key]) return { ...op, ...opsCatMap[key] };
+      // Auto-match
+      const libelle = op["Libellé de l'opération"] || '';
+      for (const th of APP.themes) {
+        for (const c of (th.categories || [])) {
+          if (matchLibelle(libelle, c.regles, c.exclusions)) {
+            return { ...op, theme: th.nom, cat: c.nom };
+          }
+        }
+      }
+      return { ...op, theme: op.theme || '', cat: op.cat || '' };
+    });
+    await sbUpsertCompta('current', { comptabilite: enriched });
+    APP.compta = enriched;   // mise à jour mémoire immédiate
     // Forcer le sélecteur sur "mois en cours" et re-render
     const monthSel = document.getElementById('compta-month-select');
     if (monthSel) monthSel.value = 'current';
@@ -4098,8 +4119,20 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
     const data = await r.json();
     if (!data.comptabilite) throw new Error('Clé "comptabilite" manquante');
     const avant = (APP.comptaLast || []).length;
-    await sbUpsertCompta('last', data);
-    APP.comptaLast = data.comptabilite;   // mise à jour mémoire immédiate
+    // Même logique : préserver cat/theme + auto-match
+    const enrichedLast = data.comptabilite.map(op => {
+      const libelle = op["Libellé de l'opération"] || '';
+      for (const th of APP.themes) {
+        for (const c of (th.categories || [])) {
+          if (matchLibelle(libelle, c.regles, c.exclusions)) {
+            return { ...op, theme: th.nom, cat: c.nom };
+          }
+        }
+      }
+      return { ...op, theme: op.theme || '', cat: op.cat || '' };
+    });
+    await sbUpsertCompta('last', { comptabilite: enrichedLast });
+    APP.comptaLast = enrichedLast;   // mise à jour mémoire immédiate
     const nb = data.comptabilite.length;
     const nouvelles = nb - avant;
     addResult('📅', 'Comptabilité — mois précédent',
@@ -8713,25 +8746,45 @@ function matchLibelle(libelle, regles, exclusions) {
 function majToutesOps() {
   if (!APP.compta.length) { toast('Aucune opération en base', 'info'); return; }
   let matched = 0;
-  const newCompta = APP.compta.map(op => {
+
+  const recategorise = (ops) => ops.map(op => {
     const libelle = op["Libellé de l'opération"] || '';
-    let theme = '', cat = '';
     for (const th of APP.themes) {
       for (const c of (th.categories || [])) {
         if (matchLibelle(libelle, c.regles, c.exclusions)) {
-          theme = th.nom; cat = c.nom; matched++;
-          break;
+          matched++;
+          return { ...op, theme: th.nom, cat: c.nom };
         }
       }
-      if (theme) break;
     }
-    return { ...op, theme, cat };
+    return { ...op, theme: '', cat: '' };
   });
+
+  // Recatégoriser current
+  const newCompta = recategorise(APP.compta);
   APP.compta = newCompta;
-  sbUpsertCompta('current', { comptabilite: newCompta }).then(() => {
+
+  // Recatégoriser last si dispo
+  if (APP.comptaLast && APP.comptaLast.length) {
+    APP.comptaLast = recategorise(APP.comptaLast);
+  }
+
+  // Reconstruire comptaAll
+  if (APP.comptaAll && APP.comptaAll.length) {
+    APP.comptaAll = recategorise(APP.comptaAll);
+  }
+
+  // Sauvegarder en base
+  const saves = [sbUpsertCompta('current', { comptabilite: newCompta })];
+  if (APP.comptaLast && APP.comptaLast.length) {
+    saves.push(sbUpsertCompta('last', { comptabilite: APP.comptaLast }));
+  }
+
+  Promise.all(saves).then(() => {
     toast(`${matched} opération(s) catégorisée(s)`, 'success');
     journalLog(`MAJ catégories : ${matched} opérations matchées`, 'ok');
     renderBilan();
+    renderCompta();
   });
 }
 
@@ -8918,7 +8971,21 @@ function supprimerCategorie(themeId, catId) {
 //  6. TABLEAU FINANCIER (BILAN)
 // ================================================================
 function renderBilan() {
-  const ops    = APP.compta || [];
+  // Utiliser toutes les périodes disponibles (comptaAll = current + last + historique)
+  const rawOps = APP.comptaAll && APP.comptaAll.length ? APP.comptaAll : APP.compta || [];
+  // Auto-match à la volée les ops sans catégorie (pour affichage immédiat sans MAJ explicite)
+  const ops = rawOps.map(op => {
+    if (op.cat) return op;
+    const libelle = op["Libellé de l'opération"] || '';
+    for (const th of APP.themes || []) {
+      for (const c of (th.categories || [])) {
+        if (matchLibelle(libelle, c.regles, c.exclusions)) {
+          return { ...op, theme: th.nom, cat: c.nom };
+        }
+      }
+    }
+    return op;
+  });
   const themes = APP.themes || [];
   const anneeEl = document.getElementById('bilan-annee');
   const sc       = document.getElementById('bilan-stat-cards');
