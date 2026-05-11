@@ -911,7 +911,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
     </div>
 
     <div style="text-align:center;margin-top:20px;font-size:10px;color:var(--text4);">
-      ADTEM · Transport Manager · <span id="login-version">V1.6</span>
+      ADTEM · Transport Manager · <span id="login-version">V1.7</span>
     </div>
   </div>
 </div>
@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.38</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.39</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -1086,7 +1086,16 @@ body.mode-config #page-title { color: var(--cfg-green); }
 <div id="topbar">
   <div id="page-title">Tableau de bord <small>Vue générale de l'alliance</small></div>
   <div class="topbar-actions">
+    <div id="topbar-solde" style="display:none;align-items:center;gap:6px;padding:4px 12px;border-radius:8px;
+         background:rgba(74,140,82,0.08);border:1px solid rgba(74,140,82,0.2);">
+      <span style="font-size:10px;color:var(--text3);font-weight:600;letter-spacing:0.5px;">SOLDE</span>
+      <span id="topbar-solde-val" style="font-size:14px;font-weight:800;color:var(--green2);font-family:'Fira Code',monospace;">—</span>
+    </div>
     <button class="btn btn-secondary btn-sm" id="btn-sync-data">📡 Télécharger les données</button>
+    <div id="sync-timestamps" style="display:flex;flex-direction:column;gap:2px;font-size:9px;color:var(--text3);font-family:'Fira Code',monospace;line-height:1.3;">
+      <span id="ts-data">🚌 —</span>
+      <span id="ts-membres">👥 —</span>
+    </div>
     <button class="btn btn-primary btn-sm" id="btn-import-csv" style="display:none;">📥 Import CSV</button>
     <div class="topbar-user" id="topbar-user" style="display:none;">
       <div class="topbar-user-avatar" id="user-avatar">?</div>
@@ -1343,6 +1352,27 @@ body.mode-config #page-title { color: var(--cfg-green); }
       </div>
     </div>
 
+    <!-- Import demande de location depuis le jeu -->
+    <div class="card mb-20" id="card-import-demande">
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="toggleImportDemande()">
+        <span><span class="icon">📨</span> Import d'une demande de location du jeu</span>
+        <span id="import-demande-toggle-icon" style="font-size:10px;color:var(--text3);">▼ Déplier</span>
+      </div>
+      <div id="import-demande-body" style="display:none;margin-top:12px;">
+        <p style="font-size:11.5px;color:var(--text3);margin-bottom:10px;">
+          Copiez-collez le message de demande de location reçu dans le jeu. Le formulaire sera rempli automatiquement.
+        </p>
+        <textarea id="import-demande-text" class="form-textarea" rows="8"
+          placeholder="Demande de location de véhicules&#10;Envoyé par Marwan le 2026-05-11 00:39:48&#10;Je demande la location de 12 véhicule(s) à partir du 14/05/2026 pour une durée de 5 semaine(s) :&#10;    ADTEM-ART-8026 (Heuliez GX 427)&#10;    ..."></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
+          <button class="btn btn-primary btn-sm" onclick="importDemandeLocation()">🚀 Importer</button>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('import-demande-text').value=''">✕ Effacer</button>
+          <span id="import-demande-status" style="font-size:11px;color:var(--text3);"></span>
+        </div>
+        <div id="import-demande-alts" style="display:none;margin-top:10px;padding:10px;border-radius:8px;background:var(--yellowbg);border:1px solid rgba(201,134,10,0.2);font-size:12px;"></div>
+      </div>
+    </div>
+
     <div class="grid-2" style="gap:20px;">
       <!-- Formulaire -->
       <div>
@@ -1414,6 +1444,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <div class="card mb-16">
           <div class="card-title"><span class="icon">🚌</span> Sélection des véhicules</div>
           <div class="filter-bar mb-16" style="margin-bottom:10px;">
+            <input type="text" class="form-input" id="dl-filtre-search" placeholder="🔍 Numéro ou modèle..." style="flex:1;" oninput="renderVehiculesDisponibles('vehicules-disponibles', APP.devisLocation.vehiculesSelectionnes, 'location')">
             <select class="form-select" id="dl-filtre-energie" style="flex:1;">
               <option value="">Toutes énergies</option>
               <option value="Hybride">Hybride</option>
@@ -3426,6 +3457,8 @@ async function loadAllData() {
       Object.assign(APP.config, cfgRows[0].data);
       if (cfgRows[0].data.themes) APP.themes = cfgRows[0].data.themes;
       applyConfig();
+      updateSyncTimestamps();
+      updateTopbarSolde();
     }
 
     // Membres
@@ -3898,6 +3931,9 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
     const avant = APP.compta.length;
     await sbUpsert('compta', { periode: 'current', data });
     APP.compta = data.comptabilite;   // mise à jour mémoire immédiate
+    // Forcer le sélecteur sur "mois en cours" et re-render
+    const monthSel = document.getElementById('compta-month-select');
+    if (monthSel) monthSel.value = 'current';
     renderCompta();
     updateDashboardCompta();
     const nb = data.comptabilite.length;
@@ -3935,6 +3971,11 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
   document.getElementById('sync-result-body').innerHTML =
     `<div style="margin:-4px 0;">${resultLines.join('')}</div>`;
   openModal('modal-sync-result');
+
+  // Sauvegarder timestamp de dernière MAJ données
+  APP.config.lastSyncData = new Date().toISOString();
+  sbUpdate('config', { data: { ...APP.config } }, { id: 1 }).catch(() => {});
+  updateSyncTimestamps();
 
   btn.disabled = false;
   btn.textContent = '📡 Télécharger les données';
@@ -4327,9 +4368,17 @@ function renderVehiculesDisponibles(containerId, selectedArr, type) {
   const duree = parseInt(document.getElementById(type === 'location' ? 'dl-duree' : 'ae-duree-sem').value) || 1;
   const filterEnergie = document.getElementById(type === 'location' ? 'dl-filtre-energie' : 'ae-filtre-energie').value;
   const filterType = document.getElementById(type === 'location' ? 'dl-filtre-type' : 'ae-filtre-type').value;
+  const searchEl = document.getElementById(type === 'location' ? 'dl-filtre-search' : null);
+  const filterSearch = (searchEl ? searchEl.value : '').toLowerCase().trim();
 
   // Bus disponibles (sans réservation bloquante)
-  const dispo = getVehiculesDisponibles(debut, duree, filterEnergie, filterType);
+  let dispo = getVehiculesDisponibles(debut, duree, filterEnergie, filterType);
+  if (filterSearch) {
+    dispo = dispo.filter(v => {
+      const str = ((v['Numéro Parc'] || '') + ' ' + (v['Marque'] || '') + ' ' + (v['Modèle'] || '')).toLowerCase();
+      return str.includes(filterSearch);
+    });
+  }
 
   // Bus réservés (on les montre mais grisés)
   let [yD, mD, dD] = debut ? debut.split('-') : [];
@@ -4340,6 +4389,10 @@ function renderVehiculesDisponibles(containerId, selectedArr, type) {
     if (dispo.some(d => d['Numéro Parc'] === v['Numéro Parc'])) return false; // Déjà dans dispo
     // Seulement ceux sur parc location (éligibles au fond)
     if (!['SUR PARC LOCATION','ADTEM'].includes(v['Patrimoine']) && !(v['Patrimoine']||'').startsWith('EN LOCATION')) return false;
+    if (filterSearch) {
+      const str = ((v['Numéro Parc'] || '') + ' ' + (v['Marque'] || '') + ' ' + (v['Modèle'] || '')).toLowerCase();
+      if (!str.includes(filterSearch)) return false;
+    }
     const res = getReservationBus(v['Numéro Parc']);
     return !!res;
   }) : [];
@@ -4430,7 +4483,7 @@ function addVehiculeToDevis(v, type) {
 }
 
 // Listeners dévis location
-['dl-debut', 'dl-duree', 'dl-filtre-energie', 'dl-filtre-type'].forEach(id => {
+['dl-debut', 'dl-duree', 'dl-filtre-energie', 'dl-filtre-type', 'dl-filtre-search'].forEach(id => {
   const el = document.getElementById(id);
   if (el) el.addEventListener('change', () => {
     renderVehiculesDisponibles('vehicules-disponibles', APP.devisLocation.vehiculesSelectionnes, 'location');
@@ -5564,6 +5617,157 @@ document.addEventListener('click', e => {
   if (th) handleSortClick(th);
 });
 
+// ================================================================
+//  IMPORT DEMANDE DE LOCATION DEPUIS LE JEU
+// ================================================================
+function toggleImportDemande() {
+  const body = document.getElementById('import-demande-body');
+  const icon = document.getElementById('import-demande-toggle-icon');
+  if (!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if (icon) icon.textContent = open ? '▼ Déplier' : '▲ Replier';
+}
+
+function importDemandeLocation() {
+  const text = (document.getElementById('import-demande-text').value || '').trim();
+  const statusEl = document.getElementById('import-demande-status');
+  const altsEl = document.getElementById('import-demande-alts');
+  if (!text) { statusEl.textContent = '⚠️ Texte vide'; return; }
+
+  // ── Parsing du message ──────────────────────────────────────────
+  // Pseudo : "Envoyé par Marwan le 2026-05-11 00:39:48"
+  const pseudoMatch = text.match(/Envoy[ée] par ([^\s]+)\s+le\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})/i);
+  const pseudo     = pseudoMatch ? pseudoMatch[1] : '';
+  const dateDemande = pseudoMatch ? pseudoMatch[2] : ''; // YYYY-MM-DD
+
+  // Date début : "à partir du 14/05/2026" ou "Date de début : 14/05/2026"
+  let dateDebut = '';
+  const debutMatch = text.match(/(?:à partir du|Date de d[ée]but\s*:)\s*(\d{2})\/(\d{2})\/(\d{4})/i);
+  if (debutMatch) dateDebut = `${debutMatch[3]}-${debutMatch[2]}-${debutMatch[1]}`; // YYYY-MM-DD
+
+  // Durée : "pour une durée de 5 semaine(s)" ou "Durée souhaitée : 5 semaine(s)"
+  let duree = 1;
+  const dureeMatch = text.match(/(?:dur[ée]e de|Dur[ée]e souhait[ée]e\s*:)\s*(\d+)\s*semaine/i);
+  if (dureeMatch) duree = parseInt(dureeMatch[1]);
+
+  // Bus demandés : lignes "    ADTEM-XXX-NNNN (Modèle)"
+  const busMatches = [...text.matchAll(/^\s+(ADTEM-[A-Z0-9]+-\d+)\s*\(([^)]+)\)/gm)];
+  const busNums = busMatches.map(m => m[1]);
+
+  if (!busNums.length) {
+    statusEl.textContent = '❌ Aucun bus détecté dans le texte';
+    statusEl.style.color = 'var(--red)';
+    return;
+  }
+
+  // ── Remplir le formulaire ────────────────────────────────────────
+  const today = new Date().toISOString().split('T')[0];
+
+  if (pseudo) {
+    const pseudoEl = document.getElementById('dl-pseudo');
+    if (pseudoEl) { pseudoEl.value = pseudo; pseudoAutoInput('dl'); }
+  }
+  if (dateDemande) {
+    const ddEl = document.getElementById('dl-date-demande');
+    if (ddEl) ddEl.value = dateDemande;
+  }
+  const dcEl = document.getElementById('dl-date-creation');
+  if (dcEl) dcEl.value = today;
+
+  if (dateDebut) {
+    const dbEl = document.getElementById('dl-debut');
+    if (dbEl) { dbEl.value = dateDebut; dbEl.dispatchEvent(new Event('change')); }
+  }
+  const dureeEl = document.getElementById('dl-duree');
+  if (dureeEl) { dureeEl.value = duree; dureeEl.dispatchEvent(new Event('change')); }
+
+  // Attendre le rendu de la liste véhicules puis sélectionner
+  setTimeout(() => {
+    const alts = [];
+    APP.devisLocation.vehiculesSelectionnes = [];
+
+    busNums.forEach(num => {
+      const veh = APP.vehicules.find(v => v['Numéro Parc'] === num);
+      if (!veh) {
+        alts.push({ demande: num, trouve: false });
+        return;
+      }
+
+      // Vérifier disponibilité
+      const res = getReservationBus(num);
+      const isLoue = (veh['Patrimoine'] || '').startsWith('EN LOCATION');
+      if (res || isLoue) {
+        // Chercher un véhicule alternatif du même type/énergie/places similaires
+        const alt = trouverAlternatif(veh, dateDebut, duree);
+        alts.push({ demande: num, trouve: true, dispo: false, alt });
+        if (alt) {
+          if (!APP.devisLocation.vehiculesSelectionnes.some(s => s['Numéro Parc'] === alt['Numéro Parc'])) {
+            APP.devisLocation.vehiculesSelectionnes.push(alt);
+          }
+        }
+      } else {
+        if (!APP.devisLocation.vehiculesSelectionnes.some(s => s['Numéro Parc'] === num)) {
+          APP.devisLocation.vehiculesSelectionnes.push(veh);
+        }
+      }
+    });
+
+    renderVehiculesDisponibles('vehicules-disponibles', APP.devisLocation.vehiculesSelectionnes, 'location');
+    const nb = APP.devisLocation.vehiculesSelectionnes.length;
+    const cptEl = document.getElementById('dl-selected-count');
+    if (cptEl) cptEl.textContent = `${nb} véhicule(s) sélectionné(s)`;
+    updateCalcLocation();
+
+    // Afficher les alertes alternatives
+    const indispos = alts.filter(a => !a.dispo || !a.trouve);
+    if (indispos.length) {
+      let html = `<div style="font-weight:700;color:var(--yellow2);margin-bottom:6px;">⚠️ ${indispos.length} bus non disponible(s) à la date demandée :</div>`;
+      indispos.forEach(a => {
+        if (!a.trouve) {
+          html += `<div style="margin-bottom:4px;">❌ <b>${a.demande}</b> — introuvable dans le parc</div>`;
+        } else {
+          html += `<div style="margin-bottom:4px;">🔒 <b>${a.demande}</b> — ${a.alt ? `remplacé par <b style="color:var(--green2);">${a.alt['Numéro Parc']}</b> (${a.alt['Marque']} ${a.alt['Modèle']}, ${a.alt['Places']} pl.)` : '<span style="color:var(--red);">aucun alternatif trouvé</span>'}</div>`;
+        }
+      });
+      altsEl.innerHTML = html;
+      altsEl.style.display = 'block';
+    } else {
+      altsEl.style.display = 'none';
+    }
+
+    const ok = busNums.length - indispos.filter(a => !a.alt && !a.trouve).length;
+    statusEl.textContent = `✅ ${busNums.length} bus analysés — ${nb} sélectionnés`;
+    statusEl.style.color = 'var(--green2)';
+
+    // Replier le panneau d'import
+    const body = document.getElementById('import-demande-body');
+    const icon = document.getElementById('import-demande-toggle-icon');
+    if (body) body.style.display = 'none';
+    if (icon) icon.textContent = '▼ Déplier';
+
+    toast(`Import demande : ${nb} bus sélectionnés pour ${pseudo || '?'}`, 'success');
+  }, 300);
+}
+
+function trouverAlternatif(vehOriginal, dateDebut, duree) {
+  // Chercher un véhicule disponible avec même énergie, même type, places proches (±10)
+  const energie = vehOriginal['Energie'] || '';
+  const type    = vehOriginal['Type']    || '';
+  const places  = parseInt(vehOriginal['Places']) || 0;
+
+  const candidats = getVehiculesDisponibles(dateDebut, duree, energie, type)
+    .filter(v => v['Numéro Parc'] !== vehOriginal['Numéro Parc'])
+    .filter(v => Math.abs((parseInt(v['Places']) || 0) - places) <= 15)
+    // Pas déjà sélectionné dans ce devis
+    .filter(v => !APP.devisLocation.vehiculesSelectionnes.some(s => s['Numéro Parc'] === v['Numéro Parc']));
+
+  if (!candidats.length) return null;
+  // Trier par proximité de places
+  candidats.sort((a, b) => Math.abs((parseInt(a['Places'])||0) - places) - Math.abs((parseInt(b['Places'])||0) - places));
+  return candidats[0];
+}
+
 function renderDevisSauvegardes() {
   const typeFilter = document.getElementById('devis-sauv-type-filter')?.value || '';
   const search     = (document.getElementById('devis-sauv-search')?.value || '').toLowerCase();
@@ -5673,6 +5877,18 @@ function filterCompta() {
     return true;
   });
 
+  // Tri par date décroissante
+  ops = ops.slice().sort((a, b) => {
+    const parseDate = s => {
+      if (!s) return 0;
+      // Format: "05/05/2026 12:00" ou "2026-05-05 12:00" ou "2026-05-05T12:00"
+      const m = s.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+      if (m) return new Date(m[3], m[2]-1, m[1], m[4], m[5]).getTime();
+      return new Date(s).getTime() || 0;
+    };
+    return parseDate(b['Date de l\'opération']) - parseDate(a['Date de l\'opération']);
+  });
+
   const tbody = document.getElementById('compta-table-body');
   tbody.innerHTML = ops.map(op => {
     const isRevenu = parseFloat(op['Revenus']) > 0;
@@ -5713,6 +5929,43 @@ if (_comtaMonthSel) _comtaMonthSel.addEventListener('change', async () => {
   }
 });
 
+// ================================================================
+//  TIMESTAMPS DE SYNCHRONISATION
+// ================================================================
+function formatSyncTs(isoStr) {
+  if (!isoStr) return '—';
+  try {
+    const d = new Date(isoStr);
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } catch(e) { return '—'; }
+}
+
+function updateSyncTimestamps() {
+  const tsData = document.getElementById('ts-data');
+  const tsMembres = document.getElementById('ts-membres');
+  if (tsData)    tsData.textContent    = '🚌 ' + formatSyncTs(APP.config.lastSyncData);
+  if (tsMembres) tsMembres.textContent = '👥 ' + formatSyncTs(APP.config.lastSyncMembres);
+}
+
+function updateTopbarSolde() {
+  const el = document.getElementById('topbar-solde');
+  const valEl = document.getElementById('topbar-solde-val');
+  if (!el || !valEl) return;
+  const argentDepart = APP.config.argentDepart || 0;
+  const ecart = APP.config.ecartFinancier || 0;
+  // Utilise toutes les données compta connues (current + last si argentDepart = 0 on utilise juste la correction)
+  const rev = APP.compta.reduce((s, op) => s + (parseFloat(op['Revenus']) || 0), 0);
+  const dep = APP.compta.reduce((s, op) => s + (parseFloat(op['Dépenses']) || 0), 0);
+  const solde = argentDepart + rev - dep + ecart;
+  if (solde === 0 && !argentDepart && !ecart) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  valEl.textContent = solde.toLocaleString('fr') + ' €';
+  valEl.style.color = solde >= 0 ? 'var(--green2)' : 'var(--red)';
+  el.style.background = solde >= 0 ? 'rgba(74,140,82,0.08)' : 'rgba(192,57,43,0.08)';
+  el.style.borderColor = solde >= 0 ? 'rgba(74,140,82,0.2)' : 'rgba(192,57,43,0.2)';
+}
+
 function updateDashboardCompta() {
   let revMois = 0, depMois = 0;
   APP.compta.forEach(op => {
@@ -5736,6 +5989,7 @@ function updateDashboardCompta() {
       </td>
     </tr>`;
   }).join('');
+  updateTopbarSolde();
 }
 
 function exportCompta() {
@@ -6066,6 +6320,10 @@ async function parseMembresImport() {
 
   journalLog(`Import membres : ${msg}`, 'ok');
   toast(`Import terminé — ${msg || 'aucune modification'}`, 'success');
+  // Sauvegarder timestamp de dernière MAJ membres
+  APP.config.lastSyncMembres = new Date().toISOString();
+  sbUpdate('config', { data: { ...APP.config } }, { id: 1 }).catch(() => {});
+  updateSyncTimestamps();
   closeModal('modal-import-membres');
   } catch(e) {
     console.error('[parseMembresImport]', e);
@@ -8252,6 +8510,7 @@ function appliquerEcart() {
     document.getElementById('cfg-ecart').value = '';
     document.getElementById('cfg-ecart-preview').style.display = 'none';
     journalLog(`Correction écart appliquée : ${(ecart>=0?'+':'')}${ecart.toLocaleString('fr')} €`, 'ok');
+    updateTopbarSolde();
     toast('Écart appliqué', 'success');
   });
 }
