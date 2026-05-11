@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.46</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.47</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -6661,18 +6661,11 @@ function pseudoAutoFill(prefix, m) {
     }
     updateCalcLocation();
   } else if (prefix === 'ae') {
-    // Niveau
+    // Niveau — ae-niveau est un <select> avec value="1","2"...
     const nivEl = document.getElementById('ae-niveau');
-    if (nivEl) nivEl.value = m.niveau ? 'Niveau ' + m.niveau : '';
-    // Option AE
-    const optEl = document.getElementById('ae-option');
-    if (optEl && m.options && m.options.length > 0) {
-      const opt = m.options[0].toLowerCase();
-      for (let i = 0; i < optEl.options.length; i++) {
-        if (optEl.options[i].value.toLowerCase() === opt || optEl.options[i].text.toLowerCase().includes(opt.substring(0,6))) {
-          optEl.selectedIndex = i; break;
-        }
-      }
+    if (nivEl && m.niveau) {
+      nivEl.value = String(m.niveau);
+      aeOnNiveauChange();
     }
   }
   toast(`Membre ${m.pseudo} chargé`, 'success');
