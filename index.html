@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.37</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.38</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -3269,20 +3269,15 @@ async function initSupabase() {
   // Enregistrer onAuthStateChange EN PREMIER avant tout await
   // pour ne jamais manquer un event SIGNED_IN (race condition)
   let _initialSessionHandled = false;
-  let _authReady = false;
   supa.auth.onAuthStateChange(async (_event, sess) => {
     console.log('[AUTH] onAuthStateChange event:', _event);
     if (_event === 'INITIAL_SESSION') {
-      _authReady = true;
-      await handleAuthState(sess?.user || null);
-    } else if (_event === 'SIGNED_IN' && _authReady) {
-      // Seulement après INITIAL_SESSION = connexion manuelle réelle
       await handleAuthState(sess?.user || null);
     } else if (_event === 'SIGNED_OUT') {
-      _authReady = false;
       await handleAuthState(null);
     }
-    // TOKEN_REFRESHED, USER_UPDATED, etc. → ignorés volontairement
+    // SIGNED_IN, TOKEN_REFRESHED, USER_UPDATED → ignorés
+    // Le login manuel appelle handleAuthState directement après signInWithPassword
   });
 
   // Test connexion
@@ -6916,8 +6911,10 @@ async function doLogin() {
 
   try {
     const email = pseudoToEmail(pseudo);
-    const { error } = await supa.auth.signInWithPassword({ email, password: mdp });
+    const { data: signInData, error } = await supa.auth.signInWithPassword({ email, password: mdp });
     if (error) throw error;
+    // Appel direct — onAuthStateChange ignore SIGNED_IN
+    if (signInData?.user) await handleAuthState(signInData.user);
     // onAuthStateChange prend le relais
   } catch(e) {
     const msgs = {
