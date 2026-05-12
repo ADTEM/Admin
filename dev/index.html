@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.52</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.53</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -1193,9 +1193,9 @@ body.mode-config #page-title { color: var(--cfg-green); }
       <div>
       </div>
       <div class="flex gap-8">
-        <select class="form-select" id="compta-month-select" style="width:160px;">
-          <option value="current">Mois en cours</option>
-          <option value="last">Mois précédent</option>
+        <select class="form-select" id="compta-month-select" style="width:110px;" onchange="renderCompta()">
+        </select>
+        <select class="form-select" id="compta-year-select" style="width:88px;" onchange="renderCompta()">
         </select>
         <button class="btn btn-secondary btn-sm" onclick="exportCompta()">📤 Export CSV</button>
       </div>
@@ -4099,9 +4099,7 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
     });
     await sbUpsertCompta('current', { comptabilite: enriched });
     APP.compta = enriched;   // mise à jour mémoire immédiate
-    // Forcer le sélecteur sur "mois en cours" et re-render
-    const monthSel = document.getElementById('compta-month-select');
-    if (monthSel) monthSel.value = 'current';
+    // Forcer sur le mois en cours et re-render
     renderCompta();
     updateDashboardCompta();
     const nb = data.comptabilite.length;
@@ -5993,7 +5991,63 @@ async function supprimerDevisSauvegarde(id, numero) {
 }
 
 function renderCompta() {
-  const ops = APP.compta;
+  // ── Pool complet de toutes les périodes
+  const allOps = APP.comptaAll && APP.comptaAll.length
+    ? APP.comptaAll
+    : [...(APP.compta || []), ...(APP.comptaLast || [])];
+
+  // ── Extraire toutes les paires mois/année disponibles
+  const moisNoms = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const parseDate = s => {
+    const m = s ? s.match(/(\d{2})\/(\d{2})\/(\d{4})/) : null;
+    return m ? { mois: m[2], annee: m[3] } : null;
+  };
+
+  const periodes = new Set();
+  allOps.forEach(op => {
+    const d = parseDate(op["Date de l'opération"] || '');
+    if (d) periodes.add(`${d.annee}-${d.mois}`);
+  });
+  const periodesSorted = [...periodes].sort().reverse(); // du plus récent au plus ancien
+
+  // ── Peupler / synchroniser les selects mois et année
+  const now = new Date();
+  const curMois  = String(now.getMonth() + 1).padStart(2, '0');
+  const curAnnee = String(now.getFullYear());
+
+  const moisSel  = document.getElementById('compta-month-select');
+  const anneeSel = document.getElementById('compta-year-select');
+
+  // Années disponibles
+  const anneesDispos = [...new Set(periodesSorted.map(p => p.split('-')[0]))];
+  if (anneesDispos.length === 0) anneesDispos.push(curAnnee);
+  const selAnnee = anneeSel ? (anneeSel.value && anneesDispos.includes(anneeSel.value) ? anneeSel.value : (anneesDispos.includes(curAnnee) ? curAnnee : anneesDispos[0])) : curAnnee;
+  if (anneeSel) {
+    anneeSel.innerHTML = anneesDispos.map(a => `<option value="${a}" ${a===selAnnee?'selected':''}>${a}</option>`).join('');
+    anneeSel.value = selAnnee;
+  }
+
+  // Mois disponibles pour l'année sélectionnée
+  const moisDispos = periodesSorted.filter(p => p.startsWith(selAnnee)).map(p => p.split('-')[1]);
+  if (moisDispos.length === 0) moisDispos.push(curMois);
+  const selMois = moisSel ? (moisSel.value && moisDispos.includes(moisSel.value) ? moisSel.value : (moisDispos.includes(curMois) ? curMois : moisDispos[0])) : curMois;
+  if (moisSel) {
+    moisSel.innerHTML = moisDispos.map(m => `<option value="${m}" ${m===selMois?'selected':''}>${moisNoms[parseInt(m)-1]}</option>`).join('');
+    moisSel.value = selMois;
+  }
+
+  // ── Filtrer les ops du mois/année sélectionné (dédupliqué)
+  const seen = new Set();
+  const ops = allOps.filter(op => {
+    const d = parseDate(op["Date de l'opération"] || '');
+    if (!d || d.mois !== selMois || d.annee !== selAnnee) return false;
+    const k = (op["Libellé de l'opération"]||'')+'|'+(op["Date de l'opération"]||'')+'|'+(op['Revenus']||'')+'|'+(op['Dépenses']||'');
+    if (seen.has(k)) return false;
+    seen.add(k); return true;
+  });
+
+  // Mettre à jour APP.compta avec les ops du mois affiché (pour filterCompta)
+  APP._comptaVue = ops;
 
   // Peupler le select catégories
   const catSel = document.getElementById('compta-cat-filter');
@@ -6031,7 +6085,7 @@ function filterCompta() {
   const typeFilter = document.getElementById('compta-type-filter').value;
   const catFilter  = (document.getElementById('compta-cat-filter') || {}).value || '';
 
-  let ops = APP.compta.filter(op => {
+  let ops = (APP._comptaVue || APP.compta).filter(op => {
     const libelle = (op['Libellé de l\'opération'] || '').toLowerCase();
     if (search && !libelle.includes(search)) return false;
     const isRevenu  = parseFloat(op['Revenus'])  > 0;
@@ -6179,13 +6233,22 @@ function updateDashboardCompta() {
 }
 
 function exportCompta() {
-  const rows = [['Date', 'Libellé', 'Type', 'Montant']];
-  APP.compta.forEach(op => {
+  const rows = [['Date', 'Libellé', 'Catégorie', 'Type', 'Montant']];
+  (APP._comptaVue || APP.compta).forEach(op => {
     const isRev = parseFloat(op['Revenus']) > 0;
     const montant = isRev ? op['Revenus'] : op['Dépenses'];
+    const libelle = op["Libellé de l'opération"] || '';
+    let catNom = '';
+    for (const th of APP.themes || []) {
+      for (const c of (th.categories || [])) {
+        if (matchLibelle(libelle, c.regles, c.exclusions)) { catNom = c.nom; break; }
+      }
+      if (catNom) break;
+    }
     rows.push([
       op['Date de l\'opération'] || '',
-      `"${(op['Libellé de l\'opération'] || '').replace(/"/g,'""')}"`,
+      `"${libelle.replace(/"/g,'""')}"`,
+      `"${catNom}"`,
       isRev ? 'Revenu' : 'Dépense',
       montant
     ]);
@@ -6194,7 +6257,10 @@ function exportCompta() {
   const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = `compta-adtem-${new Date().toISOString().slice(0,10)}.csv`;
+  const moisSel = document.getElementById('compta-month-select');
+  const anneeSel = document.getElementById('compta-year-select');
+  const suffix = (moisSel?.value && anneeSel?.value) ? `-${anneeSel.value}-${moisSel.value}` : `-${new Date().toISOString().slice(0,7)}`;
+  link.download = `compta-adtem${suffix}.csv`;
   link.click();
 }
 
