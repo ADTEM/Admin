@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.59</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.60</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -11531,13 +11531,38 @@ function aidesDetectCompta() {
       const matchPs  = kwPs.some(k => libelle.includes(k));
       if (!matchLib && !matchPs) continue;
 
-      // Vérifier doublon
+      // Vérifier doublon contre aides déjà enregistrées
       const deja = (APP.aidesVersees||[]).find(a =>
         a.optionId === r.id &&
         a.date === dateIso &&
         Math.abs((parseFloat(a.montant)||0) - depense) < 1
       );
       if (deja) continue;
+
+      // Vérifier doublon dans la queue (même opération = même date + même montant + même option)
+      const dejaQueue = _aideDetectionQueue.find(q =>
+        q.dateIso === dateIso &&
+        Math.abs(q.montant - depense) < 1 &&
+        q.regle.id === r.id
+      );
+      if (dejaQueue) continue;
+
+      // Vérifier doublon strict (même libellé exact + même date, toutes options confondues)
+      // → on ne propose pas 2x la même ligne de compta pour deux règles différentes
+      const dejaQueueOp = _aideDetectionQueue.find(q =>
+        q.dateIso === dateIso &&
+        q.libelle === op["Libellé de l'opération"] &&
+        Math.abs(q.montant - depense) < 1
+      );
+      if (dejaQueueOp) {
+        // Même opération déjà dans la queue pour une autre option :
+        // on pré-remplit les deux options disponibles côté utilisateur via suggestedOptions
+        dejaQueueOp.suggestedOptions = dejaQueueOp.suggestedOptions || [dejaQueueOp.regle];
+        if (!dejaQueueOp.suggestedOptions.find(o => o.id === r.id)) {
+          dejaQueueOp.suggestedOptions.push(r);
+        }
+        continue;
+      }
 
       // Pré-détecter pseudo depuis le libellé
       let pseudoSuggere = '';
@@ -11611,8 +11636,17 @@ function aidesDetectionShowNext() {
   document.getElementById('aide-detect-montant').value = item.montant;
   document.getElementById('aide-detect-queue-info').textContent = `${_aideDetectionIdx+1} / ${_aideDetectionQueue.length}`;
 
-  // Peupler option select
+  // Peupler option select — si plusieurs options suggérées, les mettre en tête
   aidesFillOptionSelect('aide-detect-option');
+  if (item.suggestedOptions && item.suggestedOptions.length > 1) {
+    const sel = document.getElementById('aide-detect-option');
+    // Marquer les options suggérées avec ★
+    [...sel.options].forEach(opt => {
+      if (item.suggestedOptions.find(s => s.id === opt.value)) {
+        opt.textContent = '★ ' + opt.textContent;
+      }
+    });
+  }
   document.getElementById('aide-detect-option').value = item.regle.id;
 
   // Datalist pseudos
