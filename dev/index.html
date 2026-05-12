@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.53</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.54</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -6154,20 +6154,6 @@ function filterCompta() {
   if (el) {
     el.addEventListener('input', filterCompta);
     el.addEventListener('change', filterCompta);
-  }
-});
-
-const _comtaMonthSel = document.getElementById('compta-month-select');
-if (_comtaMonthSel) _comtaMonthSel.addEventListener('change', async () => {
-  const month = document.getElementById('compta-month-select').value;
-  const rows = await sbGet('compta', { eq: ['periode', month] });
-  if (rows?.[0]?.data?.comptabilite) {
-    APP.compta = rows[0].data.comptabilite;
-    renderCompta();
-  } else {
-    APP.compta = [];
-    renderCompta();
-    toast('Aucune donnée pour ce mois', 'info');
   }
 });
 
