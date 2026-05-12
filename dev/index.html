@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.50</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.51</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -9034,12 +9034,13 @@ function renderBilan() {
 
   const opsAnnee = ops.filter(op => { const d = parseOpDate(op); return d && d.annee === curAnnee; });
 
-  const sumMoisCat = (type, catNom) =>
+  const sumMoisCat = (type, catRules, catExclusions) =>
     moisKeys.map(mk =>
       opsAnnee.filter(op => {
         const d = parseOpDate(op);
-        return d && d.mois === mk && op.cat === catNom &&
-          (type === 'recette' ? parseFloat(op['Revenus']) > 0 : parseFloat(op['Dépenses']) > 0);
+        if (!d || d.mois !== mk) return false;
+        if (!matchLibelle(op["Libellé de l'opération"] || '', catRules, catExclusions)) return false;
+        return type === 'recette' ? parseFloat(op['Revenus']) > 0 : parseFloat(op['Dépenses']) > 0;
       }).reduce((s, op) => s + (parseFloat(type === 'recette' ? op['Revenus'] : op['Dépenses']) || 0), 0)
     );
 
@@ -9077,7 +9078,7 @@ function renderBilan() {
     themeList.forEach(theme => {
       const cats = (theme.categories || []);
       const themeVals = moisKeys.map((mk, i) =>
-        cats.reduce((s, cat) => s + sumMoisCat(type, cat.nom)[i], 0)
+        cats.reduce((s, cat) => s + sumMoisCat(type, cat.regles, cat.exclusions)[i], 0)
       );
       if (!sumArr(themeVals)) return;
       const cls = type === 'recette' ? 'bilan-theme-recette' : 'bilan-theme-depense';
@@ -9088,7 +9089,7 @@ function renderBilan() {
         <td class="num col-moy">${fmt2(moyArr(themeVals))}</td>
       </tr>`;
       cats.forEach(cat => {
-        const vals = sumMoisCat(type, cat.nom);
+        const vals = sumMoisCat(type, cat.regles, cat.exclusions);
         if (!sumArr(vals)) return;
         html += `<tr class="bilan-cat-row">
           <td><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${cat.couleur||'var(--blue)'};margin-right:6px;"></span>${cat.nom}</td>
