@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.57</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.59</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -1855,6 +1855,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
                   <th style="padding:8px 12px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Date</th>
                   <th style="padding:8px 12px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Membre</th>
                   <th style="padding:8px 12px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Option</th>
+                  <th style="padding:8px 12px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Libellé</th>
                   <th style="padding:8px 12px;text-align:right;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Montant</th>
                   <th style="padding:8px 12px;text-align:center;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Actions</th>
                 </tr>
@@ -2829,6 +2830,52 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
   </div>
 
 </div><!-- /main -->
+
+<!-- MODAL EDITION AIDE -->
+<div class="modal-overlay hidden" id="modal-aide-edit">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header">
+      <span class="modal-title">✏️ Modifier une aide</span>
+      <button class="modal-close" onclick="closeModal('modal-aide-edit')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="aide-edit-id">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input type="date" class="form-input" id="aide-edit-date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pseudo membre</label>
+          <input type="text" class="form-input" id="aide-edit-pseudo" list="aide-edit-pseudo-list">
+          <datalist id="aide-edit-pseudo-list"></datalist>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Option concernée</label>
+        <select class="form-select" id="aide-edit-option"></select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="form-group">
+          <label class="form-label">Montant (€)</label>
+          <input type="number" class="form-input" id="aide-edit-montant">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nb unités (quota)</label>
+          <input type="number" class="form-input" id="aide-edit-nb" placeholder="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Libellé</label>
+        <input type="text" class="form-input" id="aide-edit-libelle">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-aide-edit')">Annuler</button>
+      <button class="btn btn-primary" onclick="aidesEditSave()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL CONFIRMATION AIDE DÉTECTÉE -->
 <div class="modal-overlay hidden" id="modal-aide-detection">
@@ -11051,11 +11098,14 @@ function aidesInit() {
 function renderAides() {
   const moisSel  = document.getElementById('aides-mois-select');
   const search   = (document.getElementById('aides-search') || {value:''}).value.toLowerCase();
-  const moisFilt = moisSel ? moisSel.value : aidesGetMoisActuel();
+  const moisFilt = moisSel ? moisSel.value : '';
+  // Pour le recap/quotas on affiche toujours un mois précis (mois actuel si "Tous")
   const moisAff  = moisFilt || aidesGetMoisActuel();
 
-  // ── KPIs
-  const aidesDuMois = getAidesVersees().filter(a => aidesGetMoisFromDate(a.date) === moisAff);
+  // ── KPIs (basés sur le filtre mois, ou tous si vide)
+  const aidesDuMois = moisFilt
+    ? getAidesVersees().filter(a => aidesGetMoisFromDate(a.date) === moisFilt)
+    : getAidesVersees();
   const totalMois = aidesDuMois.reduce((s, a) => s + (parseFloat(a.montant)||0), 0);
   const nbOptions = new Set(getRegles().filter(r => r.type==='bourse'||r.type==='gratuit_quota').map(r=>r.id)).size;
 
@@ -11067,15 +11117,15 @@ function renderAides() {
   if (kpiOpNb) kpiOpNb.textContent = nbOptions + ' option(s) active(s)';
 
   const labelEl = document.getElementById('aides-recap-mois-label');
-  if (labelEl) labelEl.textContent = aidesMoisLabel(moisAff);
+  if (labelEl) labelEl.textContent = moisFilt ? aidesMoisLabel(moisAff) : 'Mois en cours';
 
-  // ── Recap options
+  // ── Recap options (toujours sur le mois affiché)
   aidesRenderRecap(moisAff);
 
-  // ── Quotas membres
+  // ── Quotas membres (toujours sur le mois affiché)
   aidesRenderQuotas(moisAff);
 
-  // ── Historique
+  // ── Historique (filtré ou tout)
   let liste = getAidesVersees();
   if (moisFilt) liste = liste.filter(a => aidesGetMoisFromDate(a.date) === moisFilt);
   if (search) liste = liste.filter(a =>
@@ -11088,21 +11138,24 @@ function renderAides() {
   const tbody = document.getElementById('aides-historique-tbody');
   if (!tbody) return;
   if (!liste.length) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:24px;">Aucune aide sur cette période.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px;font-style:italic;">Aucune aide enregistrée${moisFilt ? ' sur cette période' : ''}.</td></tr>`;
     return;
   }
   tbody.innerHTML = liste.map(a => {
-    const dateAff = a.date && a.date.includes('-') ? a.date.split('-').reverse().join('/') : a.date;
+    const dateAff = a.date && a.date.includes('-') ? a.date.split('-').reverse().join('/') : (a.date||'—');
     const montantAff = a.type === 'gratuit_quota'
       ? `<span style="color:var(--blue);font-weight:700;">${a.nb || 1} unité(s)</span>`
       : `<span style="color:var(--red);font-weight:700;">-${(parseFloat(a.montant)||0).toLocaleString('fr')} €</span>`;
+    const libelleShort = (a.libelle||'').substring(0, 60) + ((a.libelle||'').length > 60 ? '…' : '');
     return `<tr style="border-top:1px solid var(--border);">
-      <td style="padding:7px 12px;font-size:10.5px;color:var(--text3);white-space:nowrap;font-family:'Fira Code',monospace;">${dateAff||'—'}</td>
+      <td style="padding:7px 12px;font-size:10.5px;color:var(--text3);white-space:nowrap;font-family:'Fira Code',monospace;">${dateAff}</td>
       <td style="padding:7px 12px;font-weight:600;">${a.pseudo||'—'}</td>
       <td style="padding:7px 12px;"><span class="badge badge-green" style="font-size:9px;">${a.optionNom||'—'}</span></td>
+      <td style="padding:7px 12px;font-size:11px;color:var(--text3);" title="${(a.libelle||'').replace(/"/g,"'")}">${libelleShort||'—'}</td>
       <td style="padding:7px 12px;text-align:right;">${montantAff}</td>
-      <td style="padding:7px 12px;text-align:center;">
-        <button onclick="aidesDelete('${a.id}')" class="btn btn-danger btn-icon btn-sm" style="font-size:10px;padding:2px 6px;" title="Supprimer">🗑️</button>
+      <td style="padding:7px 12px;text-align:center;white-space:nowrap;">
+        <button onclick="aidesOpenEdit('${a.id}')" class="btn btn-secondary btn-icon btn-sm" style="font-size:10px;padding:2px 6px;" title="Modifier">✏️</button>
+        <button onclick="aidesDelete('${a.id}')" class="btn btn-danger btn-icon btn-sm" style="font-size:10px;padding:2px 6px;margin-left:3px;" title="Supprimer">🗑️</button>
       </td>
     </tr>`;
   }).join('');
@@ -11387,6 +11440,58 @@ async function aidesDelete(id) {
   toast('Aide supprimée', 'info');
 }
 
+function aidesOpenEdit(id) {
+  const a = (APP.aidesVersees||[]).find(x => x.id === id);
+  if (!a) return;
+
+  document.getElementById('aide-edit-id').value      = a.id;
+  document.getElementById('aide-edit-date').value    = a.date || '';
+  document.getElementById('aide-edit-pseudo').value  = a.pseudo || '';
+  document.getElementById('aide-edit-montant').value = a.montant || 0;
+  document.getElementById('aide-edit-nb').value      = a.nb || 0;
+  document.getElementById('aide-edit-libelle').value = a.libelle || '';
+
+  aidesFillOptionSelect('aide-edit-option');
+  document.getElementById('aide-edit-option').value = a.optionId || '';
+
+  const dl = document.getElementById('aide-edit-pseudo-list');
+  if (dl) dl.innerHTML = (APP.membres||[]).map(m => `<option value="${m.pseudo}">`).join('');
+
+  openModal('modal-aide-edit');
+}
+
+async function aidesEditSave() {
+  const id      = document.getElementById('aide-edit-id').value;
+  const date    = document.getElementById('aide-edit-date').value;
+  const pseudo  = document.getElementById('aide-edit-pseudo').value.trim();
+  const optId   = document.getElementById('aide-edit-option').value;
+  const montant = parseFloat(document.getElementById('aide-edit-montant').value) || 0;
+  const nb      = parseInt(document.getElementById('aide-edit-nb').value) || 0;
+  const libelle = document.getElementById('aide-edit-libelle').value.trim();
+
+  if (!pseudo) { toast('Pseudo requis', 'error'); return; }
+
+  const r = getRegles().find(r => r.id === optId);
+  const idx = (APP.aidesVersees||[]).findIndex(x => x.id === id);
+  if (idx === -1) { toast('Aide introuvable', 'error'); return; }
+
+  const updated = {
+    ...APP.aidesVersees[idx],
+    date, pseudo,
+    optionId: optId,
+    optionNom: r ? r.option : (APP.aidesVersees[idx].optionNom || optId),
+    type: r ? r.type : APP.aidesVersees[idx].type,
+    montant, nb, libelle
+  };
+  APP.aidesVersees[idx] = updated;
+  await sbUpsert('aides_versees', { id, data: updated }, { onConflict: 'id' });
+
+  closeModal('modal-aide-edit');
+  renderAides();
+  journalLog(`Aide modifiée : ${updated.optionNom} → ${pseudo} (${montant.toLocaleString('fr')} €)`, 'ok');
+  toast('Aide mise à jour ✅', 'success');
+}
+
 // ── Détection automatique depuis compta ───────────────────────
 
 let _aideDetectionQueue = [];
@@ -11436,18 +11541,34 @@ function aidesDetectCompta() {
 
       // Pré-détecter pseudo depuis le libellé
       let pseudoSuggere = '';
-      const parenMatch = op["Libellé de l'opération"].match(/\(([^)]+)\)/);
-      if (parenMatch) {
-        pseudoSuggere = parenMatch[1].split(/[\s,]/)[0].trim();
-      } else {
-        const words = op["Libellé de l'opération"].trim().split(/\s+/);
-        pseudoSuggere = words[words.length-1];
+      const libOp = op["Libellé de l'opération"] || '';
+      // Stratégie 1 : mot juste avant la première parenthèse
+      // ex: "Virement à Inaki1210 (Remboursement...)" → "Inaki1210"
+      const avantParen = libOp.match(/(\S+)\s*\(/);
+      if (avantParen) {
+        pseudoSuggere = avantParen[1].trim();
       }
-      // Matcher pseudo avec membres connus
-      const membreMatch = (APP.membres||[]).find(m =>
+      // Stratégie 2 : si pas de parenthèse, dernier mot du libellé
+      if (!pseudoSuggere) {
+        const words = libOp.trim().split(/\s+/);
+        pseudoSuggere = words[words.length - 1];
+      }
+      // Stratégie 3 : contenu de la parenthèse en fallback si strat 1 ne matche aucun membre
+      const parenMatch = libOp.match(/\(([^)]+)\)/);
+      // Matcher pseudo avec membres connus (priorité à strat 1, fallback strat 3)
+      const membreMatch1 = (APP.membres||[]).find(m =>
         m.pseudo && pseudoSuggere && m.pseudo.toLowerCase() === pseudoSuggere.toLowerCase()
       );
-      if (membreMatch) pseudoSuggere = membreMatch.pseudo;
+      if (!membreMatch1 && parenMatch) {
+        // Strat 1 n'a pas matché de membre connu → essayer contenu parenthèse
+        const candidat = parenMatch[1].split(/[\s,]/)[0].trim();
+        const membreMatch2 = (APP.membres||[]).find(m =>
+          m.pseudo && candidat && m.pseudo.toLowerCase() === candidat.toLowerCase()
+        );
+        if (membreMatch2) pseudoSuggere = membreMatch2.pseudo;
+      } else if (membreMatch1) {
+        pseudoSuggere = membreMatch1.pseudo;
+      }
 
       // Vérifier si quota dépassé
       const conso = aidesConsomme(r.id, moisOp);
