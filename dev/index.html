@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.51</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.52</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -1229,12 +1229,15 @@ body.mode-config #page-title { color: var(--cfg-green); }
             <option value="revenu">Revenus</option>
             <option value="depense">Dépenses</option>
           </select>
+          <select id="compta-cat-filter" onchange="filterCompta()">
+            <option value="">Toutes catégories</option>
+          </select>
         </div>
       </div>
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Date</th><th>Libellé</th><th>Type</th><th style="text-align:right;">Montant</th>
+            <th>Date</th><th>Libellé</th><th>Catégorie</th><th>Type</th><th style="text-align:right;">Montant</th>
           </tr></thead>
           <tbody id="compta-table-body"></tbody>
         </table>
@@ -5992,6 +5995,15 @@ async function supprimerDevisSauvegarde(id, numero) {
 function renderCompta() {
   const ops = APP.compta;
 
+  // Peupler le select catégories
+  const catSel = document.getElementById('compta-cat-filter');
+  if (catSel) {
+    const cur = catSel.value;
+    const allCats = (APP.themes || []).flatMap(t => t.categories || []);
+    catSel.innerHTML = '<option value="">Toutes catégories</option>' +
+      allCats.map(c => `<option value="${c.nom}" ${c.nom===cur?'selected':''}>${c.nom}</option>`).join('');
+  }
+
   let totalRevenu = 0, totalDepense = 0, nbRev = 0, nbDep = 0;
   ops.forEach(op => {
     const rev = parseFloat(op['Revenus'])  || 0;
@@ -6017,6 +6029,7 @@ function renderCompta() {
 function filterCompta() {
   const search     = (document.getElementById('compta-search').value || '').toLowerCase();
   const typeFilter = document.getElementById('compta-type-filter').value;
+  const catFilter  = (document.getElementById('compta-cat-filter') || {}).value || '';
 
   let ops = APP.compta.filter(op => {
     const libelle = (op['Libellé de l\'opération'] || '').toLowerCase();
@@ -6025,6 +6038,18 @@ function filterCompta() {
     const isDepense = parseFloat(op['Dépenses']) > 0;
     if (typeFilter === 'revenu'  && !isRevenu)  return false;
     if (typeFilter === 'depense' && !isDepense) return false;
+    // Filtre catégorie live
+    if (catFilter) {
+      const lib = op["Libellé de l'opération"] || '';
+      let matched = false;
+      for (const th of APP.themes || []) {
+        for (const c of (th.categories || [])) {
+          if (c.nom === catFilter && matchLibelle(lib, c.regles, c.exclusions)) { matched = true; break; }
+        }
+        if (matched) break;
+      }
+      if (!matched) return false;
+    }
     return true;
   });
 
@@ -6044,9 +6069,21 @@ function filterCompta() {
   tbody.innerHTML = ops.map(op => {
     const isRevenu = parseFloat(op['Revenus']) > 0;
     const montant  = isRevenu ? parseFloat(op['Revenus']) : parseFloat(op['Dépenses']);
+    const libelle  = op["Libellé de l'opération"] || '';
+    // Matching live catégorie
+    let catNom = '', catCouleur = 'var(--text3)';
+    for (const th of APP.themes || []) {
+      for (const c of (th.categories || [])) {
+        if (matchLibelle(libelle, c.regles, c.exclusions)) {
+          catNom = c.nom; catCouleur = c.couleur || 'var(--blue)'; break;
+        }
+      }
+      if (catNom) break;
+    }
     return `<tr>
       <td style="font-size:11px;font-family:'Fira Code',monospace;white-space:nowrap;">${op['Date de l\'opération'] || ''}</td>
-      <td>${op['Libellé de l\'opération'] || ''}</td>
+      <td>${libelle}</td>
+      <td>${catNom ? `<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;"><span style="width:7px;height:7px;border-radius:50%;background:${catCouleur};display:inline-block;flex-shrink:0;"></span>${catNom}</span>` : '<span style="color:var(--text4);font-size:11px;">—</span>'}</td>
       <td>${isRevenu
         ? '<span class="badge badge-green">Revenu</span>'
         : '<span class="badge badge-red">Dépense</span>'
