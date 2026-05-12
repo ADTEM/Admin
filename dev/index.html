@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.55</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.57</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -2838,7 +2838,7 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
       <button class="modal-close" onclick="aidesDetectionIgnore()">✕</button>
     </div>
     <div class="modal-body">
-      <div id="aide-detection-queue-info" style="font-size:11px;color:var(--text3);margin-bottom:12px;text-align:right;"></div>
+      <div id="aide-detect-queue-info" style="font-size:11px;color:var(--text3);margin-bottom:12px;text-align:right;"></div>
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;">
         <div id="aide-detect-op-date" style="font-size:10px;color:var(--text3);margin-bottom:4px;font-family:'Fira Code',monospace;"></div>
         <div id="aide-detect-op-libelle" style="font-weight:600;color:var(--text);margin-bottom:4px;line-height:1.4;"></div>
@@ -8717,7 +8717,7 @@ function renderPersonnel() {
     if (el) el.textContent = [agents.length, conduite, atelier, alertes][i];
   });
 
-  const filtered = agents.filter(a => {
+  let filtered = agents.filter(a => {
     if (search && !(a.nom||'').toLowerCase().includes(search) && !a.matricule.includes(search)) return false;
     if (poste && a.poste !== poste) return false;
     if (fcoF) {
