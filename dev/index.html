@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.49</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.50</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -8831,7 +8831,12 @@ function renderCategories() {
 }
 
 function compterOpsMatcheesCategorie(cat) {
-  return APP.compta.filter(op => op.cat === cat.nom).length;
+  const pool = APP.comptaAll && APP.comptaAll.length
+    ? APP.comptaAll
+    : [...(APP.compta||[]), ...(APP.comptaLast||[])];
+  return pool.filter(op =>
+    matchLibelle(op["Libellé de l'opération"] || '', cat.regles, cat.exclusions)
+  ).length;
 }
 
 function ouvrirModalNouveauTheme() {
@@ -8971,26 +8976,41 @@ function supprimerCategorie(themeId, catId) {
 //  6. TABLEAU FINANCIER (BILAN)
 // ================================================================
 function renderBilan() {
-  // Utiliser toutes les périodes disponibles (comptaAll = current + last + historique)
-  const rawOps = APP.comptaAll && APP.comptaAll.length ? APP.comptaAll : APP.compta || [];
-  // Auto-match à la volée les ops sans catégorie (pour affichage immédiat sans MAJ explicite)
-  const ops = rawOps.map(op => {
-    if (op.cat) return op;
+  const themes = APP.themes || [];
+  const anneeEl = document.getElementById('bilan-annee');
+  const sc       = document.getElementById('bilan-stat-cards');
+  const container= document.getElementById('bilan-table-container');
+  if (!anneeEl || !container) return;
+
+  // ── Construire le pool d'ops complet (toutes périodes, dédupliqué)
+  // Utiliser comptaAll si dispo, sinon current + last
+  let rawPool = [];
+  if (APP.comptaAll && APP.comptaAll.length) {
+    rawPool = APP.comptaAll;
+  } else {
+    rawPool = [...(APP.compta || []), ...(APP.comptaLast || [])];
+  }
+
+  // Dédupliquer par clé unique (libellé + date + montant)
+  const seen = new Set();
+  const dedupPool = rawPool.filter(op => {
+    const k = (op["Libellé de l'opération"]||'') + '|' + (op["Date de l'opération"]||'') + '|' + (op['Revenus']||'') + '|' + (op['Dépenses']||'');
+    if (seen.has(k)) return false;
+    seen.add(k); return true;
+  });
+
+  // ── Enrichir avec cat/theme à la volée (matching regex)
+  const ops = dedupPool.map(op => {
     const libelle = op["Libellé de l'opération"] || '';
-    for (const th of APP.themes || []) {
+    for (const th of themes) {
       for (const c of (th.categories || [])) {
         if (matchLibelle(libelle, c.regles, c.exclusions)) {
           return { ...op, theme: th.nom, cat: c.nom };
         }
       }
     }
-    return op;
+    return { ...op, theme: op.theme || '', cat: op.cat || '' };
   });
-  const themes = APP.themes || [];
-  const anneeEl = document.getElementById('bilan-annee');
-  const sc       = document.getElementById('bilan-stat-cards');
-  const container= document.getElementById('bilan-table-container');
-  if (!anneeEl || !container) return;
 
   // Sélecteur d'années
   const annees = [...new Set(ops.map(o => {
