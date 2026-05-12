@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.54</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.55</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -1797,34 +1797,130 @@ body.mode-config #page-title { color: var(--cfg-green); }
 
   <!-- ====== AIDES ====== -->
   <div class="page" id="page-aides">
-    <div class="flex-between mb-20">
-      <div>
+
+    <!-- Barre d'actions -->
+    <div class="flex-between mb-16" style="flex-wrap:wrap;gap:8px;">
+      <div class="flex gap-8" style="flex-wrap:wrap;align-items:center;">
+        <select class="form-select" id="aides-mois-select" style="width:130px;" onchange="renderAides()">
+          <option value="">Tous les mois</option>
+        </select>
+        <input type="text" class="form-input" id="aides-search" placeholder="🔍 Pseudo, libellé…" style="width:180px;" oninput="renderAides()">
       </div>
       <div class="flex gap-8">
-        <select class="form-select" id="aides-type-filter" style="width:160px;">
-          <option value="">Tous types</option>
-          <option value="location">Location</option>
-          <option value="ae">Aide à l'exploitation</option>
-          <option value="remboursement">Remboursement</option>
-        </select>
+        <button class="btn btn-secondary btn-sm" onclick="aidesDetectCompta()">🔍 Détecter depuis compta</button>
+        <button class="btn btn-primary btn-sm" onclick="aidesOpenAdd()">➕ Ajouter manuellement</button>
       </div>
     </div>
 
-    <div class="card" style="padding:0;">
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th class="sortable" data-table="aides" data-col="date">Date</th>
-            <th class="sortable" data-table="aides" data-col="pseudo">Membre</th>
-            <th class="sortable" data-table="aides" data-col="type">Type</th>
-            <th>Description</th>
-            <th class="sortable" data-table="aides" data-col="montant">Montant</th>
-            <th>Image</th><th>Actions</th>
-          </tr></thead>
-          <tbody id="aides-table-body">
-            <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:30px;">Aucune aide enregistrée</td></tr>
-          </tbody>
-        </table>
+    <!-- Layout 50/50 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;">
+
+      <!-- ===== GAUCHE : Récap global ===== -->
+      <div>
+
+        <!-- KPIs mensuels -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+          <div class="kpi-card red">
+            <div class="kpi-label">Total versé ce mois</div>
+            <div class="kpi-value red" id="aides-kpi-mois">—</div>
+            <div class="kpi-sub">Toutes aides confondues</div>
+          </div>
+          <div class="kpi-card blue">
+            <div class="kpi-label">Nb versements</div>
+            <div class="kpi-value blue" id="aides-kpi-nb">—</div>
+            <div class="kpi-sub" id="aides-kpi-options-nb">— options actives</div>
+          </div>
+        </div>
+
+        <!-- Tableau récap mensuel par option -->
+        <div class="card mb-16" style="padding:0;">
+          <div style="padding:12px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+            <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green2);">📊 Récap mensuel par option</span>
+            <span id="aides-recap-mois-label" style="font-size:10px;color:var(--text3);margin-left:auto;"></span>
+          </div>
+          <div id="aides-recap-options" style="padding:4px 0;">
+            <div style="text-align:center;padding:24px;color:var(--text3);font-size:12px;">Aucune option configurée.</div>
+          </div>
+        </div>
+
+        <!-- Historique complet -->
+        <div class="card" style="padding:0;">
+          <div style="padding:12px 16px 10px;border-bottom:1px solid var(--border);">
+            <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green2);">📋 Historique des versements</span>
+          </div>
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+              <thead>
+                <tr style="background:var(--surface3);">
+                  <th style="padding:8px 12px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Date</th>
+                  <th style="padding:8px 12px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Membre</th>
+                  <th style="padding:8px 12px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Option</th>
+                  <th style="padding:8px 12px;text-align:right;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Montant</th>
+                  <th style="padding:8px 12px;text-align:center;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="aides-historique-tbody">
+                <tr><td colspan="5" style="text-align:center;color:var(--text3);padding:30px;">Aucune aide enregistrée.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== DROITE : Détail par membre/option ===== -->
+      <div>
+
+        <div class="card mb-16" style="padding:0;">
+          <div style="padding:12px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+            <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green2);">🧑‍💼 Quotas membres ce mois</span>
+            <span style="font-size:9px;color:var(--text3);background:var(--redbg);color:var(--red);border:1px solid rgba(192,57,43,0.2);border-radius:10px;padding:1px 7px;margin-left:auto;" id="aides-badge-depassements" style="display:none;">0 dépassement(s)</span>
+          </div>
+          <div id="aides-quotas-membres" style="padding:4px 0;">
+            <div style="text-align:center;padding:24px;color:var(--text3);font-size:12px;">Aucune option active ce mois.</div>
+          </div>
+        </div>
+
+        <!-- Ajouter manuellement -->
+        <div class="card" id="aides-add-card" style="display:none;border-color:rgba(74,140,82,0.3);">
+          <div class="card-title"><span class="icon">➕</span> Saisie manuelle</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="form-group">
+              <label class="form-label">Date</label>
+              <input type="date" class="form-input" id="aide-man-date">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Pseudo membre</label>
+              <input type="text" class="form-input" id="aide-man-pseudo" placeholder="Ex: rorolpb69" list="aide-man-pseudo-list">
+              <datalist id="aide-man-pseudo-list"></datalist>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Option concernée</label>
+            <select class="form-select" id="aide-man-option" onchange="aidesManOptionChange()">
+              <option value="">— Choisir —</option>
+            </select>
+          </div>
+          <div id="aide-man-quota-info" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:11px;color:var(--text2);margin-bottom:10px;"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="form-group">
+              <label class="form-label" id="aide-man-montant-label">Montant (€)</label>
+              <input type="number" class="form-input" id="aide-man-montant" placeholder="0" oninput="aidesManUpdateInfo()">
+            </div>
+            <div class="form-group" id="aide-man-nb-group" style="display:none;">
+              <label class="form-label">Nb unités (bus/sem)</label>
+              <input type="number" class="form-input" id="aide-man-nb" placeholder="0" oninput="aidesManUpdateInfo()">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Libellé / description</label>
+            <input type="text" class="form-input" id="aide-man-libelle" placeholder="Ex: Remboursement rénovations…">
+          </div>
+          <div style="display:flex;gap:8px;margin-top:4px;">
+            <button class="btn btn-primary" style="flex:1;" onclick="aidesManSave()">✅ Enregistrer</button>
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('aides-add-card').style.display='none'">Annuler</button>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -2734,6 +2830,50 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
 
 </div><!-- /main -->
 
+<!-- MODAL CONFIRMATION AIDE DÉTECTÉE -->
+<div class="modal-overlay hidden" id="modal-aide-detection">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <span class="modal-title">🔍 Aide détectée — confirmer ?</span>
+      <button class="modal-close" onclick="aidesDetectionIgnore()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="aide-detection-queue-info" style="font-size:11px;color:var(--text3);margin-bottom:12px;text-align:right;"></div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;">
+        <div id="aide-detect-op-date" style="font-size:10px;color:var(--text3);margin-bottom:4px;font-family:'Fira Code',monospace;"></div>
+        <div id="aide-detect-op-libelle" style="font-weight:600;color:var(--text);margin-bottom:4px;line-height:1.4;"></div>
+        <div id="aide-detect-op-montant" style="font-size:15px;font-weight:800;color:var(--red);"></div>
+      </div>
+      <div style="font-size:11.5px;color:var(--text2);margin-bottom:12px;">
+        Cette opération ressemble à une aide. Confirmes-tu qu'il s'agit de :
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div class="form-group">
+          <label class="form-label">Option concernée</label>
+          <select class="form-select" id="aide-detect-option" onchange="aidesDetectOptionChange()">
+            <option value="">— Choisir —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pour le membre</label>
+          <input type="text" class="form-input" id="aide-detect-pseudo" placeholder="Pseudo du bénéficiaire" list="aide-detect-pseudo-list">
+          <datalist id="aide-detect-pseudo-list"></datalist>
+        </div>
+      </div>
+      <div id="aide-detect-quota-info" style="display:none;border-radius:6px;padding:8px 12px;font-size:11px;margin-bottom:10px;"></div>
+      <div class="form-group">
+        <label class="form-label">Montant / valeur à comptabiliser</label>
+        <input type="number" class="form-input" id="aide-detect-montant" placeholder="0">
+        <div style="font-size:10px;color:var(--text3);margin-top:3px;">Laisser tel quel ou ajuster si virement partiel.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="aidesDetectionIgnore()">🚫 Ignorer</button>
+      <button class="btn btn-primary" onclick="aidesDetectionConfirm()">✅ Confirmer comme aide</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CREATE COMPTE -->
 <div class="modal-overlay hidden" id="modal-create-compte">
   <div class="modal" style="max-width:440px;">
@@ -3618,7 +3758,9 @@ async function loadAllData() {
     // Aides
     const aidesRows = await sbGet('aides');
     APP.aides = (aidesRows || []).map(r => ({ id: r.id, ...(r.data || r) }));
-    renderAides();
+
+    // Aides versées (suivi quotas options)
+    await loadAidesVersees();
 
     // Véhicules
     const vehRows = await sbGet('vehicules');
@@ -3896,6 +4038,7 @@ function showPage(pageId) {
   if (pageId === 'cfg-financier') loadCfgFinancier();
   if (pageId === 'cfg-categories') renderCategories();
   if (pageId === 'devis-sauvegardes') renderDevisSauvegardes();
+  if (pageId === 'aides') aidesInit();
 
   // 3. Afficher la page
   const page = document.getElementById('page-' + pageId);
@@ -6842,48 +6985,14 @@ function deleteMembre(id) {
 }
 
 // ================================================================
-//  AIDES
+//  AIDES — stub (renderAides is now in the Suivi des Aides section below)
 // ================================================================
-function renderAides() {
-  const typeFilter = document.getElementById('aides-type-filter').value;
-  let filtered = APP.aides.filter(a => !typeFilter || a.type === typeFilter);
-  filtered = applySortState('aides', filtered, (a, col) => {
-    if (col === 'date') return new Date(a.date).getTime();
-    if (col === 'montant') return a.montant || 0;
-    return a[col] ?? '';
-  });
-
-  const tbody = document.getElementById('aides-table-body');
-  if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px;">Aucune aide enregistrée</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = filtered.map(a => `<tr>
-    <td style="font-size:10px;color:var(--text3);">${a.date ? new Date(a.date).toLocaleDateString('fr') : '—'}</td>
-    <td style="font-weight:600;">${a.pseudo || '—'}</td>
-    <td>${a.type === 'location' ? '<span class="badge badge-blue">Location</span>' : a.type === 'ae' ? '<span class="badge badge-green">AE</span>' : '<span class="badge badge-gray">' + a.type + '</span>'}</td>
-    <td style="font-size:11px;">${(a.vehicules || []).join(', ') || '—'}</td>
-    <td style="font-weight:700;color:var(--green);">${a.montant ? a.montant.toLocaleString('fr') + ' €' : '—'}</td>
-    <td>
-      ${a.imageUrl
-        ? `<a href="${a.imageUrl}" target="_blank" class="badge badge-blue">🖼️ Voir</a>
-           <button class="url-copy-btn" style="margin-left:4px;" onclick="copyUrl('${a.imageUrl}')">📋</button>`
-        : '<span class="badge badge-gray">—</span>'}
-    </td>
-    <td>
-      <button class="btn btn-danger btn-icon btn-sm" onclick="deleteAide('${a.id}')">🗑️</button>
-    </td>
-  </tr>`).join('');
-}
-
+// renderAides() is defined later in the Suivi des Aides section.
+// deleteAide kept for legacy compatibility (old APP.aides table)
 function deleteAide(id) {
   if (!confirm('Supprimer cette aide ?')) return;
   sbDelete('aides', { id });
 }
-
-const _aidesFilter = document.getElementById('aides-type-filter');
-if (_aidesFilter) _aidesFilter.addEventListener('change', renderAides);
 
 // ================================================================
 //  CONFIG
@@ -7030,6 +7139,11 @@ async function saveConfig() {
       regle.nbGratuits  = parseInt(document.getElementById('regle-nbGratuits-'  + ri).value) || 10;
       regle.dureeJours  = parseInt(document.getElementById('regle-dureeJours-'  + ri).value) || 90;
     }
+    // Règles de matching pour la détection auto
+    const kwLibEl = document.getElementById('regle-kwLibelle-' + ri);
+    const kwPsEl  = document.getElementById('regle-kwPseudo-'  + ri);
+    regle.kwLibelle = kwLibEl ? kwLibEl.value.split(';').map(s=>s.trim()).filter(Boolean) : (regle.kwLibelle||[]);
+    regle.kwPseudo  = kwPsEl  ? kwPsEl.value.split(';').map(s=>s.trim()).filter(Boolean)  : (regle.kwPseudo||[]);
     regles.push(regle);
     ri++;
   }
@@ -7254,6 +7368,23 @@ function renderOptions() {
         <div style="grid-column:1/-1;">
           <label class="form-label" style="font-size:10px;">Description</label>
           <input type="text" class="form-input" id="regle-desc-${i}" value="${r.description||''}" style="font-size:11px;padding:5px 8px;">
+        </div>
+        <div style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:8px;margin-top:4px;">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--blue);margin-bottom:6px;">🔍 Règles de détection auto (import compta)</div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:6px;">Mots-clés recherchés dans le <b>libellé</b> et/ou le <b>pseudo</b> de chaque opération. Séparés par <code style="background:var(--surface3);padding:1px 4px;border-radius:3px;">;</code></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <div>
+              <label class="form-label" style="font-size:10px;">Mots-clés libellé</label>
+              <input type="text" class="form-input" id="regle-kwLibelle-${i}" value="${(r.kwLibelle||[]).join(';')}" placeholder="renov;rénovation;RENOV" style="font-size:11px;padding:5px 8px;font-family:'Fira Code',monospace;">
+            </div>
+            <div>
+              <label class="form-label" style="font-size:10px;">Mots-clés pseudo</label>
+              <input type="text" class="form-input" id="regle-kwPseudo-${i}" value="${(r.kwPseudo||[]).join(';')}" placeholder="rorolpb69;MattSwing" style="font-size:11px;padding:5px 8px;font-family:'Fira Code',monospace;">
+            </div>
+          </div>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px;">
+            💡 Une correspondance dans libellé <b>OU</b> pseudo suffit pour proposer cette option. La confirmation reste manuelle.
+          </div>
         </div>
       </div>
     </div>
@@ -10830,6 +10961,616 @@ function buildDevisAEHTML(d) {
     ${cgv}
   </div>
 </div>`;
+}
+
+// ================================================================
+//  SUIVI DES AIDES — Système complet
+// ================================================================
+
+// APP.aidesVersees = [] — tableau des aides enregistrées
+// Structure aide: { id, date, pseudo, optionId, optionNom, montant, nb, libelle, source }
+
+function getAidesVersees() {
+  return APP.aidesVersees || [];
+}
+
+// ── Utilitaires ───────────────────────────────────────────────
+
+function aidesGetMoisActuel() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+}
+
+function aidesMoisLabel(ym) {
+  if (!ym) return '';
+  const [y, m] = ym.split('-');
+  const mois = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+  return `${mois[parseInt(m)-1]} ${y}`;
+}
+
+function aidesGetMoisFromDate(dateStr) {
+  if (!dateStr) return '';
+  // dateStr peut être YYYY-MM-DD ou DD/MM/YYYY
+  if (dateStr.includes('/')) {
+    const [d, m, y] = dateStr.split(/[\/ ]/);
+    return `${y}-${m.padStart(2,'0')}`;
+  }
+  return dateStr.substring(0, 7);
+}
+
+// Calcul consommé ce mois pour une option (en €  ou en nb unités selon type)
+function aidesConsomme(optionId, mois) {
+  const aides = getAidesVersees().filter(a => a.optionId === optionId && aidesGetMoisFromDate(a.date) === mois);
+  return {
+    montant: aides.reduce((s, a) => s + (parseFloat(a.montant) || 0), 0),
+    nb: aides.reduce((s, a) => s + (parseInt(a.nb) || 1), 0),
+    count: aides.length
+  };
+}
+
+// Plafond mensuel d'une règle
+function aidesGetPlafond(regle) {
+  if (regle.type === 'bourse') return { type: 'montant', valeur: regle.plafond || 0 };
+  if (regle.type === 'gratuit_quota') return { type: 'nb', valeur: regle.nbGratuits || 0, unit: 'bus' };
+  return null;
+}
+
+// ── Peupler selects options dans la modale et le formulaire manuel ─
+
+function aidesFillOptionSelect(selectId) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const regles = getRegles().filter(r => r.type === 'bourse' || r.type === 'gratuit_quota');
+  sel.innerHTML = '<option value="">— Choisir —</option>' +
+    regles.map(r => `<option value="${r.id}">${r.option || r.type} (${aidesTypeLabel(r.type)})</option>`).join('');
+}
+
+function aidesTypeLabel(type) {
+  return type === 'bourse' ? '💰 Bourse' : type === 'gratuit_quota' ? '🎁 Gratuité quota' : type;
+}
+
+// ── Initialisation + peupler mois ─────────────────────────────
+
+function aidesInit() {
+  // Peupler select mois
+  const moisSel = document.getElementById('aides-mois-select');
+  if (moisSel && moisSel.options.length <= 1) {
+    const aides = getAidesVersees();
+    const moisSet = new Set(aides.map(a => aidesGetMoisFromDate(a.date)).filter(Boolean));
+    const moisActuel = aidesGetMoisActuel();
+    moisSet.add(moisActuel);
+    const sorted = [...moisSet].sort().reverse();
+    moisSel.innerHTML = '<option value="">Tous les mois</option>' +
+      sorted.map(m => `<option value="${m}" ${m === moisActuel ? 'selected' : ''}>${aidesMoisLabel(m)}</option>`).join('');
+  }
+  renderAides();
+}
+
+// ── Render principal ──────────────────────────────────────────
+
+function renderAides() {
+  const moisSel  = document.getElementById('aides-mois-select');
+  const search   = (document.getElementById('aides-search') || {value:''}).value.toLowerCase();
+  const moisFilt = moisSel ? moisSel.value : aidesGetMoisActuel();
+  const moisAff  = moisFilt || aidesGetMoisActuel();
+
+  // ── KPIs
+  const aidesDuMois = getAidesVersees().filter(a => aidesGetMoisFromDate(a.date) === moisAff);
+  const totalMois = aidesDuMois.reduce((s, a) => s + (parseFloat(a.montant)||0), 0);
+  const nbOptions = new Set(getRegles().filter(r => r.type==='bourse'||r.type==='gratuit_quota').map(r=>r.id)).size;
+
+  const kpiMois = document.getElementById('aides-kpi-mois');
+  const kpiNb   = document.getElementById('aides-kpi-nb');
+  const kpiOpNb = document.getElementById('aides-kpi-options-nb');
+  if (kpiMois) kpiMois.textContent = totalMois.toLocaleString('fr') + ' €';
+  if (kpiNb)   kpiNb.textContent   = aidesDuMois.length;
+  if (kpiOpNb) kpiOpNb.textContent = nbOptions + ' option(s) active(s)';
+
+  const labelEl = document.getElementById('aides-recap-mois-label');
+  if (labelEl) labelEl.textContent = aidesMoisLabel(moisAff);
+
+  // ── Recap options
+  aidesRenderRecap(moisAff);
+
+  // ── Quotas membres
+  aidesRenderQuotas(moisAff);
+
+  // ── Historique
+  let liste = getAidesVersees();
+  if (moisFilt) liste = liste.filter(a => aidesGetMoisFromDate(a.date) === moisFilt);
+  if (search) liste = liste.filter(a =>
+    (a.pseudo||'').toLowerCase().includes(search) ||
+    (a.libelle||'').toLowerCase().includes(search) ||
+    (a.optionNom||'').toLowerCase().includes(search)
+  );
+  liste = [...liste].sort((a, b) => (b.date||'').localeCompare(a.date||''));
+
+  const tbody = document.getElementById('aides-historique-tbody');
+  if (!tbody) return;
+  if (!liste.length) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:24px;">Aucune aide sur cette période.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = liste.map(a => {
+    const dateAff = a.date && a.date.includes('-') ? a.date.split('-').reverse().join('/') : a.date;
+    const montantAff = a.type === 'gratuit_quota'
+      ? `<span style="color:var(--blue);font-weight:700;">${a.nb || 1} unité(s)</span>`
+      : `<span style="color:var(--red);font-weight:700;">-${(parseFloat(a.montant)||0).toLocaleString('fr')} €</span>`;
+    return `<tr style="border-top:1px solid var(--border);">
+      <td style="padding:7px 12px;font-size:10.5px;color:var(--text3);white-space:nowrap;font-family:'Fira Code',monospace;">${dateAff||'—'}</td>
+      <td style="padding:7px 12px;font-weight:600;">${a.pseudo||'—'}</td>
+      <td style="padding:7px 12px;"><span class="badge badge-green" style="font-size:9px;">${a.optionNom||'—'}</span></td>
+      <td style="padding:7px 12px;text-align:right;">${montantAff}</td>
+      <td style="padding:7px 12px;text-align:center;">
+        <button onclick="aidesDelete('${a.id}')" class="btn btn-danger btn-icon btn-sm" style="font-size:10px;padding:2px 6px;" title="Supprimer">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Recap tableau mensuel par option ─────────────────────────
+
+function aidesRenderRecap(mois) {
+  const container = document.getElementById('aides-recap-options');
+  if (!container) return;
+  const regles = getRegles().filter(r => r.type === 'bourse' || r.type === 'gratuit_quota');
+  if (!regles.length) {
+    container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3);font-size:12px;">Aucune option Bourse/Quota configurée.</div>';
+    return;
+  }
+  let html = '';
+  for (const r of regles) {
+    const conso = aidesConsomme(r.id, mois);
+    const plafond = aidesGetPlafond(r);
+    let barHtml = '';
+    let alertClass = '';
+    let infoHtml = '';
+
+    if (plafond && plafond.type === 'montant' && plafond.valeur > 0) {
+      const pct = Math.min(100, Math.round(conso.montant / plafond.valeur * 100));
+      const reste = plafond.valeur - conso.montant;
+      const depasse = reste < 0;
+      alertClass = depasse ? 'border-color:rgba(192,57,43,0.5);background:var(--redbg);' : '';
+      const barColor = depasse ? 'var(--red)' : pct > 80 ? 'var(--yellow)' : 'var(--green)';
+      barHtml = `<div style="background:var(--border);border-radius:3px;height:6px;margin-top:6px;overflow:hidden;">
+        <div style="width:${pct}%;height:100%;background:${barColor};border-radius:3px;transition:width 0.3s;"></div>
+      </div>`;
+      infoHtml = `<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:3px;">
+        <span>Consommé : <b style="color:var(--red);">${conso.montant.toLocaleString('fr')} €</b></span>
+        <span>Plafond : <b>${plafond.valeur.toLocaleString('fr')} €</b></span>
+        <span style="color:${depasse?'var(--red)':'var(--green2)'};">Reste : <b>${depasse?'⚠️ DÉPASSÉ !':reste.toLocaleString('fr')+' €'}</b></span>
+      </div>`;
+    } else if (plafond && plafond.type === 'nb' && plafond.valeur > 0) {
+      const pct = Math.min(100, Math.round(conso.nb / plafond.valeur * 100));
+      const reste = plafond.valeur - conso.nb;
+      const depasse = reste < 0;
+      alertClass = depasse ? 'border-color:rgba(192,57,43,0.5);background:var(--redbg);' : '';
+      const barColor = depasse ? 'var(--red)' : pct > 80 ? 'var(--yellow)' : 'var(--green)';
+      barHtml = `<div style="background:var(--border);border-radius:3px;height:6px;margin-top:6px;overflow:hidden;">
+        <div style="width:${pct}%;height:100%;background:${barColor};border-radius:3px;transition:width 0.3s;"></div>
+      </div>`;
+      infoHtml = `<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:3px;">
+        <span>Utilisé : <b style="color:var(--red);">${conso.nb} unité(s)</b></span>
+        <span>Quota : <b>${plafond.valeur} ${plafond.unit||''}</b></span>
+        <span style="color:${depasse?'var(--red)':'var(--green2)'};">Reste : <b>${depasse?'⚠️ DÉPASSÉ !':reste+' '+(plafond.unit||'')}</b></span>
+      </div>`;
+    } else {
+      infoHtml = `<div style="font-size:10px;color:var(--text3);margin-top:4px;">Versements : <b>${conso.count}</b> — Total : <b style="color:var(--red);">${conso.montant.toLocaleString('fr')} €</b></div>`;
+    }
+
+    html += `<div style="padding:10px 16px;border-bottom:1px solid var(--border);${alertClass}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+        <span class="badge badge-green" style="font-size:9px;flex-shrink:0;">${aidesTypeLabel(r.type)}</span>
+        <span style="font-weight:700;font-size:12px;flex:1;">${r.option||'—'}</span>
+        ${r.description ? `<span style="font-size:10px;color:var(--text3);font-style:italic;">${r.description}</span>` : ''}
+      </div>
+      ${barHtml}${infoHtml}
+    </div>`;
+  }
+  container.innerHTML = html;
+}
+
+// ── Tableau quotas membres ────────────────────────────────────
+
+function aidesRenderQuotas(mois) {
+  const container = document.getElementById('aides-quotas-membres');
+  const badgeEl   = document.getElementById('aides-badge-depassements');
+  if (!container) return;
+
+  const membres = APP.membres || [];
+  const regles  = getRegles().filter(r => r.type === 'bourse' || r.type === 'gratuit_quota');
+  if (!regles.length || !membres.length) {
+    container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3);font-size:12px;">Aucun membre ou option.</div>';
+    if (badgeEl) badgeEl.style.display = 'none';
+    return;
+  }
+
+  // Par membre → options souscrites → consommation
+  let html = '';
+  let totalDepass = 0;
+
+  for (const m of membres) {
+    const optsMembre = (m.options || []);
+    if (!optsMembre.length) continue;
+
+    const reglesMembre = regles.filter(r => optsMembre.some(o =>
+      (typeof o === 'string' ? o : (o.nom || o.option || o)) === r.option
+    ));
+    if (!reglesMembre.length) continue;
+
+    let rowsHtml = '';
+    let hasDepass = false;
+    for (const r of reglesMembre) {
+      const conso   = aidesConsomme(r.id, mois);
+      const plafond = aidesGetPlafond(r);
+      let statusHtml = '';
+      if (plafond && plafond.type === 'montant' && plafond.valeur > 0) {
+        const reste = plafond.valeur - conso.montant;
+        const depasse = reste < 0;
+        if (depasse) { hasDepass = true; totalDepass++; }
+        statusHtml = `<span style="font-size:10px;font-weight:700;color:${depasse?'var(--red)':'var(--green2)'};">
+          ${conso.montant.toLocaleString('fr')} / ${plafond.valeur.toLocaleString('fr')} €
+          ${depasse ? ' ⚠️' : ''}
+        </span>`;
+      } else if (plafond && plafond.type === 'nb' && plafond.valeur > 0) {
+        const reste = plafond.valeur - conso.nb;
+        const depasse = reste < 0;
+        if (depasse) { hasDepass = true; totalDepass++; }
+        statusHtml = `<span style="font-size:10px;font-weight:700;color:${depasse?'var(--red)':'var(--green2)'};">
+          ${conso.nb} / ${plafond.valeur} ${plafond.unit||''}
+          ${depasse ? ' ⚠️' : ''}
+        </span>`;
+      } else {
+        statusHtml = `<span style="font-size:10px;color:var(--text3);">${conso.count} versement(s)</span>`;
+      }
+
+      rowsHtml += `<div style="display:flex;align-items:center;gap:8px;padding:5px 14px 5px 28px;border-top:1px solid var(--border);">
+        <span class="badge badge-gray" style="font-size:9px;flex-shrink:0;">${r.option||'—'}</span>
+        <span style="flex:1;"></span>
+        ${statusHtml}
+      </div>`;
+    }
+
+    html += `<div style="border-bottom:1px solid var(--border);${hasDepass?'background:rgba(192,57,43,0.03);':''}">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;${hasDepass?'background:rgba(192,57,43,0.06);':''}">
+        <span style="font-weight:700;font-size:12px;flex:1;">${m.pseudo||'—'}</span>
+        ${hasDepass ? '<span style="font-size:10px;font-weight:700;color:var(--red);background:var(--redbg);border:1px solid rgba(192,57,43,0.2);border-radius:10px;padding:1px 7px;">⚠️ Quota dépassé</span>' : ''}
+      </div>
+      ${rowsHtml}
+    </div>`;
+  }
+
+  if (!html) {
+    container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3);font-size:12px;">Aucun membre avec options actives.</div>';
+    if (badgeEl) badgeEl.style.display = 'none';
+    return;
+  }
+
+  container.innerHTML = html;
+  if (badgeEl) {
+    badgeEl.style.display = totalDepass > 0 ? '' : 'none';
+    badgeEl.textContent = totalDepass + ' dépassement(s)';
+  }
+}
+
+// ── Formulaire manuel ─────────────────────────────────────────
+
+function aidesOpenAdd() {
+  const card = document.getElementById('aides-add-card');
+  if (!card) return;
+  card.style.display = '';
+
+  // Peupler les selects
+  aidesFillOptionSelect('aide-man-option');
+  const today = new Date().toISOString().split('T')[0];
+  const dateEl = document.getElementById('aide-man-date');
+  if (dateEl && !dateEl.value) dateEl.value = today;
+
+  // Datalist pseudos
+  const dl = document.getElementById('aide-man-pseudo-list');
+  if (dl) dl.innerHTML = (APP.membres||[]).map(m => `<option value="${m.pseudo}">`).join('');
+
+  card.scrollIntoView({ behavior: 'smooth' });
+}
+
+function aidesManOptionChange() {
+  const sel = document.getElementById('aide-man-option');
+  if (!sel) return;
+  const r = getRegles().find(r => r.id === sel.value);
+  const nbGroup   = document.getElementById('aide-man-nb-group');
+  const montLabel = document.getElementById('aide-man-montant-label');
+  const infoEl    = document.getElementById('aide-man-quota-info');
+  if (!r) { if (nbGroup) nbGroup.style.display = 'none'; if (infoEl) infoEl.style.display = 'none'; return; }
+
+  if (nbGroup) nbGroup.style.display = r.type === 'gratuit_quota' ? '' : 'none';
+  if (montLabel) montLabel.textContent = r.type === 'bourse' ? 'Montant versé (€)' : 'Montant (€)';
+  aidesManUpdateInfo();
+}
+
+function aidesManUpdateInfo() {
+  const sel = document.getElementById('aide-man-option');
+  const infoEl = document.getElementById('aide-man-quota-info');
+  if (!sel || !infoEl) return;
+  const r = getRegles().find(r => r.id === sel.value);
+  if (!r) { infoEl.style.display = 'none'; return; }
+
+  const mois = aidesGetMoisActuel();
+  const conso = aidesConsomme(r.id, mois);
+  const plafond = aidesGetPlafond(r);
+  if (!plafond) { infoEl.style.display = 'none'; return; }
+
+  const montantSaisi = parseFloat((document.getElementById('aide-man-montant')||{value:0}).value) || 0;
+  const nbSaisi      = parseInt((document.getElementById('aide-man-nb')||{value:0}).value) || 0;
+
+  if (plafond.type === 'montant') {
+    const reste = plafond.valeur - conso.montant;
+    const apres = reste - montantSaisi;
+    const depasse = apres < 0;
+    infoEl.style.display = '';
+    infoEl.style.background = depasse ? 'var(--redbg)' : 'var(--greenbg)';
+    infoEl.style.border = `1px solid ${depasse ? 'rgba(192,57,43,0.3)' : 'rgba(74,140,82,0.3)'}`;
+    infoEl.style.color = depasse ? 'var(--red)' : 'var(--green3)';
+    infoEl.innerHTML = `Déjà versé ce mois : <b>${conso.montant.toLocaleString('fr')} €</b> / Plafond : <b>${plafond.valeur.toLocaleString('fr')} €</b><br>
+      Après ce versement : <b>${depasse ? '⚠️ Dépassement de '+(Math.abs(apres)).toLocaleString('fr')+' €' : (plafond.valeur - conso.montant - montantSaisi).toLocaleString('fr')+' € restant'}</b>`;
+  } else if (plafond.type === 'nb') {
+    const reste = plafond.valeur - conso.nb;
+    const apres = reste - nbSaisi;
+    const depasse = apres < 0;
+    infoEl.style.display = '';
+    infoEl.style.background = depasse ? 'var(--redbg)' : 'var(--greenbg)';
+    infoEl.style.border = `1px solid ${depasse ? 'rgba(192,57,43,0.3)' : 'rgba(74,140,82,0.3)'}`;
+    infoEl.style.color = depasse ? 'var(--red)' : 'var(--green3)';
+    infoEl.innerHTML = `Déjà utilisé ce mois : <b>${conso.nb} / ${plafond.valeur} ${plafond.unit||''}</b><br>
+      Après : <b>${depasse ? '⚠️ Quota dépassé de '+Math.abs(apres) : (plafond.valeur-conso.nb-nbSaisi)+' restant(s)'}</b>`;
+  }
+}
+
+async function aidesManSave() {
+  const optionId  = document.getElementById('aide-man-option').value;
+  const pseudo    = document.getElementById('aide-man-pseudo').value.trim();
+  const date      = document.getElementById('aide-man-date').value;
+  const montant   = parseFloat(document.getElementById('aide-man-montant').value) || 0;
+  const nbEl      = document.getElementById('aide-man-nb');
+  const nb        = nbEl && nbEl.style.display !== 'none' ? parseInt(nbEl.value) || 0 : 0;
+  const libelle   = document.getElementById('aide-man-libelle').value.trim();
+
+  if (!optionId) { toast('Sélectionnez une option', 'error'); return; }
+  if (!pseudo)   { toast('Pseudo requis', 'error'); return; }
+  if (!date)     { toast('Date requise', 'error'); return; }
+
+  const r = getRegles().find(r => r.id === optionId);
+  const aide = {
+    id: 'aide_' + Date.now(),
+    date,
+    pseudo,
+    optionId,
+    optionNom: r ? r.option : optionId,
+    type: r ? r.type : '',
+    montant,
+    nb,
+    libelle: libelle || (r ? r.option : '') + ' — ' + pseudo,
+    source: 'manuel'
+  };
+
+  if (!APP.aidesVersees) APP.aidesVersees = [];
+  APP.aidesVersees.unshift(aide);
+  await sbUpsert('aides_versees', { id: aide.id, data: aide }, { onConflict: 'id' });
+
+  // Reset form
+  ['aide-man-pseudo','aide-man-libelle','aide-man-montant'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  if (nbEl) nbEl.value = '';
+  document.getElementById('aide-man-option').value = '';
+  document.getElementById('aide-man-quota-info').style.display = 'none';
+  document.getElementById('aides-add-card').style.display = 'none';
+
+  // Refresh mois select
+  const moisSel = document.getElementById('aides-mois-select');
+  const moisAide = aidesGetMoisFromDate(date);
+  if (moisSel && ![...moisSel.options].some(o => o.value === moisAide)) {
+    const opt = document.createElement('option');
+    opt.value = moisAide; opt.textContent = aidesMoisLabel(moisAide);
+    moisSel.insertBefore(opt, moisSel.options[1]);
+  }
+
+  journalLog(`Aide enregistrée : ${r ? r.option : ''} → ${pseudo} (${montant.toLocaleString('fr')} €)`, 'ok');
+  toast('Aide enregistrée ✅', 'success');
+  renderAides();
+}
+
+async function aidesDelete(id) {
+  if (!confirm('Supprimer cette aide ?')) return;
+  APP.aidesVersees = (APP.aidesVersees||[]).filter(a => a.id !== id);
+  await sbDelete('aides_versees', { id });
+  renderAides();
+  toast('Aide supprimée', 'info');
+}
+
+// ── Détection automatique depuis compta ───────────────────────
+
+let _aideDetectionQueue = [];
+let _aideDetectionIdx   = 0;
+
+function aidesDetectCompta() {
+  const allOps = APP.comptaAll?.length ? APP.comptaAll : (APP.compta?.length ? APP.compta : []);
+  if (!allOps.length) { toast('Importez d\'abord la comptabilité', 'info'); return; }
+  const regles = getRegles().filter(r =>
+    (r.type === 'bourse' || r.type === 'gratuit_quota') &&
+    ((r.kwLibelle||[]).length > 0 || (r.kwPseudo||[]).length > 0)
+  );
+  if (!regles.length) {
+    toast('Configurez des mots-clés de détection dans Options & Promotions', 'info');
+    return;
+  }
+
+  _aideDetectionQueue = [];
+
+  for (const op of allOps) {
+    const depense = parseFloat(op['Dépenses']) || 0;
+    if (!depense) continue; // On cherche uniquement les dépenses (virements sortants)
+
+    const libelle = (op["Libellé de l'opération"] || '').toLowerCase();
+    const dateOp  = op["Date de l'opération"] || '';
+    const dateIso = (() => {
+      if (!dateOp) return '';
+      const p = dateOp.split(' ')[0].split('/');
+      return p.length===3 ? `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}` : dateOp;
+    })();
+    const moisOp = aidesGetMoisFromDate(dateIso);
+
+    for (const r of regles) {
+      const kwLib  = (r.kwLibelle||[]).map(k=>k.toLowerCase());
+      const kwPs   = (r.kwPseudo||[]).map(k=>k.toLowerCase());
+      const matchLib = kwLib.some(k => libelle.includes(k));
+      const matchPs  = kwPs.some(k => libelle.includes(k));
+      if (!matchLib && !matchPs) continue;
+
+      // Vérifier doublon
+      const deja = (APP.aidesVersees||[]).find(a =>
+        a.optionId === r.id &&
+        a.date === dateIso &&
+        Math.abs((parseFloat(a.montant)||0) - depense) < 1
+      );
+      if (deja) continue;
+
+      // Pré-détecter pseudo depuis le libellé
+      let pseudoSuggere = '';
+      const parenMatch = op["Libellé de l'opération"].match(/\(([^)]+)\)/);
+      if (parenMatch) {
+        pseudoSuggere = parenMatch[1].split(/[\s,]/)[0].trim();
+      } else {
+        const words = op["Libellé de l'opération"].trim().split(/\s+/);
+        pseudoSuggere = words[words.length-1];
+      }
+      // Matcher pseudo avec membres connus
+      const membreMatch = (APP.membres||[]).find(m =>
+        m.pseudo && pseudoSuggere && m.pseudo.toLowerCase() === pseudoSuggere.toLowerCase()
+      );
+      if (membreMatch) pseudoSuggere = membreMatch.pseudo;
+
+      // Vérifier si quota dépassé
+      const conso = aidesConsomme(r.id, moisOp);
+      const plafond = aidesGetPlafond(r);
+      let quotaInfo = null;
+      if (plafond && plafond.type === 'montant' && plafond.valeur > 0) {
+        const reste = plafond.valeur - conso.montant;
+        quotaInfo = { depasse: depense > reste, reste, plafond: plafond.valeur, type: 'montant' };
+      }
+
+      _aideDetectionQueue.push({
+        op, dateIso, montant: depense, regle: r, pseudoSuggere, moisOp, quotaInfo,
+        libelle: op["Libellé de l'opération"]
+      });
+    }
+  }
+
+  if (!_aideDetectionQueue.length) {
+    toast('Aucune nouvelle aide détectée', 'info');
+    return;
+  }
+
+  _aideDetectionIdx = 0;
+  aidesDetectionShowNext();
+}
+
+function aidesDetectionShowNext() {
+  if (_aideDetectionIdx >= _aideDetectionQueue.length) {
+    closeModal('modal-aide-detection');
+    toast(`${_aideDetectionQueue.length} aide(s) traitée(s)`, 'success');
+    renderAides();
+    return;
+  }
+  const item = _aideDetectionQueue[_aideDetectionIdx];
+
+  // Infos opération
+  document.getElementById('aide-detect-op-date').textContent = item.dateIso ? item.dateIso.split('-').reverse().join('/') : '—';
+  document.getElementById('aide-detect-op-libelle').textContent = item.libelle || '—';
+  document.getElementById('aide-detect-op-montant').textContent = '- ' + item.montant.toLocaleString('fr') + ' €';
+  document.getElementById('aide-detect-montant').value = item.montant;
+  document.getElementById('aide-detect-queue-info').textContent = `${_aideDetectionIdx+1} / ${_aideDetectionQueue.length}`;
+
+  // Peupler option select
+  aidesFillOptionSelect('aide-detect-option');
+  document.getElementById('aide-detect-option').value = item.regle.id;
+
+  // Datalist pseudos
+  const dl = document.getElementById('aide-detect-pseudo-list');
+  if (dl) dl.innerHTML = (APP.membres||[]).map(m => `<option value="${m.pseudo}">`).join('');
+  document.getElementById('aide-detect-pseudo').value = item.pseudoSuggere || '';
+
+  // Info quota
+  const infoEl = document.getElementById('aide-detect-quota-info');
+  if (item.quotaInfo && item.quotaInfo.depasse) {
+    infoEl.style.display = '';
+    infoEl.style.background = 'var(--redbg)';
+    infoEl.style.border = '1px solid rgba(192,57,43,0.3)';
+    infoEl.style.color = 'var(--red)';
+    infoEl.innerHTML = `⚠️ <b>Quota presque/dépassé ce mois !</b> Déjà consommé : ${(item.quotaInfo.plafond - item.quotaInfo.reste).toLocaleString('fr')} € / ${item.quotaInfo.plafond.toLocaleString('fr')} €`;
+  } else {
+    infoEl.style.display = 'none';
+  }
+
+  openModal('modal-aide-detection');
+}
+
+function aidesDetectOptionChange() {
+  // Rien de spécial pour l'instant (pourrait mettre à jour l'info quota)
+}
+
+async function aidesDetectionConfirm() {
+  const item = _aideDetectionQueue[_aideDetectionIdx];
+  const optionId = document.getElementById('aide-detect-option').value;
+  const pseudo   = document.getElementById('aide-detect-pseudo').value.trim();
+  const montant  = parseFloat(document.getElementById('aide-detect-montant').value) || item.montant;
+
+  if (!optionId) { toast('Choisissez une option', 'error'); return; }
+  if (!pseudo)   { toast('Saisissez un pseudo', 'error'); return; }
+
+  const r = getRegles().find(r => r.id === optionId);
+  const aide = {
+    id: 'aide_' + Date.now() + '_' + _aideDetectionIdx,
+    date: item.dateIso,
+    pseudo,
+    optionId,
+    optionNom: r ? r.option : optionId,
+    type: r ? r.type : '',
+    montant,
+    nb: 0,
+    libelle: item.libelle,
+    source: 'compta'
+  };
+
+  if (!APP.aidesVersees) APP.aidesVersees = [];
+  APP.aidesVersees.unshift(aide);
+  await sbUpsert('aides_versees', { id: aide.id, data: aide }, { onConflict: 'id' });
+  journalLog(`Aide confirmée (compta) : ${r ? r.option : ''} → ${pseudo} — ${montant.toLocaleString('fr')} €`, 'ok');
+
+  _aideDetectionIdx++;
+  closeModal('modal-aide-detection');
+  setTimeout(aidesDetectionShowNext, 200);
+}
+
+function aidesDetectionIgnore() {
+  _aideDetectionIdx++;
+  closeModal('modal-aide-detection');
+  setTimeout(aidesDetectionShowNext, 200);
+}
+
+// ── Chargement depuis Supabase ────────────────────────────────
+
+async function loadAidesVersees() {
+  try {
+    const rows = await sbGet('aides_versees');
+    if (rows && rows.length) {
+      APP.aidesVersees = rows.map(r => r.data || r).filter(Boolean);
+    } else {
+      APP.aidesVersees = [];
+    }
+  } catch(e) {
+    APP.aidesVersees = [];
+    console.warn('loadAidesVersees:', e);
+  }
 }
 
 init();
