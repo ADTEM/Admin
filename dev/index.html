@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.61</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.63</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -5589,14 +5589,14 @@ async function saveDevis(type) {
   let dateFin = null;
   if (type === 'location') {
     const debut = document.getElementById('dl-debut').value;
+    if (!debut) { toast('Saisissez une date de début avant de sauvegarder', 'error'); return; }
     const duree = parseInt(document.getElementById('dl-duree').value) || 1;
-    if (debut) {
-      const d = new Date(debut);
-      d.setDate(d.getDate() + duree * 7);
-      dateFin = d.toISOString().split('T')[0];
-    }
+    const d = new Date(debut);
+    d.setDate(d.getDate() + duree * 7);
+    dateFin = d.toISOString().split('T')[0];
   } else {
     dateFin = document.getElementById('ae-fin').value || null;
+    if (!dateFin) { toast('Saisissez une date de fin avant de sauvegarder', 'error'); return; }
   }
 
   // Réutiliser le numéro déjà attribué à la génération (évite les doublons)
@@ -5667,8 +5667,13 @@ async function saveDevis(type) {
         date_fin: dateFin,
         statut: 'en_attente'
       };
-      await sbInsert('reservations', resData);
-      APP.reservations.push({ _id: resId, ...resData });
+      const resOk = await sbInsert('reservations', resData);
+      if (!resOk) {
+        toast(`Erreur : réservation du bus ${resData.bus_id} non enregistrée`, 'error');
+        journalLog(`Échec insert réservation bus ${resData.bus_id} — devis ${numero}`, 'error');
+      } else {
+        APP.reservations.push({ _id: resId, ...resData });
+      }
     }
     renderVehiculesDisponibles(
       type === 'location' ? 'vehicules-disponibles' : 'ae-vehicules-disponibles',
@@ -6159,12 +6164,53 @@ function renderDevisSauvegardes() {
           ${(!d.statut || d.statut === 'en_attente') ? `
             <button class="btn btn-sm" style="background:rgba(74,140,82,0.15);color:var(--green2);border:1px solid rgba(74,140,82,0.3);" onclick="changerStatutDevis('${d.numero}','accepte')" title="Accepter">✅</button>
             <button class="btn btn-sm" style="background:rgba(192,57,43,0.1);color:var(--red);border:1px solid rgba(192,57,43,0.2);" onclick="changerStatutDevis('${d.numero}','refuse')" title="Refuser">❌</button>
+            ${(d.vehicules||[]).some(bid => !(APP.reservations||[]).find(r => r.bus_id === bid && r.devis_id === d.numero && r.statut !== 'refuse')) ? `<button class="btn btn-sm" style="background:rgba(201,134,10,0.15);color:var(--yellow);border:1px solid rgba(201,134,10,0.3);" onclick="forcerReservationsDevis('${d.numero}')" title="Forcer le verrouillage des bus">🔒</button>` : ''}
           ` : ''}
           <button class="btn btn-danger btn-sm btn-icon" onclick="supprimerDevisSauvegarde('${d._id||''}','${d.numero||''}')" title="Supprimer">🗑️</button>
         </div>
       </td>
     </tr>
   `).join('');
+}
+
+async function forcerReservationsDevis(numero) {
+  const devis = (APP.devisSauvegardes || []).find(d => d.numero === numero);
+  if (!devis) { toast('Devis introuvable', 'error'); return; }
+
+  const busIds   = devis.vehicules || [];
+  const dateFin  = devis.dateFin || null;
+
+  if (!dateFin) {
+    toast('Impossible : date de fin absente dans ce devis', 'error');
+    return;
+  }
+
+  let crees = 0, dejala = 0;
+  for (const busId of busIds) {
+    const dejaRes = (APP.reservations || []).find(r => r.bus_id === busId && r.devis_id === numero && r.statut !== 'refuse');
+    if (dejaRes) { dejala++; continue; }
+
+    const resId   = genId();
+    const resData = { id: resId, bus_id: busId, devis_id: numero, pseudo: devis.pseudo, date_fin: dateFin, statut: 'en_attente' };
+    const ok = await sbInsert('reservations', resData);
+    if (ok) {
+      APP.reservations.push({ _id: resId, ...resData });
+      crees++;
+    } else {
+      toast(`Échec verrouillage bus ${busId}`, 'error');
+      journalLog(`forcerReservations : échec insert ${busId} — devis ${numero}`, 'error');
+    }
+  }
+
+  if (crees > 0) {
+    journalLog(`Réservations forcées (${crees} bus) — devis ${numero}`, 'ok');
+    toast(`${crees} bus verrouillé(s)${dejala ? `, ${dejala} déjà réservé(s)` : ''}`, 'success');
+  } else if (dejala === busIds.length) {
+    toast('Tous les bus sont déjà verrouillés', 'info');
+  }
+
+  renderDevisSauvegardes();
+  renderParc();
 }
 
 async function supprimerDevisSauvegarde(id, numero) {
