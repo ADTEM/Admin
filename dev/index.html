@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.63</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.64</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -5620,6 +5620,43 @@ async function saveDevis(type) {
       } catch(e) {}
     }
   }
+  // Snapshot complet du formulaire pour permettre la restauration ultérieure
+  let formSnapshot = {};
+  if (type === 'location') {
+    formSnapshot = {
+      pseudoForum:   document.getElementById('dl-pseudo-forum')?.value || '',
+      niveau:        document.getElementById('dl-niveau')?.value || '',
+      option:        document.getElementById('dl-option')?.value || '',
+      dateDemande:   document.getElementById('dl-date-demande')?.value || '',
+      dateCreation:  document.getElementById('dl-date-creation')?.value || '',
+      debut:         document.getElementById('dl-debut')?.value || '',
+      duree:         document.getElementById('dl-duree')?.value || '1',
+      busRemplaces:  document.getElementById('dl-bus-remplaces')?.value || '',
+      codePromo:     document.getElementById('dl-code-promo')?.value || '',
+      ajustMode:     document.getElementById('ajust-mode')?.value || '',
+      ajustValeur:   document.getElementById('ajust-valeur')?.value || '',
+      ajustRaison:   document.getElementById('ajust-raison')?.value || '',
+    };
+  } else {
+    formSnapshot = {
+      pseudoForum:   document.getElementById('ae-pseudo-forum')?.value || '',
+      niveau:        document.getElementById('ae-niveau')?.value || '',
+      typeAide:      document.getElementById('ae-type-aide')?.value || 'totale',
+      dateDemande:   document.getElementById('ae-date-demande')?.value || '',
+      dateCreation:  document.getElementById('ae-date-creation')?.value || '',
+      debut:         document.getElementById('ae-debut')?.value || '',
+      fin:           document.getElementById('ae-fin')?.value || '',
+      conducteurs:   document.getElementById('ae-conducteurs')?.value || '1',
+      montantSaisi:  document.getElementById('ae-montant')?.value || '',
+      consoType:     document.getElementById('ae-conso-type')?.value || '',
+      description:   document.getElementById('ae-description')?.value || '',
+      lignesSelectionnees: { ...APP._aeLignesSelectionnees },
+      busParLigne: Object.fromEntries(
+        Object.entries(APP._aeBusParLigne).map(([k, arr]) => [k, arr.map(x => x['Numéro Parc'])])
+      ),
+    };
+  }
+
   const devis  = {
     numero, type, pseudo,
     date: new Date().toISOString(),
@@ -5627,7 +5664,8 @@ async function saveDevis(type) {
     montant,
     dateFin,
     statut: 'en_attente',
-    imageUrl: APP._lastDevisUrl && APP._lastDevisType === type ? APP._lastDevisUrl : null
+    imageUrl: APP._lastDevisUrl && APP._lastDevisType === type ? APP._lastDevisUrl : null,
+    formSnapshot,
   };
   // Vérifier si ce numéro existe déjà en base (double-clic ou sauvegarder + publier)
   APP.devisSauvegardes = APP.devisSauvegardes || [];
@@ -6164,6 +6202,7 @@ function renderDevisSauvegardes() {
           ${(!d.statut || d.statut === 'en_attente') ? `
             <button class="btn btn-sm" style="background:rgba(74,140,82,0.15);color:var(--green2);border:1px solid rgba(74,140,82,0.3);" onclick="changerStatutDevis('${d.numero}','accepte')" title="Accepter">✅</button>
             <button class="btn btn-sm" style="background:rgba(192,57,43,0.1);color:var(--red);border:1px solid rgba(192,57,43,0.2);" onclick="changerStatutDevis('${d.numero}','refuse')" title="Refuser">❌</button>
+            <button class="btn btn-sm" style="background:rgba(36,113,163,0.12);color:var(--blue);border:1px solid rgba(36,113,163,0.25);" onclick="modifierDevis('${d.numero}')" title="Modifier ce devis">✏️</button>
             ${(d.vehicules||[]).some(bid => !(APP.reservations||[]).find(r => r.bus_id === bid && r.devis_id === d.numero && r.statut !== 'refuse')) ? `<button class="btn btn-sm" style="background:rgba(201,134,10,0.15);color:var(--yellow);border:1px solid rgba(201,134,10,0.3);" onclick="forcerReservationsDevis('${d.numero}')" title="Forcer le verrouillage des bus">🔒</button>` : ''}
           ` : ''}
           <button class="btn btn-danger btn-sm btn-icon" onclick="supprimerDevisSauvegarde('${d._id||''}','${d.numero||''}')" title="Supprimer">🗑️</button>
@@ -6173,16 +6212,122 @@ function renderDevisSauvegardes() {
   `).join('');
 }
 
+async function modifierDevis(numero) {
+  const devis = (APP.devisSauvegardes || []).find(d => d.numero === numero);
+  if (!devis) { toast('Devis introuvable', 'error'); return; }
+
+  if (!confirm(`Modifier le devis ${numero} ?\nLes réservations actuelles seront levées. Après modification, régénérez puis sauvegardez pour écraser.`)) return;
+
+  // Lever les réservations existantes (elles seront recréées à la sauvegarde)
+  const resLiees = (APP.reservations || []).filter(r => r.devis_id === numero);
+  for (const r of resLiees) await sbDelete('reservations', { id: r._id });
+  APP.reservations = APP.reservations.filter(r => r.devis_id !== numero);
+
+  const s = devis.formSnapshot || {};
+
+  if (devis.type === 'location') {
+    // Reset silencieux (sans confirm)
+    APP.devisLocation.vehiculesSelectionnes = [];
+    if (APP._currentDevisNumero) APP._currentDevisNumero['location'] = numero; // réutiliser le même numéro
+    APP._promoActive = null;
+    clearAjustTarif();
+    const panel = document.getElementById('ajust-tarif-panel');
+    if (panel) panel.style.display = 'none';
+    const preview = document.getElementById('devis-location-preview');
+    if (preview) { preview.innerHTML = ''; }
+    const actions = document.getElementById('devis-location-actions');
+    if (actions) actions.style.display = 'none';
+
+    // Pré-remplir les champs
+    document.getElementById('dl-pseudo').value          = devis.pseudo || '';
+    document.getElementById('dl-pseudo-forum').value    = s.pseudoForum || '';
+    document.getElementById('dl-niveau').value          = s.niveau || '';
+    document.getElementById('dl-option').value          = s.option || '';
+    document.getElementById('dl-date-demande').value    = s.dateDemande || '';
+    document.getElementById('dl-date-creation').value   = s.dateCreation || '';
+    document.getElementById('dl-debut').value           = s.debut || '';
+    document.getElementById('dl-duree').value           = s.duree || '1';
+    document.getElementById('dl-bus-remplaces').value   = s.busRemplaces || '';
+    document.getElementById('dl-code-promo').value      = s.codePromo || '';
+
+    // Restaurer l'ajustement tarifaire
+    if (s.ajustMode) {
+      document.getElementById('ajust-mode').value   = s.ajustMode;
+      document.getElementById('ajust-valeur').value = s.ajustValeur || '';
+      document.getElementById('ajust-raison').value = s.ajustRaison || '';
+      onAjustModeChange();
+      if (panel) panel.style.display = '';
+    }
+
+    // Restaurer les bus sélectionnés
+    const busObjs = (devis.vehicules || []).map(id => APP.vehicules.find(v => v['Numéro Parc'] === id)).filter(Boolean);
+    APP.devisLocation.vehiculesSelectionnes = busObjs;
+
+    updateCalcLocation();
+    renderVehiculesDisponibles('vehicules-disponibles', APP.devisLocation.vehiculesSelectionnes, 'location');
+    showPage('devis-location');
+
+  } else {
+    // AE
+    APP.devisAE = APP.devisAE || {};
+    APP.devisAE.vehiculesSelectionnes = [];
+    APP._aeLignesSelectionnees = { ...(s.lignesSelectionnees || {}) };
+    if (APP._currentDevisNumero) APP._currentDevisNumero['ae'] = numero;
+
+    const preview = document.getElementById('devis-ae-preview');
+    if (preview) { preview.innerHTML = 'Remplissez le formulaire et cliquez sur "Générer le devis AE"'; preview.style.height = ''; }
+    const actions = document.getElementById('devis-ae-actions');
+    if (actions) actions.style.display = 'none';
+
+    document.getElementById('ae-pseudo').value          = devis.pseudo || '';
+    document.getElementById('ae-pseudo-forum').value    = s.pseudoForum || '';
+    document.getElementById('ae-niveau').value          = s.niveau || '';
+    document.getElementById('ae-type-aide').value       = s.typeAide || 'totale';
+    document.getElementById('ae-date-demande').value    = s.dateDemande || '';
+    document.getElementById('ae-date-creation').value   = s.dateCreation || '';
+    document.getElementById('ae-debut').value           = s.debut || '';
+    document.getElementById('ae-fin').value             = s.fin || '';
+    document.getElementById('ae-conducteurs').value     = s.conducteurs || '1';
+    document.getElementById('ae-montant').value         = s.montantSaisi || '';
+    document.getElementById('ae-conso-type').value      = s.consoType || '';
+    document.getElementById('ae-description').value     = s.description || '';
+
+    // Restaurer bus par ligne (réhydrater depuis APP.vehicules)
+    APP._aeBusParLigne = {};
+    if (s.busParLigne) {
+      for (const [ligne, ids] of Object.entries(s.busParLigne)) {
+        APP._aeBusParLigne[ligne] = ids.map(id => APP.vehicules.find(v => v['Numéro Parc'] === id)).filter(Boolean);
+      }
+    }
+    APP.devisAE.vehiculesSelectionnes = Object.values(APP._aeBusParLigne).flat();
+
+    // Déclencher le rendu lignes
+    aeOnNiveauChange();
+    aeFiltreVehicules();
+    showPage('devis-ae');
+  }
+
+  journalLog(`Devis ${numero} ouvert en modification`, 'warn');
+  toast(`Devis ${numero} chargé — modifiez puis régénérez et sauvegardez`, 'info');
+}
+
 async function forcerReservationsDevis(numero) {
   const devis = (APP.devisSauvegardes || []).find(d => d.numero === numero);
   if (!devis) { toast('Devis introuvable', 'error'); return; }
 
-  const busIds   = devis.vehicules || [];
-  const dateFin  = devis.dateFin || null;
+  const busIds = devis.vehicules || [];
+  let dateFin  = devis.dateFin || devis.date_fin || null;
 
+  // dateFin absent (ancien devis) → demander à l'utilisateur
   if (!dateFin) {
-    toast('Impossible : date de fin absente dans ce devis', 'error');
-    return;
+    dateFin = prompt(`Date de fin de location pour le devis ${numero} (format AAAA-MM-JJ) :`);
+    if (!dateFin || !/^\d{4}-\d{2}-\d{2}$/.test(dateFin)) {
+      toast('Date invalide — format attendu : AAAA-MM-JJ', 'error');
+      return;
+    }
+    // Persister dans le devis pour les prochaines fois
+    devis.dateFin = dateFin;
+    await sbUpdate('devis_sauvegardes', { data: { ...devis } }, { numero });
   }
 
   let crees = 0, dejala = 0;
