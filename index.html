@@ -10781,10 +10781,13 @@ APP._aeBusParLigne = {};         // { '1': [vehObj, vehObj], '2': [...] }
 function aeGetFreqPointe(numLigne, niveauStr) {
   const niv = parseInt(niveauStr) || 1;
   const data = (APP.frequentation || []).filter(r => {
-    if (r.niveau !== undefined) return parseInt(r.niveau) === niv;
+    if (r.niveau !== undefined && r.niveau !== null && r.niveau !== '') return parseInt(r.niveau) === niv;
     return niv === 1;
   });
-  const row = data.find(r => String(r.ligne) === String(numLigne));
+  // Normalise : retire espaces, met en minuscule, pour comparer "2 BHNS" == "2 bhns" etc.
+  const norm = s => String(s).trim().toLowerCase();
+  const row = data.find(r => norm(r.ligne) === norm(numLigne));
+  console.log(`[FREQ] niv=${niv} numLigne="${numLigne}" data.length=${data.length} row=`, row || 'NOT FOUND', 'lignes dispo:', data.map(r=>r.ligne));
   if (!row) return 0;
   return Math.max(
     row.luveCreuses||0, row.luvePointes||0, row.luveSoir||0,
