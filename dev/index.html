@@ -6996,7 +6996,7 @@ function openEditMembre(id) {
   // Afficher le token / lien membre
   const tokenDisplay = document.getElementById('edit-membre-token-display');
   if (m.token) {
-    const lien = location.origin + '/membre.html?t=' + m.token;
+    const lien = location.origin + '/Membre/membre.html?t=' + m.token;
     tokenDisplay.textContent = lien;
     tokenDisplay.title = lien;
   } else {
@@ -7075,7 +7075,7 @@ function copyMembreLink() {
   const id = document.getElementById('edit-membre-id').value;
   const m  = APP.membres.find(x => x.id === id);
   if (!m || !m.token) { toast('Aucun token — cliquez sur 🔄 Régénérer d\'abord', 'error'); return; }
-  const lien = location.origin + '/membre.html?t=' + m.token;
+  const lien = location.origin + '/Membre/membre.html?t=' + m.token;
   navigator.clipboard.writeText(lien).then(() => {
     toast('Lien copié dans le presse-papiers 📋', 'success');
   }).catch(() => {
@@ -7087,19 +7087,24 @@ async function regenererToken() {
   const id = document.getElementById('edit-membre-id').value;
   const m  = APP.membres.find(x => x.id === id);
   if (!m) return;
-  if (!confirm(`Régénérer le token de ${m.pseudo} ?\nL'ancien lien ne fonctionnera plus.`)) return;
+  if (!confirm('Régénérer le token de ' + m.pseudo + ' ?\nL\'ancien lien ne fonctionnera plus.')) return;
 
-  const token = crypto.randomUUID ? crypto.randomUUID() : (Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2));
+  const token = crypto.randomUUID ? crypto.randomUUID() : (Math.random().toString(36).slice(2) + Date.now().toString(36));
   try {
-    await supa.from('membres').update({ token }).eq('id', id);
+    const { error } = await supa.from('membres').update({ token: token }).eq('id', id);
+    if (error) {
+      console.error('[regenererToken]', error);
+      toast('Erreur Supabase : ' + (error.message || error.code || 'inconnue'), 'error');
+      return;
+    }
     m.token = token;
-    // Mettre à jour l'affichage
-    const lien = location.origin + '/membre.html?t=' + token;
+    const lien = location.origin + '/Membre/membre.html?t=' + token;
     const tokenDisplay = document.getElementById('edit-membre-token-display');
     if (tokenDisplay) { tokenDisplay.textContent = lien; tokenDisplay.title = lien; }
-    toast('Nouveau token généré ✅', 'success');
-    journalLog(`Token membre régénéré : ${m.pseudo}`, 'info');
+    toast('Nouveau token généré', 'success');
+    journalLog('Token membre régénéré : ' + m.pseudo, 'info');
   } catch(e) {
+    console.error('[regenererToken]', e);
     toast('Erreur : ' + e.message, 'error');
   }
 }
