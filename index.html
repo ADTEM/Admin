@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.64</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.65</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -5354,9 +5354,14 @@ async function genererDevisLocation() {
   const totalPlaces = v.reduce((s, x) => s + parseInt(x['Places'] || 0), 0);
   const energies    = [...new Set(v.map(x => x['Energie']))].join(', ');
   const types       = [...new Set(v.map(x => x['Type']))].join(', ');
+  const typesPluriels = [...new Set(v.map(x => x['Type']))].map(t => t + '(s)').join(', ');
   const marques     = [...new Set(v.map(x => x['Marque']))].join(', ');
   const modeles     = [...new Set(v.map(x => x['Modèle']))].join(', ');
   const numParcs    = v.map(x => x['Numéro Parc']).join(', ');
+  const numParcsIcons = v.map(x => {
+    const icon = getEnergieIconImg(x['Energie'] || '', 15);
+    return `<span style="display:inline-flex;align-items:center;gap:3px;">${x['Numéro Parc'] || '—'} ${icon}</span>`;
+  }).join('');
 
   // Calcul avec moteur de règles
   const { total: totalBrut, detail, economie } = calculerPrixAvecOptions(nbBus, duree, optionNom, prixStd, APP._promoActive);
@@ -5389,7 +5394,7 @@ async function genererDevisLocation() {
   const html = buildDevisLocationHTML({
     pseudo, pseudoForum, niveau, option: optionLabel, dateDemande, dateCreation,
     debut, fin: finDate, busRemplaces,
-    nbBus, totalPlaces, energies, types, marques, modeles, numParcs,
+    nbBus, totalPlaces, energies, types, typesPluriels, marques, modeles, numParcs, numParcsIcons,
     duree, detail, total, economie, prixSansOption, prixStd, numero,
     ajustLabel, ajustDiff
   });
@@ -5441,13 +5446,13 @@ function buildDevisLocationHTML(d) {
 
   return `<div id="devis-loc-content" style="background:white;color:#1a1a1a;font-family:'Exo 2',sans-serif;width:794px;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:16px 24px 14px;border-bottom:3px solid #2e7d32;background:#f9fafb;">
-    <div style="display:flex;align-items:center;gap:12px;">
+    <div style="display:flex;flex-direction:column;gap:6px;">
       <img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/Logo%20Alliance.png"
         style="height:60px;width:auto;object-fit:contain;" crossorigin="anonymous"
         onerror="this.style.display='none'">
+      <span style="font-style:italic;font-size:10px;color:#555;white-space:nowrap;">Aiguisons les limites et développons la mobilité de demain</span>
     </div>
     <div style="text-align:right;">
-      <div style="font-style:italic;font-size:10px;color:#444;max-width:200px;text-align:right;margin-bottom:8px;">Aiguisons les limites et développons la mobilité de demain</div>
       <div style="font-size:10px;color:#333;">
         <div>Date de demande : <b>${d.dateDemande}</b></div>
         <div>Date de création : <b>${d.dateCreation}</b></div>
@@ -5466,7 +5471,7 @@ function buildDevisLocationHTML(d) {
   <div style="background:#2e7d32;color:white;padding:8px 24px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">L'ADTEM vous propose :</div>
 
   <div style="padding:10px 24px;font-size:13px;font-weight:700;color:#1a1a1a;background:#e8f5e9;">
-    ${d.nbBus} ${d.types} ${d.energies} pour un total de ${d.totalPlaces} places
+    ${d.nbBus} ${d.typesPluriels} pour un total de ${d.totalPlaces} places
   </div>
 
   <div style="display:grid;grid-template-columns:180px 1fr;padding:0 24px;">
@@ -5474,7 +5479,7 @@ function buildDevisLocationHTML(d) {
     ${devisRow('Motorisation :', d.energies)}
     ${devisRow('Marque(s) :', d.marques)}
     ${devisRow('Modèle(s) :', d.modeles)}
-    ${devisRow('Numéro(s) de parc :', d.numParcs)}
+    ${devisRowRaw('Numéro(s) de parc :', d.numParcsIcons)}
     ${devisRow('Début de location :', d.debut)}
     ${devisRow('Fin de location :', d.fin)}
     ${devisRow('Bus remplacé(s) :', d.busRemplaces || '—')}
@@ -5523,6 +5528,11 @@ function devisRow(label, value) {
   return `
     <div style="font-size:10.5px;font-weight:700;color:#2e7d32;padding:5px 0;border-bottom:1px solid #f0f0f0;">${label}</div>
     <div style="font-size:10.5px;color:#1a1a1a;padding:5px 0;border-bottom:1px solid #f0f0f0;">${value || '—'}</div>`;
+}
+function devisRowRaw(label, htmlValue) {
+  return `
+    <div style="font-size:10.5px;font-weight:700;color:#2e7d32;padding:5px 0;border-bottom:1px solid #f0f0f0;">${label}</div>
+    <div style="font-size:10.5px;color:#1a1a1a;padding:5px 0;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${htmlValue || '—'}</div>`;
 }
 
 // ================================================================
@@ -11112,13 +11122,13 @@ function buildDevisAEHTML(d) {
 
   return `<div style="background:white;color:#1a1a1a;font-family:'Exo 2',sans-serif;width:794px;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:16px 24px 14px;border-bottom:3px solid #2e7d32;background:#f9fafb;">
-    <div style="display:flex;align-items:center;gap:12px;">
+    <div style="display:flex;flex-direction:column;gap:6px;">
       <img src="https://raw.githubusercontent.com/ADTEM/Admin/main/assets/img/Logo%20Alliance.png"
         style="height:60px;width:auto;object-fit:contain;" crossorigin="anonymous"
         onerror="this.style.display='none'">
+      <span style="font-style:italic;font-size:10px;color:#555;white-space:nowrap;">Aiguisons les limites et développons la mobilité de demain</span>
     </div>
     <div style="text-align:right;">
-      <div style="font-style:italic;font-size:10px;color:#444;max-width:200px;text-align:right;margin-bottom:8px;">Aiguisons les limites et développons la mobilité de demain</div>
       <div style="font-size:10px;color:#333;">
         <div>Date de demande : <b>${d.dateDemande}</b></div>
         <div>Date de création : <b>${d.dateCreation}</b></div>
