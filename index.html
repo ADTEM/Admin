@@ -10784,10 +10784,9 @@ function aeGetFreqPointe(numLigne, niveauStr) {
     if (r.niveau !== undefined && r.niveau !== null && r.niveau !== '') return parseInt(r.niveau) === niv;
     return niv === 1;
   });
-  // Normalise : retire espaces, met en minuscule, pour comparer "2 BHNS" == "2 bhns" etc.
-  const norm = s => String(s).trim().toLowerCase();
-  const row = data.find(r => norm(r.ligne) === norm(numLigne));
-  console.log(`[FREQ] niv=${niv} numLigne="${numLigne}" data.length=${data.length} row=`, row || 'NOT FOUND', 'lignes dispo:', data.map(r=>r.ligne));
+  // Normalise : on compare le préfixe numérique ("2 BHNS" → "2", "2" → "2")
+  const normLigne = s => String(s).trim().split(/\s+/)[0].toLowerCase();
+  const row = data.find(r => normLigne(r.ligne) === normLigne(numLigne));
   if (!row) return 0;
   return Math.max(
     row.luveCreuses||0, row.luvePointes||0, row.luveSoir||0,
