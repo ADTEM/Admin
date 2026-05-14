@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.68</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.68-1</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -3781,7 +3781,7 @@ async function loadAllData() {
 
     // Membres
     const membresRows = await sbGet('membres');
-    APP.membres = (membresRows || []).map(r => ({ id: r.id, ...(r.data || r) }));
+    APP.membres = (membresRows || []).map(r => ({ id: r.id, token: r.token, ...(r.data || r) }));
     renderMembres();
     const bm = document.getElementById('badge-membres');
     const km = document.getElementById('kpi-membres');
@@ -3869,7 +3869,7 @@ function setupRealtimeListeners() {
   supa.channel('realtime-adtem')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'membres' }, async () => {
       const rows = await sbGet('membres');
-      APP.membres = (rows || []).map(r => ({ id: r.id, ...(r.data || r) }));
+      APP.membres = (rows || []).map(r => ({ id: r.id, token: r.token, ...(r.data || r) }));
       renderMembres();
       const bm = document.getElementById('badge-membres');
       const km = document.getElementById('kpi-membres');
