@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.69</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.70</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -1008,6 +1008,9 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <span class="nav-badge" id="badge-membres">0</span>
       </div>
       <div class="nav-item" data-page="aides">
+        <span class="nav-icon">💰</span> Suivi options payantes
+      </div>
+      <div class="nav-item" data-page="aides-versees">
         <span class="nav-icon">🤝</span> Suivi des aides
       </div>
       <div class="nav-item" data-page="rentabilite">
@@ -1905,19 +1908,28 @@ body.mode-config #page-title { color: var(--cfg-green); }
       </div>
     </div>
 
-    <!-- ===== AIDES COMPTA (par thème/catégorie) ===== -->
-    <div class="card mt-16" style="padding:0;" id="aides-compta-card">
-      <div style="padding:12px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green2);">📊 Aides versées (compta)</span>
-        <span style="font-size:10px;color:var(--text3);margin-left:4px;">— détectées automatiquement depuis la comptabilité</span>
-        <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
-          <select class="form-select" id="aides-compta-mois-filter" style="width:140px;font-size:11px;" onchange="renderAidesCompta()">
-            <option value="">Tous les mois</option>
-          </select>
-          <select class="form-select" id="aides-compta-cat-filter" style="width:160px;font-size:11px;" onchange="renderAidesCompta()">
-            <option value="">Toutes catégories</option>
-          </select>
-        </div>
+
+  </div>
+
+  <!-- ====== SUIVI DES AIDES (CT, révisions…) ====== -->
+  <div class="page" id="page-aides-versees">
+
+    <div class="flex-between mb-16" style="flex-wrap:wrap;gap:8px;">
+      <div></div>
+      <div class="flex gap-8" style="align-items:center;">
+        <select class="form-select" id="aides-compta-mois-filter" style="width:150px;font-size:11px;" onchange="renderAidesCompta()">
+          <option value="">Tous les mois</option>
+        </select>
+        <select class="form-select" id="aides-compta-cat-filter" style="width:170px;font-size:11px;" onchange="renderAidesCompta()">
+          <option value="">Toutes catégories</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;" id="aides-compta-card">
+      <div style="padding:12px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green2);">🤝 Aides versées par membre</span>
+        <span style="font-size:10px;color:var(--text3);margin-left:4px;">détectées automatiquement · CT, Révisions, Rénov…</span>
       </div>
       <div id="aides-compta-body" style="padding:12px 16px;">
         <div style="text-align:center;padding:24px;color:var(--text3);font-size:12px;">Chargement…</div>
@@ -4092,6 +4104,7 @@ function showPage(pageId) {
   if (pageId === 'cfg-categories') renderCategories();
   if (pageId === 'devis-sauvegardes') renderDevisSauvegardes();
   if (pageId === 'aides') aidesInit();
+  if (pageId === 'aides-versees') { aidesVerseesInit(); }
 
   // 3. Afficher la page
   const page = document.getElementById('page-' + pageId);
@@ -4116,7 +4129,8 @@ function showPage(pageId) {
     'devis-ae': ['Devis — Aide à l\'Exploitation', 'Créer un devis AE'],
     'devis-sauvegardes': ['Devis sauvegardés', 'Historique des devis générés'],
     membres: ['Membres', 'Gestion des joueurs de l\'alliance'],
-    aides: ['Suivi des aides', 'Historique des devis et aides'],
+    aides: ['Suivi options payantes', 'Quotas et historique des options'],
+    'aides-versees': ['Suivi des aides', 'CT, Révisions, Rénovations…'],
     comptes: ['Comptes utilisateurs', 'Gestion des accès au site'],
     rentabilite: ['Rentabilité membres', 'Analyse financière par membre'],
     sauvegarde: ['Sauvegarde', 'Export, import et gestion des données Supabase'],
@@ -11525,7 +11539,7 @@ function aidesInit() {
       sorted.map(m => `<option value="${m}" ${m === moisActuel ? 'selected' : ''}>${aidesMoisLabel(m)}</option>`).join('');
   }
   renderAides();
-  renderAidesCompta();
+  // renderAidesCompta → appelé depuis onglet dédié (aidesVerseesInit)
 }
 
 // ── Render principal ──────────────────────────────────────────
@@ -11620,6 +11634,15 @@ function aidesComptaGetMois(op) {
   return d.substring(5,7) + '/' + d.substring(0,4);
 }
 
+function aidesVerseesInit() {
+  // Reset filters so they repopulate
+  const moisSel = document.getElementById('aides-compta-mois-filter');
+  const catSel  = document.getElementById('aides-compta-cat-filter');
+  if (moisSel) moisSel.innerHTML = '<option value="">Tous les mois</option>';
+  if (catSel)  catSel.innerHTML  = '<option value="">Toutes catégories</option>';
+  renderAidesCompta();
+}
+
 function renderAidesCompta() {
   const body       = document.getElementById('aides-compta-body');
   const moisSel    = document.getElementById('aides-compta-mois-filter');
@@ -11627,7 +11650,12 @@ function renderAidesCompta() {
   if (!body) return;
 
   const themes   = APP.themes || [];
-  const allCats  = themes.flatMap(th => (th.categories||[]).map(c => ({ ...c, theme: th.nom, couleur: th.couleur || c.couleur })));
+  // Noms des options payantes (bourse / gratuit_quota) → à exclure
+  const optionsPayantesNoms = new Set(
+    (APP.config?.regles || getRegles()).filter(r => r.type === 'bourse' || r.type === 'gratuit_quota').map(r => (r.option||'').toLowerCase())
+  );
+  const allCats  = themes.flatMap(th => (th.categories||[]).map(c => ({ ...c, theme: th.nom, couleur: th.couleur || c.couleur })))
+    .filter(c => !optionsPayantesNoms.has((c.nom||'').toLowerCase()));
 
   if (!allCats.length) {
     body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3);font-size:12px;">Aucune catégorie configurée dans le tableau financier.</div>';
