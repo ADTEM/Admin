@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.68-1</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.683</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -6753,6 +6753,7 @@ function renderMembres() {
           <button class="btn btn-secondary btn-icon btn-sm" onclick="openEditMembre('${m.id}')" title="Modifier">✏️</button>
           <button class="btn btn-secondary btn-icon btn-sm" onclick="createDevisForMembre('${m.id}')" title="Créer un devis location">📄</button>
           <button class="btn btn-secondary btn-icon btn-sm" onclick="createDevisAEForMembre('${m.id}')" title="Créer un devis AE">🚦</button>
+          <button class="btn btn-secondary btn-icon btn-sm" onclick="copyMembreLinkById('${m.id}')" title="${m.token ? 'Copier le lien membre' : 'Pas de token — ouvrir la fiche pour en générer un'}" style="${m.token ? '' : 'opacity:0.4;'}">🔗</button>
           <button class="btn btn-danger btn-icon btn-sm" onclick="deleteMembre('${m.id}')" title="Supprimer">🗑️</button>
         </div>
       </td>
@@ -7078,6 +7079,17 @@ function copyMembreLink() {
   const lien = location.origin + '/Membre/membre.html?t=' + m.token;
   navigator.clipboard.writeText(lien).then(() => {
     toast('Lien copié dans le presse-papiers 📋', 'success');
+  }).catch(() => {
+    prompt('Copiez ce lien :', lien);
+  });
+}
+
+function copyMembreLinkById(id) {
+  const m = APP.membres.find(x => x.id === id);
+  if (!m || !m.token) { toast('Pas de token — ouvrez la fiche ✏️ pour en générer un', 'error'); return; }
+  const lien = location.origin + '/Membre/membre.html?t=' + m.token;
+  navigator.clipboard.writeText(lien).then(() => {
+    toast('Lien de ' + (m.pseudo || 'membre') + ' copié 📋', 'success');
   }).catch(() => {
     prompt('Copiez ce lien :', lien);
   });
