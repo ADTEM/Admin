@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.70</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.701</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -3152,6 +3152,13 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
           <label class="form-label">Couleur</label>
           <input type="color" class="form-input" id="cat-couleur" value="#00d4ff" style="height:40px;padding:4px;">
         </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);">
+          <input type="checkbox" id="cat-est-option-payante" style="width:15px;height:15px;accent-color:var(--green2);">
+          💰 Option payante (bourse/quota) — exclure du tableau "Suivi des aides"
+        </label>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px;padding-left:23px;">Cocher si cette catégorie correspond à une aide mensuelle (Rénovations, Prime GNV…)</div>
       </div>
       <div class="form-group">
         <div class="flex-between" style="margin-bottom:6px;">
@@ -9446,6 +9453,7 @@ function ouvrirModalNouvelleCategorie(themeId) {
   document.getElementById('cat-theme-id').value = themeId;
   document.getElementById('cat-edit-id').value = '';
   document.getElementById('cat-nom').value = '';
+  document.getElementById('cat-est-option-payante').checked = false;
   document.getElementById('cat-couleur').value = '#00d4ff';
   document.getElementById('cat-regles-list').innerHTML = '';
   document.getElementById('cat-exclusions-list').innerHTML = '';
@@ -9461,6 +9469,7 @@ function editerCategorie(themeId, catId) {
   document.getElementById('cat-theme-id').value = themeId;
   document.getElementById('cat-edit-id').value  = catId;
   document.getElementById('cat-nom').value    = cat.nom;
+  document.getElementById('cat-est-option-payante').checked = !!cat.estOptionPayante;
   document.getElementById('cat-couleur').value = cat.couleur || '#00d4ff';
   const list = document.getElementById('cat-regles-list');
   list.innerHTML = '';
@@ -9507,10 +9516,12 @@ async function sauvegarderCategorie() {
 
   if (editId) {
     const cat = (theme.categories||[]).find(c => c.id === editId);
-    if (cat) { cat.nom = nom; cat.couleur = couleur; cat.regles = regles; cat.exclusions = exclusions; }
+    const estOptionPayante = document.getElementById('cat-est-option-payante').checked;
+    if (cat) { cat.nom = nom; cat.couleur = couleur; cat.regles = regles; cat.exclusions = exclusions; cat.estOptionPayante = estOptionPayante; }
   } else {
     if (!theme.categories) theme.categories = [];
-    theme.categories.push({ id: genId(), nom, couleur, regles, exclusions });
+    const estOptionPayante2 = document.getElementById('cat-est-option-payante').checked;
+    theme.categories.push({ id: genId(), nom, couleur, regles, exclusions, estOptionPayante: estOptionPayante2 });
   }
 
   saveThemes().then(() => {
@@ -11650,12 +11661,8 @@ function renderAidesCompta() {
   if (!body) return;
 
   const themes   = APP.themes || [];
-  // Noms des options payantes (bourse / gratuit_quota) → à exclure
-  const optionsPayantesNoms = new Set(
-    (APP.config?.regles || getRegles()).filter(r => r.type === 'bourse' || r.type === 'gratuit_quota').map(r => (r.option||'').toLowerCase())
-  );
   const allCats  = themes.flatMap(th => (th.categories||[]).map(c => ({ ...c, theme: th.nom, couleur: th.couleur || c.couleur })))
-    .filter(c => !optionsPayantesNoms.has((c.nom||'').toLowerCase()));
+    .filter(c => !c.estOptionPayante);
 
   if (!allCats.length) {
     body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3);font-size:12px;">Aucune catégorie configurée dans le tableau financier.</div>';
