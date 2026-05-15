@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.683</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.69</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -1853,7 +1853,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
 
         <div class="card mb-16" style="padding:0;">
           <div style="padding:12px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
-            <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green2);">🧑‍💼 Quotas membres ce mois</span>
+            <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green2);">🧑‍💼 Quotas options payantes</span>
             <span style="font-size:9px;color:var(--text3);background:var(--redbg);color:var(--red);border:1px solid rgba(192,57,43,0.2);border-radius:10px;padding:1px 7px;margin-left:auto;" id="aides-badge-depassements" style="display:none;">0 dépassement(s)</span>
           </div>
           <div id="aides-quotas-membres" style="padding:4px 0;">
@@ -1904,6 +1904,26 @@ body.mode-config #page-title { color: var(--cfg-green); }
 
       </div>
     </div>
+
+    <!-- ===== AIDES COMPTA (par thème/catégorie) ===== -->
+    <div class="card mt-16" style="padding:0;" id="aides-compta-card">
+      <div style="padding:12px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green2);">📊 Aides versées (compta)</span>
+        <span style="font-size:10px;color:var(--text3);margin-left:4px;">— détectées automatiquement depuis la comptabilité</span>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+          <select class="form-select" id="aides-compta-mois-filter" style="width:140px;font-size:11px;" onchange="renderAidesCompta()">
+            <option value="">Tous les mois</option>
+          </select>
+          <select class="form-select" id="aides-compta-cat-filter" style="width:160px;font-size:11px;" onchange="renderAidesCompta()">
+            <option value="">Toutes catégories</option>
+          </select>
+        </div>
+      </div>
+      <div id="aides-compta-body" style="padding:12px 16px;">
+        <div style="text-align:center;padding:24px;color:var(--text3);font-size:12px;">Chargement…</div>
+      </div>
+    </div>
+
   </div>
 
   <!-- ====== DEVIS SAUVEGARDÉS ====== -->
@@ -11505,6 +11525,7 @@ function aidesInit() {
       sorted.map(m => `<option value="${m}" ${m === moisActuel ? 'selected' : ''}>${aidesMoisLabel(m)}</option>`).join('');
   }
   renderAides();
+  renderAidesCompta();
 }
 
 // ── Render principal ──────────────────────────────────────────
@@ -11573,6 +11594,173 @@ function renderAides() {
       </td>
     </tr>`;
   }).join('');
+}
+
+
+// ══════════════════════════════════════════════════════════════
+//  AIDES COMPTA — tableau automatique depuis comptabilité
+// ══════════════════════════════════════════════════════════════
+
+function aidesComptaGetAllOps() {
+  // Combine toutes périodes compta dispo
+  const all = [...(APP.compta || []), ...(APP.comptaLast || [])];
+  const seen = new Set();
+  return all.filter(op => {
+    const key = (op["Date de l'opération"]||'') + (op["Libellé de l'opération"]||'') + (op["Dépenses"]||'');
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+}
+
+function aidesComptaGetMois(op) {
+  const d = op["Date de l'opération"] || '';
+  if (!d) return '';
+  // Format "DD/MM/YYYY HH:MM" or "YYYY-MM-DD"
+  if (d.includes('/')) { const p = d.split(' ')[0].split('/'); return p[1] + '/' + p[2]; }
+  return d.substring(5,7) + '/' + d.substring(0,4);
+}
+
+function renderAidesCompta() {
+  const body       = document.getElementById('aides-compta-body');
+  const moisSel    = document.getElementById('aides-compta-mois-filter');
+  const catSel     = document.getElementById('aides-compta-cat-filter');
+  if (!body) return;
+
+  const themes   = APP.themes || [];
+  const allCats  = themes.flatMap(th => (th.categories||[]).map(c => ({ ...c, theme: th.nom, couleur: th.couleur || c.couleur })));
+
+  if (!allCats.length) {
+    body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3);font-size:12px;">Aucune catégorie configurée dans le tableau financier.</div>';
+    return;
+  }
+
+  const ops     = aidesComptaGetAllOps();
+  const moisFilt = moisSel ? moisSel.value : '';
+  const catFilt  = catSel  ? catSel.value  : '';
+
+  // Populate mois filter
+  if (moisSel && moisSel.options.length <= 1) {
+    const moisSet = new Set(ops.map(aidesComptaGetMois).filter(Boolean));
+    const sorted  = [...moisSet].sort().reverse();
+    moisSel.innerHTML = '<option value="">Tous les mois</option>' +
+      sorted.map(m => { const [mm,yy] = m.split('/'); const label = new Date(+yy,+mm-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'}); return `<option value="${m}">${label}</option>`; }).join('');
+  }
+
+  // Populate cat filter
+  if (catSel && catSel.options.length <= 1) {
+    catSel.innerHTML = '<option value="">Toutes catégories</option>' +
+      allCats.map(c => `<option value="${c.nom}">${c.nom}</option>`).join('');
+  }
+
+  // Filter ops: only Dépenses (virements vers membres), match against categories
+  const depenses = ops.filter(op => {
+    const dep = parseFloat(op['Dépenses']) || 0;
+    if (!dep) return false;
+    const libelle = op["Libellé de l'opération"] || '';
+    if (!extractPseudo(libelle)) return false;
+    if (moisFilt && aidesComptaGetMois(op) !== moisFilt) return false;
+    return true;
+  });
+
+  // Build map: { pseudo → { catNom → { nb, montant, ops[] } } }
+  const map = {}; // pseudo → catNom → {nb, montant}
+  const pseudoTotals = {}; // pseudo → montant total
+
+  depenses.forEach(op => {
+    const libelle = op["Libellé de l'opération"] || '';
+    const pseudo  = extractPseudo(libelle);
+    if (!pseudo) return;
+    const dep     = parseFloat(op['Dépenses']) || 0;
+
+    // Find matching category
+    let catMatch = null;
+    for (const c of allCats) {
+      if (catFilt && c.nom !== catFilt) continue;
+      if (matchLibelle(libelle, c.regles, c.exclusions)) { catMatch = c; break; }
+    }
+    if (!catMatch) return; // skip ops that don't match any category
+
+    if (!map[pseudo]) map[pseudo] = {};
+    if (!map[pseudo][catMatch.nom]) map[pseudo][catMatch.nom] = { nb: 0, montant: 0, couleur: catMatch.couleur };
+    map[pseudo][catMatch.nom].nb      += 1;
+    map[pseudo][catMatch.nom].montant += dep;
+
+    if (!pseudoTotals[pseudo]) pseudoTotals[pseudo] = 0;
+    pseudoTotals[pseudo] += dep;
+  });
+
+  const pseudos = Object.keys(map).sort((a,b) => (pseudoTotals[b]||0) - (pseudoTotals[a]||0));
+
+  if (!pseudos.length) {
+    body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3);font-size:12px;font-style:italic;">Aucune aide détectée dans la compta pour les catégories configurées.</div>';
+    return;
+  }
+
+  // Collect all cat names present
+  const catsPresentes = [];
+  const catsSeen = new Set();
+  pseudos.forEach(p => Object.keys(map[p]).forEach(c => { if (!catsSeen.has(c)) { catsSeen.add(c); catsPresentes.push(c); } }));
+
+  // Render table
+  const thCats = catsPresentes.map(c => {
+    const cat = allCats.find(x => x.nom === c);
+    const col = cat?.couleur || '#4a8c52';
+    return `<th style="padding:8px 14px;text-align:right;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);white-space:nowrap;">
+      <span style="display:inline-flex;align-items:center;gap:4px;">
+        <span style="width:7px;height:7px;border-radius:50%;background:${col};display:inline-block;"></span>${c}
+      </span>
+    </th>`;
+  }).join('');
+
+  const rows = pseudos.map(pseudo => {
+    const m = APP.membres ? APP.membres.find(x => (x.pseudo||'').toLowerCase() === pseudo.toLowerCase()) : null;
+    const cells = catsPresentes.map(c => {
+      const d = map[pseudo][c];
+      if (!d) return `<td style="padding:7px 14px;text-align:right;color:var(--text4);font-size:11px;">—</td>`;
+      return `<td style="padding:7px 14px;text-align:right;">
+        <div style="font-weight:700;font-size:12px;color:var(--red);">-${d.montant.toLocaleString('fr')} €</div>
+        <div style="font-size:9px;color:var(--text3);">${d.nb} op.</div>
+      </td>`;
+    }).join('');
+    const total = pseudoTotals[pseudo] || 0;
+    return `<tr style="border-top:1px solid var(--border);">
+      <td style="padding:7px 14px;font-weight:700;white-space:nowrap;">
+        ${pseudo}${m ? `<div style="font-size:10px;color:var(--text3);font-weight:400;">${m.entreprise||''}</div>` : ''}
+      </td>
+      ${cells}
+      <td style="padding:7px 14px;text-align:right;font-weight:800;color:var(--red);border-left:1px solid var(--border);">
+        -${total.toLocaleString('fr')} €
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Totals row
+  const totalsRow = `<tr style="border-top:2px solid var(--border2);background:var(--surface2);">
+    <td style="padding:7px 14px;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">TOTAL</td>
+    ${catsPresentes.map(c => {
+      const tot = pseudos.reduce((s,p) => s + (map[p][c]?.montant||0), 0);
+      const nb  = pseudos.reduce((s,p) => s + (map[p][c]?.nb||0), 0);
+      return tot ? `<td style="padding:7px 14px;text-align:right;font-weight:800;color:var(--red);">-${tot.toLocaleString('fr')} €<div style="font-size:9px;color:var(--text3);">${nb} op.</div></td>`
+                 : `<td style="padding:7px 14px;text-align:right;color:var(--text4);">—</td>`;
+    }).join('')}
+    <td style="padding:7px 14px;text-align:right;font-weight:800;color:var(--red);border-left:1px solid var(--border2);">
+      -${pseudos.reduce((s,p) => s+(pseudoTotals[p]||0), 0).toLocaleString('fr')} €
+    </td>
+  </tr>`;
+
+  body.innerHTML = `
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="background:var(--surface2);">
+            <th style="padding:8px 14px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Membre</th>
+            ${thCats}
+            <th style="padding:8px 14px;text-align:right;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);border-left:1px solid var(--border);">Total</th>
+          </tr>
+        </thead>
+        <tbody>${rows}${totalsRow}</tbody>
+      </table>
+    </div>`;
 }
 
 // ── Recap tableau mensuel par option ─────────────────────────
