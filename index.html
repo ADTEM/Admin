@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.66</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.702</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -1008,6 +1008,9 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <span class="nav-badge" id="badge-membres">0</span>
       </div>
       <div class="nav-item" data-page="aides">
+        <span class="nav-icon">💰</span> Suivi options payantes
+      </div>
+      <div class="nav-item" data-page="aides-versees">
         <span class="nav-icon">🤝</span> Suivi des aides
       </div>
       <div class="nav-item" data-page="rentabilite">
@@ -1430,6 +1433,10 @@ body.mode-config #page-title { color: var(--cfg-green); }
             <label class="form-label">Bus remplacé(s)</label>
             <input type="text" class="form-input" id="dl-bus-remplaces" placeholder="Ex: TM-01234, TM-56789">
           </div>
+          <div class="form-group">
+            <label class="form-label">Commentaire <span style="font-weight:400;color:var(--text3);">(optionnel — apparaît sur le devis)</span></label>
+            <textarea class="form-input" id="dl-commentaire" placeholder="Commentaire libre..." rows="2" style="resize:vertical;min-height:52px;"></textarea>
+          </div>
         </div>
 
         <div class="card mb-16">
@@ -1681,6 +1688,10 @@ body.mode-config #page-title { color: var(--cfg-green); }
             <label class="form-label">Nb. conducteurs</label>
             <input type="number" class="form-input" id="ae-conducteurs" min="1" value="1">
           </div>
+          <div class="form-group">
+            <label class="form-label">Commentaire <span style="font-weight:400;color:var(--text3);">(optionnel — apparaît sur le devis)</span></label>
+            <textarea class="form-input" id="ae-commentaire" placeholder="Commentaire libre..." rows="2" style="resize:vertical;min-height:52px;"></textarea>
+          </div>
         </div>
 
         <button class="btn btn-primary" style="width:100%;" onclick="genererDevisAE()">
@@ -1853,7 +1864,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
 
         <div class="card mb-16" style="padding:0;">
           <div style="padding:12px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
-            <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green2);">🧑‍💼 Quotas membres ce mois</span>
+            <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green2);">🧑‍💼 Quotas options payantes</span>
             <span style="font-size:9px;color:var(--text3);background:var(--redbg);color:var(--red);border:1px solid rgba(192,57,43,0.2);border-radius:10px;padding:1px 7px;margin-left:auto;" id="aides-badge-depassements" style="display:none;">0 dépassement(s)</span>
           </div>
           <div id="aides-quotas-membres" style="padding:4px 0;">
@@ -1904,6 +1915,35 @@ body.mode-config #page-title { color: var(--cfg-green); }
 
       </div>
     </div>
+
+
+  </div>
+
+  <!-- ====== SUIVI DES AIDES (CT, révisions…) ====== -->
+  <div class="page" id="page-aides-versees">
+
+    <div class="flex-between mb-16" style="flex-wrap:wrap;gap:8px;">
+      <div></div>
+      <div class="flex gap-8" style="align-items:center;">
+        <select class="form-select" id="aides-compta-mois-filter" style="width:150px;font-size:11px;" onchange="renderAidesCompta()">
+          <option value="">Tous les mois</option>
+        </select>
+        <select class="form-select" id="aides-compta-cat-filter" style="width:170px;font-size:11px;" onchange="renderAidesCompta()">
+          <option value="">Toutes catégories</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;" id="aides-compta-card">
+      <div style="padding:12px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green2);">🤝 Aides versées par membre</span>
+        <span style="font-size:10px;color:var(--text3);margin-left:4px;">détectées automatiquement · CT, Révisions, Rénov…</span>
+      </div>
+      <div id="aides-compta-body" style="padding:12px 16px;">
+        <div style="text-align:center;padding:24px;color:var(--text3);font-size:12px;">Chargement…</div>
+      </div>
+    </div>
+
   </div>
 
   <!-- ====== DEVIS SAUVEGARDÉS ====== -->
@@ -3121,6 +3161,13 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
           <input type="color" class="form-input" id="cat-couleur" value="#00d4ff" style="height:40px;padding:4px;">
         </div>
       </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);">
+          <input type="checkbox" id="cat-est-option-payante" style="width:15px;height:15px;accent-color:var(--green2);">
+          💰 Option payante (bourse/quota) — exclure du tableau "Suivi des aides"
+        </label>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px;padding-left:23px;">Cocher si cette catégorie correspond à une aide mensuelle (Rénovations, Prime GNV…)</div>
+      </div>
       <div class="form-group">
         <div class="flex-between" style="margin-bottom:6px;">
           <label class="form-label" style="margin-bottom:0;">Règles de matching</label>
@@ -3326,6 +3373,12 @@ Les numéros de parc ne doivent pas être changés. Dans le cas contraire, une a
         <label class="form-label">Notes</label>
         <textarea class="form-textarea" id="edit-notes" rows="2"></textarea>
       </div>
+    </div>
+    <div style="padding:10px 20px;background:var(--surface2);border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px;">🔗 Lien membre</span>
+      <span id="edit-membre-token-display" style="font-family:'Fira Code',monospace;font-size:10px;color:var(--text3);background:var(--surface3);border:1px solid var(--border);border-radius:4px;padding:2px 7px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
+      <button class="btn btn-secondary btn-sm" onclick="copyMembreLink()" title="Copier le lien membre">📋 Copier</button>
+      <button class="btn btn-secondary btn-sm" onclick="regenererToken()" title="Générer un nouveau token (invalide l'ancien lien)">🔄 Régénérer</button>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-edit-membre')">Annuler</button>
@@ -3775,7 +3828,7 @@ async function loadAllData() {
 
     // Membres
     const membresRows = await sbGet('membres');
-    APP.membres = (membresRows || []).map(r => ({ id: r.id, ...(r.data || r) }));
+    APP.membres = (membresRows || []).map(r => ({ id: r.id, token: r.token, ...(r.data || r) }));
     renderMembres();
     const bm = document.getElementById('badge-membres');
     const km = document.getElementById('kpi-membres');
@@ -3863,7 +3916,7 @@ function setupRealtimeListeners() {
   supa.channel('realtime-adtem')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'membres' }, async () => {
       const rows = await sbGet('membres');
-      APP.membres = (rows || []).map(r => ({ id: r.id, ...(r.data || r) }));
+      APP.membres = (rows || []).map(r => ({ id: r.id, token: r.token, ...(r.data || r) }));
       renderMembres();
       const bm = document.getElementById('badge-membres');
       const km = document.getElementById('kpi-membres');
@@ -4066,6 +4119,7 @@ function showPage(pageId) {
   if (pageId === 'cfg-categories') renderCategories();
   if (pageId === 'devis-sauvegardes') renderDevisSauvegardes();
   if (pageId === 'aides') aidesInit();
+  if (pageId === 'aides-versees') { aidesVerseesInit(); }
 
   // 3. Afficher la page
   const page = document.getElementById('page-' + pageId);
@@ -4090,7 +4144,8 @@ function showPage(pageId) {
     'devis-ae': ['Devis — Aide à l\'Exploitation', 'Créer un devis AE'],
     'devis-sauvegardes': ['Devis sauvegardés', 'Historique des devis générés'],
     membres: ['Membres', 'Gestion des joueurs de l\'alliance'],
-    aides: ['Suivi des aides', 'Historique des devis et aides'],
+    aides: ['Suivi options payantes', 'Quotas et historique des options'],
+    'aides-versees': ['Suivi des aides', 'CT, Révisions, Rénovations…'],
     comptes: ['Comptes utilisateurs', 'Gestion des accès au site'],
     rentabilite: ['Rentabilité membres', 'Analyse financière par membre'],
     sauvegarde: ['Sauvegarde', 'Export, import et gestion des données Supabase'],
@@ -5328,6 +5383,7 @@ async function genererDevisLocation() {
   const duree       = parseInt(document.getElementById('dl-duree').value) || 1;
   const finDate     = calcFinDate(document.getElementById('dl-debut').value, duree);
   const busRemplaces= document.getElementById('dl-bus-remplaces').value;
+  const commentaire = document.getElementById('dl-commentaire')?.value.trim() || '';
   const prixStd     = APP.config.prixSem || 1000;
 
   const nbBus       = v.length;
@@ -5373,7 +5429,7 @@ async function genererDevisLocation() {
 
   const html = buildDevisLocationHTML({
     pseudo, pseudoForum, niveau, option: optionLabel, dateDemande, dateCreation,
-    debut, fin: finDate, busRemplaces,
+    debut, fin: finDate, busRemplaces, commentaire,
     nbBus, totalPlaces, energies, types, typesPluriels, marques, modeles, numParcs, numParcsIcons,
     duree, detail, total, economie, prixSansOption, prixStd, numero,
     ajustLabel, ajustDiff
@@ -5465,6 +5521,11 @@ function buildDevisLocationHTML(d) {
     ${devisRow('Bus remplacé(s) :', d.busRemplaces || '—')}
     <div style="grid-column:1/-1;height:10px;"></div>
   </div>
+  ${d.commentaire ? `
+  <div style="margin:0 24px 12px;padding:8px 12px;background:#fffde7;border-left:3px solid #f9a825;border-radius:3px;font-size:11px;color:#555;line-height:1.5;">
+    <span style="font-weight:700;color:#f9a825;text-transform:uppercase;font-size:9px;letter-spacing:1px;display:block;margin-bottom:3px;">Commentaire</span>
+    ${d.commentaire.replace(/\n/g,'<br>')}
+  </div>` : ''}
 
   <div style="margin:12px 24px;border:2px solid #2e7d32;border-radius:4px;overflow:hidden;">
     <table style="width:100%;border-collapse:collapse;">
@@ -5622,6 +5683,7 @@ async function saveDevis(type) {
       debut:         document.getElementById('dl-debut')?.value || '',
       duree:         document.getElementById('dl-duree')?.value || '1',
       busRemplaces:  document.getElementById('dl-bus-remplaces')?.value || '',
+      commentaire:   document.getElementById('dl-commentaire')?.value || '',
       codePromo:     document.getElementById('dl-code-promo')?.value || '',
       ajustMode:     document.getElementById('ajust-mode')?.value || '',
       ajustValeur:   document.getElementById('ajust-valeur')?.value || '',
@@ -5640,6 +5702,7 @@ async function saveDevis(type) {
       montantSaisi:  document.getElementById('ae-montant')?.value || '',
       consoType:     document.getElementById('ae-conso-type')?.value || '',
       description:   document.getElementById('ae-description')?.value || '',
+      commentaire:   document.getElementById('ae-commentaire')?.value || '',
       lignesSelectionnees: { ...APP._aeLignesSelectionnees },
       busParLigne: Object.fromEntries(
         Object.entries(APP._aeBusParLigne).map(([k, arr]) => [k, arr.map(x => x['Numéro Parc'])])
@@ -6238,6 +6301,7 @@ async function modifierDevis(numero) {
     document.getElementById('dl-debut').value           = s.debut || '';
     document.getElementById('dl-duree').value           = s.duree || '1';
     document.getElementById('dl-bus-remplaces').value   = s.busRemplaces || '';
+    const dlComment = document.getElementById('dl-commentaire'); if (dlComment) dlComment.value = s.commentaire || '';
     document.getElementById('dl-code-promo').value      = s.codePromo || '';
 
     // Restaurer l'ajustement tarifaire
@@ -6281,6 +6345,7 @@ async function modifierDevis(numero) {
     document.getElementById('ae-montant').value         = s.montantSaisi || '';
     document.getElementById('ae-conso-type').value      = s.consoType || '';
     document.getElementById('ae-description').value     = s.description || '';
+    const aeComment = document.getElementById('ae-commentaire'); if (aeComment) aeComment.value = s.commentaire || '';
 
     // Restaurer bus par ligne (réhydrater depuis APP.vehicules)
     APP._aeBusParLigne = {};
@@ -6747,6 +6812,7 @@ function renderMembres() {
           <button class="btn btn-secondary btn-icon btn-sm" onclick="openEditMembre('${m.id}')" title="Modifier">✏️</button>
           <button class="btn btn-secondary btn-icon btn-sm" onclick="createDevisForMembre('${m.id}')" title="Créer un devis location">📄</button>
           <button class="btn btn-secondary btn-icon btn-sm" onclick="createDevisAEForMembre('${m.id}')" title="Créer un devis AE">🚦</button>
+          <button class="btn btn-secondary btn-icon btn-sm" onclick="copyMembreLinkById('${m.id}')" title="${m.token ? 'Copier le lien membre' : 'Pas de token — ouvrir la fiche pour en générer un'}" style="${m.token ? '' : 'opacity:0.4;'}">🔗</button>
           <button class="btn btn-danger btn-icon btn-sm" onclick="deleteMembre('${m.id}')" title="Supprimer">🗑️</button>
         </div>
       </td>
@@ -6961,8 +7027,9 @@ async function saveMembre() {
     notes:        document.getElementById('add-notes').value
   };
   const newId = genId();
+  const token = crypto.randomUUID ? crypto.randomUUID() : (Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2));
   try {
-    await sbInsert('membres', { id: newId, pseudo: membre.pseudo || '', data: membre });
+    await sbInsert('membres', { id: newId, pseudo: membre.pseudo || '', token, data: membre });
     toast('Membre ajouté', 'success');
     closeModal('modal-add-membre');
     journalLog(`Membre ajouté manuellement : ${pseudo}`, 'ok');
@@ -6985,6 +7052,17 @@ function openEditMembre(id) {
   document.getElementById('edit-entreprise').value   = m.entreprise || '';
   document.getElementById('edit-niveau').value       = String(m.niveau || '1');
   document.getElementById('edit-notes').value        = m.notes || '';
+
+  // Afficher le token / lien membre
+  const tokenDisplay = document.getElementById('edit-membre-token-display');
+  if (m.token) {
+    const lien = location.origin + '/Membre/membre.html?t=' + m.token;
+    tokenDisplay.textContent = lien;
+    tokenDisplay.title = lien;
+  } else {
+    tokenDisplay.textContent = 'Aucun token — cliquez sur 🔄 Régénérer';
+    tokenDisplay.title = '';
+  }
 
   // Checkboxes options
   const opts    = getOptions();
@@ -7031,6 +7109,10 @@ async function saveEditMembre() {
     updatedAt:    new Date().toISOString()
   };
 
+  // Conserver le token existant dans data si présent
+  const membreActuel = APP.membres.find(m => m.id === id);
+  if (membreActuel && membreActuel.token) data._token_ref = membreActuel.token;
+
   try {
     await sbUpdate('membres', { data }, { id });
     // Mise à jour locale immédiate (sans attendre le realtime)
@@ -7043,6 +7125,58 @@ async function saveEditMembre() {
   } catch(e) {
     console.error('[saveEditMembre]', e);
     toast('Erreur lors de la modification : ' + e.message, 'error');
+  }
+}
+
+// ================================================================
+//  MEMBRES — LIEN MEMBRE (TOKEN)
+// ================================================================
+function copyMembreLink() {
+  const id = document.getElementById('edit-membre-id').value;
+  const m  = APP.membres.find(x => x.id === id);
+  if (!m || !m.token) { toast('Aucun token — cliquez sur 🔄 Régénérer d\'abord', 'error'); return; }
+  const lien = location.origin + '/Membre/membre.html?t=' + m.token;
+  navigator.clipboard.writeText(lien).then(() => {
+    toast('Lien copié dans le presse-papiers 📋', 'success');
+  }).catch(() => {
+    prompt('Copiez ce lien :', lien);
+  });
+}
+
+function copyMembreLinkById(id) {
+  const m = APP.membres.find(x => x.id === id);
+  if (!m || !m.token) { toast('Pas de token — ouvrez la fiche ✏️ pour en générer un', 'error'); return; }
+  const lien = location.origin + '/Membre/membre.html?t=' + m.token;
+  navigator.clipboard.writeText(lien).then(() => {
+    toast('Lien de ' + (m.pseudo || 'membre') + ' copié 📋', 'success');
+  }).catch(() => {
+    prompt('Copiez ce lien :', lien);
+  });
+}
+
+async function regenererToken() {
+  const id = document.getElementById('edit-membre-id').value;
+  const m  = APP.membres.find(x => x.id === id);
+  if (!m) return;
+  if (!confirm('Régénérer le token de ' + m.pseudo + ' ?\nL\'ancien lien ne fonctionnera plus.')) return;
+
+  const token = crypto.randomUUID ? crypto.randomUUID() : (Math.random().toString(36).slice(2) + Date.now().toString(36));
+  try {
+    const { error } = await supa.from('membres').update({ token: token }).eq('id', id);
+    if (error) {
+      console.error('[regenererToken]', error);
+      toast('Erreur Supabase : ' + (error.message || error.code || 'inconnue'), 'error');
+      return;
+    }
+    m.token = token;
+    const lien = location.origin + '/Membre/membre.html?t=' + token;
+    const tokenDisplay = document.getElementById('edit-membre-token-display');
+    if (tokenDisplay) { tokenDisplay.textContent = lien; tokenDisplay.title = lien; }
+    toast('Nouveau token généré', 'success');
+    journalLog('Token membre régénéré : ' + m.pseudo, 'info');
+  } catch(e) {
+    console.error('[regenererToken]', e);
+    toast('Erreur : ' + e.message, 'error');
   }
 }
 
@@ -9337,6 +9471,7 @@ function ouvrirModalNouvelleCategorie(themeId) {
   document.getElementById('cat-theme-id').value = themeId;
   document.getElementById('cat-edit-id').value = '';
   document.getElementById('cat-nom').value = '';
+  document.getElementById('cat-est-option-payante').checked = false;
   document.getElementById('cat-couleur').value = '#00d4ff';
   document.getElementById('cat-regles-list').innerHTML = '';
   document.getElementById('cat-exclusions-list').innerHTML = '';
@@ -9352,6 +9487,7 @@ function editerCategorie(themeId, catId) {
   document.getElementById('cat-theme-id').value = themeId;
   document.getElementById('cat-edit-id').value  = catId;
   document.getElementById('cat-nom').value    = cat.nom;
+  document.getElementById('cat-est-option-payante').checked = !!cat.estOptionPayante;
   document.getElementById('cat-couleur').value = cat.couleur || '#00d4ff';
   const list = document.getElementById('cat-regles-list');
   list.innerHTML = '';
@@ -9398,10 +9534,12 @@ async function sauvegarderCategorie() {
 
   if (editId) {
     const cat = (theme.categories||[]).find(c => c.id === editId);
-    if (cat) { cat.nom = nom; cat.couleur = couleur; cat.regles = regles; cat.exclusions = exclusions; }
+    const estOptionPayante = document.getElementById('cat-est-option-payante').checked;
+    if (cat) { cat.nom = nom; cat.couleur = couleur; cat.regles = regles; cat.exclusions = exclusions; cat.estOptionPayante = estOptionPayante; }
   } else {
     if (!theme.categories) theme.categories = [];
-    theme.categories.push({ id: genId(), nom, couleur, regles, exclusions });
+    const estOptionPayante2 = document.getElementById('cat-est-option-payante').checked;
+    theme.categories.push({ id: genId(), nom, couleur, regles, exclusions, estOptionPayante: estOptionPayante2 });
   }
 
   saveThemes().then(() => {
@@ -9908,7 +10046,7 @@ function resetDevisLocation() {
   if (!confirm('Vider le formulaire de devis location ?')) return;
   const today = new Date().toISOString().slice(0, 10);
   // Champs texte / date / nombre
-  ['dl-pseudo','dl-pseudo-forum','dl-niveau','dl-bus-remplaces','dl-code-promo'].forEach(id => {
+  ['dl-pseudo','dl-pseudo-forum','dl-niveau','dl-bus-remplaces','dl-commentaire','dl-code-promo'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   document.getElementById('dl-date-demande').value  = today;
@@ -9942,7 +10080,7 @@ function resetDevisLocation() {
 function resetDevisAE() {
   if (!confirm('Vider le formulaire de devis AE ?')) return;
   const today = new Date().toISOString().slice(0, 10);
-  ['ae-pseudo','ae-pseudo-forum','ae-description','ae-conso-type'].forEach(id => {
+  ['ae-pseudo','ae-pseudo-forum','ae-description','ae-conso-type','ae-commentaire'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   const niveauEl = document.getElementById('ae-niveau'); if (niveauEl) niveauEl.value = '';
@@ -11099,7 +11237,7 @@ function aeAjouterBusNP(numLigne, np) {
     toast('Ce véhicule est déjà assigné à cette ligne', 'error'); return;
   }
   APP._aeBusParLigne[numLigne].push(veh);
-  aeUpdateAssignation();
+  aeRefreshLigneColumns(numLigne);
 }
 
 function aeAjouterBus(numLigne, selectEl) {
@@ -11112,7 +11250,7 @@ function aeAjouterBus(numLigne, selectEl) {
 function aeRetirerBus(numLigne, idx) {
   if (APP._aeBusParLigne[numLigne]) {
     APP._aeBusParLigne[numLigne].splice(idx, 1);
-    aeUpdateAssignation();
+    aeRefreshLigneColumns(numLigne);
   }
 }
 
@@ -11193,6 +11331,7 @@ async function genererDevisAE() {
     const montant = parseInt(document.getElementById('ae-montant').value) || 0;
     const consoType = document.getElementById('ae-conso-type').value || '';
     const description = document.getElementById('ae-description').value || '';
+    const commentaire = document.getElementById('ae-commentaire')?.value.trim() || '';
 
     const numero = await genNumeroDevis('ae', pseudo);
     APP._currentDevisNumero = APP._currentDevisNumero || {};
@@ -11203,7 +11342,7 @@ async function genererDevisAE() {
 
     const html = buildDevisAEHTML({
       pseudo, pseudoForum, niveau: 'Niveau ' + niv, option: typeAide === 'totale' ? 'Aide totale' : 'Aide partielle',
-      dateDemande, dateCreation, debut, fin, duree, conducteurs, montant, consoType, description,
+      dateDemande, dateCreation, debut, fin, duree, conducteurs, montant, consoType, description, commentaire,
       nbVeh: totalBus, numero,
       // nouvelles données lignes
       lignesDetail: lignesChoisies.map(numLigne => {
@@ -11298,6 +11437,12 @@ function buildDevisAEHTML(d) {
   <div style="padding:10px 24px;font-size:13px;font-weight:700;color:#1a1a1a;background:#e8f5e9;">
     ${d.description || `Aide à l'exploitation — ${d.option}`}
   </div>
+
+  ${d.commentaire ? `
+  <div style="margin:0 24px 10px;padding:8px 12px;background:#fffde7;border-left:3px solid #f9a825;border-radius:3px;font-size:11px;color:#555;line-height:1.5;">
+    <span style="font-weight:700;color:#f9a825;text-transform:uppercase;font-size:9px;letter-spacing:1px;display:block;margin-bottom:3px;">Commentaire</span>
+    ${d.commentaire.replace(/\n/g,'<br>')}
+  </div>` : ''}
 
   ${lignesDetail.length ? `
   <div style="margin:0 24px;border:1px solid #c8e6c9;border-radius:4px;overflow:hidden;margin-top:10px;">
@@ -11430,6 +11575,7 @@ function aidesInit() {
       sorted.map(m => `<option value="${m}" ${m === moisActuel ? 'selected' : ''}>${aidesMoisLabel(m)}</option>`).join('');
   }
   renderAides();
+  // renderAidesCompta → appelé depuis onglet dédié (aidesVerseesInit)
 }
 
 // ── Render principal ──────────────────────────────────────────
@@ -11498,6 +11644,183 @@ function renderAides() {
       </td>
     </tr>`;
   }).join('');
+}
+
+
+// ══════════════════════════════════════════════════════════════
+//  AIDES COMPTA — tableau automatique depuis comptabilité
+// ══════════════════════════════════════════════════════════════
+
+function aidesComptaGetAllOps() {
+  // Combine toutes périodes compta dispo
+  const all = [...(APP.compta || []), ...(APP.comptaLast || [])];
+  const seen = new Set();
+  return all.filter(op => {
+    const key = (op["Date de l'opération"]||'') + (op["Libellé de l'opération"]||'') + (op["Dépenses"]||'');
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+}
+
+function aidesComptaGetMois(op) {
+  const d = op["Date de l'opération"] || '';
+  if (!d) return '';
+  // Format "DD/MM/YYYY HH:MM" or "YYYY-MM-DD"
+  if (d.includes('/')) { const p = d.split(' ')[0].split('/'); return p[1] + '/' + p[2]; }
+  return d.substring(5,7) + '/' + d.substring(0,4);
+}
+
+function aidesVerseesInit() {
+  // Reset filters so they repopulate
+  const moisSel = document.getElementById('aides-compta-mois-filter');
+  const catSel  = document.getElementById('aides-compta-cat-filter');
+  if (moisSel) moisSel.innerHTML = '<option value="">Tous les mois</option>';
+  if (catSel)  catSel.innerHTML  = '<option value="">Toutes catégories</option>';
+  renderAidesCompta();
+}
+
+function renderAidesCompta() {
+  const body       = document.getElementById('aides-compta-body');
+  const moisSel    = document.getElementById('aides-compta-mois-filter');
+  const catSel     = document.getElementById('aides-compta-cat-filter');
+  if (!body) return;
+
+  const themes   = APP.themes || [];
+  const allCats  = themes.flatMap(th => (th.categories||[]).map(c => ({ ...c, theme: th.nom, couleur: th.couleur || c.couleur })))
+    .filter(c => !c.estOptionPayante);
+
+  if (!allCats.length) {
+    body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3);font-size:12px;">Aucune catégorie configurée dans le tableau financier.</div>';
+    return;
+  }
+
+  const ops     = aidesComptaGetAllOps();
+  const moisFilt = moisSel ? moisSel.value : '';
+  const catFilt  = catSel  ? catSel.value  : '';
+
+  // Populate mois filter
+  if (moisSel && moisSel.options.length <= 1) {
+    const moisSet = new Set(ops.map(aidesComptaGetMois).filter(Boolean));
+    const sorted  = [...moisSet].sort().reverse();
+    moisSel.innerHTML = '<option value="">Tous les mois</option>' +
+      sorted.map(m => { const [mm,yy] = m.split('/'); const label = new Date(+yy,+mm-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'}); return `<option value="${m}">${label}</option>`; }).join('');
+  }
+
+  // Populate cat filter
+  if (catSel && catSel.options.length <= 1) {
+    catSel.innerHTML = '<option value="">Toutes catégories</option>' +
+      allCats.map(c => `<option value="${c.nom}">${c.nom}</option>`).join('');
+  }
+
+  // Filter ops: only Dépenses (virements vers membres), match against categories
+  const depenses = ops.filter(op => {
+    const dep = parseFloat(op['Dépenses']) || 0;
+    if (!dep) return false;
+    const libelle = op["Libellé de l'opération"] || '';
+    if (!extractPseudo(libelle)) return false;
+    if (moisFilt && aidesComptaGetMois(op) !== moisFilt) return false;
+    return true;
+  });
+
+  // Build map: { pseudo → { catNom → { nb, montant, ops[] } } }
+  const map = {}; // pseudo → catNom → {nb, montant}
+  const pseudoTotals = {}; // pseudo → montant total
+
+  depenses.forEach(op => {
+    const libelle = op["Libellé de l'opération"] || '';
+    const pseudo  = extractPseudo(libelle);
+    if (!pseudo) return;
+    const dep     = parseFloat(op['Dépenses']) || 0;
+
+    // Find matching category
+    let catMatch = null;
+    for (const c of allCats) {
+      if (catFilt && c.nom !== catFilt) continue;
+      if (matchLibelle(libelle, c.regles, c.exclusions)) { catMatch = c; break; }
+    }
+    if (!catMatch) return; // skip ops that don't match any category
+
+    if (!map[pseudo]) map[pseudo] = {};
+    if (!map[pseudo][catMatch.nom]) map[pseudo][catMatch.nom] = { nb: 0, montant: 0, couleur: catMatch.couleur };
+    map[pseudo][catMatch.nom].nb      += 1;
+    map[pseudo][catMatch.nom].montant += dep;
+
+    if (!pseudoTotals[pseudo]) pseudoTotals[pseudo] = 0;
+    pseudoTotals[pseudo] += dep;
+  });
+
+  const pseudos = Object.keys(map).sort((a,b) => (pseudoTotals[b]||0) - (pseudoTotals[a]||0));
+
+  if (!pseudos.length) {
+    body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3);font-size:12px;font-style:italic;">Aucune aide détectée dans la compta pour les catégories configurées.</div>';
+    return;
+  }
+
+  // Collect all cat names present
+  const catsPresentes = [];
+  const catsSeen = new Set();
+  pseudos.forEach(p => Object.keys(map[p]).forEach(c => { if (!catsSeen.has(c)) { catsSeen.add(c); catsPresentes.push(c); } }));
+
+  // Render table
+  const thCats = catsPresentes.map(c => {
+    const cat = allCats.find(x => x.nom === c);
+    const col = cat?.couleur || '#4a8c52';
+    return `<th style="padding:8px 14px;text-align:right;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);white-space:nowrap;">
+      <span style="display:inline-flex;align-items:center;gap:4px;">
+        <span style="width:7px;height:7px;border-radius:50%;background:${col};display:inline-block;"></span>${c}
+      </span>
+    </th>`;
+  }).join('');
+
+  const rows = pseudos.map(pseudo => {
+    const m = APP.membres ? APP.membres.find(x => (x.pseudo||'').toLowerCase() === pseudo.toLowerCase()) : null;
+    const cells = catsPresentes.map(c => {
+      const d = map[pseudo][c];
+      if (!d) return `<td style="padding:7px 14px;text-align:right;color:var(--text4);font-size:11px;">—</td>`;
+      return `<td style="padding:7px 14px;text-align:right;">
+        <div style="font-weight:700;font-size:12px;color:var(--red);">-${d.montant.toLocaleString('fr')} €</div>
+        <div style="font-size:9px;color:var(--text3);">${d.nb} op.</div>
+      </td>`;
+    }).join('');
+    const total = pseudoTotals[pseudo] || 0;
+    return `<tr style="border-top:1px solid var(--border);">
+      <td style="padding:7px 14px;font-weight:700;white-space:nowrap;">
+        ${pseudo}${m ? `<div style="font-size:10px;color:var(--text3);font-weight:400;">${m.entreprise||''}</div>` : ''}
+      </td>
+      ${cells}
+      <td style="padding:7px 14px;text-align:right;font-weight:800;color:var(--red);border-left:1px solid var(--border);">
+        -${total.toLocaleString('fr')} €
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Totals row
+  const totalsRow = `<tr style="border-top:2px solid var(--border2);background:var(--surface2);">
+    <td style="padding:7px 14px;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">TOTAL</td>
+    ${catsPresentes.map(c => {
+      const tot = pseudos.reduce((s,p) => s + (map[p][c]?.montant||0), 0);
+      const nb  = pseudos.reduce((s,p) => s + (map[p][c]?.nb||0), 0);
+      return tot ? `<td style="padding:7px 14px;text-align:right;font-weight:800;color:var(--red);">-${tot.toLocaleString('fr')} €<div style="font-size:9px;color:var(--text3);">${nb} op.</div></td>`
+                 : `<td style="padding:7px 14px;text-align:right;color:var(--text4);">—</td>`;
+    }).join('')}
+    <td style="padding:7px 14px;text-align:right;font-weight:800;color:var(--red);border-left:1px solid var(--border2);">
+      -${pseudos.reduce((s,p) => s+(pseudoTotals[p]||0), 0).toLocaleString('fr')} €
+    </td>
+  </tr>`;
+
+  body.innerHTML = `
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="background:var(--surface2);">
+            <th style="padding:8px 14px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);">Membre</th>
+            ${thCats}
+            <th style="padding:8px 14px;text-align:right;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);border-left:1px solid var(--border);">Total</th>
+          </tr>
+        </thead>
+        <tbody>${rows}${totalsRow}</tbody>
+      </table>
+    </div>`;
 }
 
 // ── Recap tableau mensuel par option ─────────────────────────
