@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.701</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.702</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -1433,6 +1433,10 @@ body.mode-config #page-title { color: var(--cfg-green); }
             <label class="form-label">Bus remplacé(s)</label>
             <input type="text" class="form-input" id="dl-bus-remplaces" placeholder="Ex: TM-01234, TM-56789">
           </div>
+          <div class="form-group">
+            <label class="form-label">Commentaire <span style="font-weight:400;color:var(--text3);">(optionnel — apparaît sur le devis)</span></label>
+            <textarea class="form-input" id="dl-commentaire" placeholder="Commentaire libre..." rows="2" style="resize:vertical;min-height:52px;"></textarea>
+          </div>
         </div>
 
         <div class="card mb-16">
@@ -1683,6 +1687,10 @@ body.mode-config #page-title { color: var(--cfg-green); }
           <div class="form-group">
             <label class="form-label">Nb. conducteurs</label>
             <input type="number" class="form-input" id="ae-conducteurs" min="1" value="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Commentaire <span style="font-weight:400;color:var(--text3);">(optionnel — apparaît sur le devis)</span></label>
+            <textarea class="form-input" id="ae-commentaire" placeholder="Commentaire libre..." rows="2" style="resize:vertical;min-height:52px;"></textarea>
           </div>
         </div>
 
@@ -5375,6 +5383,7 @@ async function genererDevisLocation() {
   const duree       = parseInt(document.getElementById('dl-duree').value) || 1;
   const finDate     = calcFinDate(document.getElementById('dl-debut').value, duree);
   const busRemplaces= document.getElementById('dl-bus-remplaces').value;
+  const commentaire = document.getElementById('dl-commentaire')?.value.trim() || '';
   const prixStd     = APP.config.prixSem || 1000;
 
   const nbBus       = v.length;
@@ -5420,7 +5429,7 @@ async function genererDevisLocation() {
 
   const html = buildDevisLocationHTML({
     pseudo, pseudoForum, niveau, option: optionLabel, dateDemande, dateCreation,
-    debut, fin: finDate, busRemplaces,
+    debut, fin: finDate, busRemplaces, commentaire,
     nbBus, totalPlaces, energies, types, typesPluriels, marques, modeles, numParcs, numParcsIcons,
     duree, detail, total, economie, prixSansOption, prixStd, numero,
     ajustLabel, ajustDiff
@@ -5512,6 +5521,11 @@ function buildDevisLocationHTML(d) {
     ${devisRow('Bus remplacé(s) :', d.busRemplaces || '—')}
     <div style="grid-column:1/-1;height:10px;"></div>
   </div>
+  ${d.commentaire ? `
+  <div style="margin:0 24px 12px;padding:8px 12px;background:#fffde7;border-left:3px solid #f9a825;border-radius:3px;font-size:11px;color:#555;line-height:1.5;">
+    <span style="font-weight:700;color:#f9a825;text-transform:uppercase;font-size:9px;letter-spacing:1px;display:block;margin-bottom:3px;">Commentaire</span>
+    ${d.commentaire.replace(/\n/g,'<br>')}
+  </div>` : ''}
 
   <div style="margin:12px 24px;border:2px solid #2e7d32;border-radius:4px;overflow:hidden;">
     <table style="width:100%;border-collapse:collapse;">
@@ -5669,6 +5683,7 @@ async function saveDevis(type) {
       debut:         document.getElementById('dl-debut')?.value || '',
       duree:         document.getElementById('dl-duree')?.value || '1',
       busRemplaces:  document.getElementById('dl-bus-remplaces')?.value || '',
+      commentaire:   document.getElementById('dl-commentaire')?.value || '',
       codePromo:     document.getElementById('dl-code-promo')?.value || '',
       ajustMode:     document.getElementById('ajust-mode')?.value || '',
       ajustValeur:   document.getElementById('ajust-valeur')?.value || '',
@@ -5687,6 +5702,7 @@ async function saveDevis(type) {
       montantSaisi:  document.getElementById('ae-montant')?.value || '',
       consoType:     document.getElementById('ae-conso-type')?.value || '',
       description:   document.getElementById('ae-description')?.value || '',
+      commentaire:   document.getElementById('ae-commentaire')?.value || '',
       lignesSelectionnees: { ...APP._aeLignesSelectionnees },
       busParLigne: Object.fromEntries(
         Object.entries(APP._aeBusParLigne).map(([k, arr]) => [k, arr.map(x => x['Numéro Parc'])])
@@ -6285,6 +6301,7 @@ async function modifierDevis(numero) {
     document.getElementById('dl-debut').value           = s.debut || '';
     document.getElementById('dl-duree').value           = s.duree || '1';
     document.getElementById('dl-bus-remplaces').value   = s.busRemplaces || '';
+    const dlComment = document.getElementById('dl-commentaire'); if (dlComment) dlComment.value = s.commentaire || '';
     document.getElementById('dl-code-promo').value      = s.codePromo || '';
 
     // Restaurer l'ajustement tarifaire
@@ -6328,6 +6345,7 @@ async function modifierDevis(numero) {
     document.getElementById('ae-montant').value         = s.montantSaisi || '';
     document.getElementById('ae-conso-type').value      = s.consoType || '';
     document.getElementById('ae-description').value     = s.description || '';
+    const aeComment = document.getElementById('ae-commentaire'); if (aeComment) aeComment.value = s.commentaire || '';
 
     // Restaurer bus par ligne (réhydrater depuis APP.vehicules)
     APP._aeBusParLigne = {};
@@ -10028,7 +10046,7 @@ function resetDevisLocation() {
   if (!confirm('Vider le formulaire de devis location ?')) return;
   const today = new Date().toISOString().slice(0, 10);
   // Champs texte / date / nombre
-  ['dl-pseudo','dl-pseudo-forum','dl-niveau','dl-bus-remplaces','dl-code-promo'].forEach(id => {
+  ['dl-pseudo','dl-pseudo-forum','dl-niveau','dl-bus-remplaces','dl-commentaire','dl-code-promo'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   document.getElementById('dl-date-demande').value  = today;
@@ -10062,7 +10080,7 @@ function resetDevisLocation() {
 function resetDevisAE() {
   if (!confirm('Vider le formulaire de devis AE ?')) return;
   const today = new Date().toISOString().slice(0, 10);
-  ['ae-pseudo','ae-pseudo-forum','ae-description','ae-conso-type'].forEach(id => {
+  ['ae-pseudo','ae-pseudo-forum','ae-description','ae-conso-type','ae-commentaire'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   const niveauEl = document.getElementById('ae-niveau'); if (niveauEl) niveauEl.value = '';
@@ -11313,6 +11331,7 @@ async function genererDevisAE() {
     const montant = parseInt(document.getElementById('ae-montant').value) || 0;
     const consoType = document.getElementById('ae-conso-type').value || '';
     const description = document.getElementById('ae-description').value || '';
+    const commentaire = document.getElementById('ae-commentaire')?.value.trim() || '';
 
     const numero = await genNumeroDevis('ae', pseudo);
     APP._currentDevisNumero = APP._currentDevisNumero || {};
@@ -11323,7 +11342,7 @@ async function genererDevisAE() {
 
     const html = buildDevisAEHTML({
       pseudo, pseudoForum, niveau: 'Niveau ' + niv, option: typeAide === 'totale' ? 'Aide totale' : 'Aide partielle',
-      dateDemande, dateCreation, debut, fin, duree, conducteurs, montant, consoType, description,
+      dateDemande, dateCreation, debut, fin, duree, conducteurs, montant, consoType, description, commentaire,
       nbVeh: totalBus, numero,
       // nouvelles données lignes
       lignesDetail: lignesChoisies.map(numLigne => {
@@ -11418,6 +11437,12 @@ function buildDevisAEHTML(d) {
   <div style="padding:10px 24px;font-size:13px;font-weight:700;color:#1a1a1a;background:#e8f5e9;">
     ${d.description || `Aide à l'exploitation — ${d.option}`}
   </div>
+
+  ${d.commentaire ? `
+  <div style="margin:0 24px 10px;padding:8px 12px;background:#fffde7;border-left:3px solid #f9a825;border-radius:3px;font-size:11px;color:#555;line-height:1.5;">
+    <span style="font-weight:700;color:#f9a825;text-transform:uppercase;font-size:9px;letter-spacing:1px;display:block;margin-bottom:3px;">Commentaire</span>
+    ${d.commentaire.replace(/\n/g,'<br>')}
+  </div>` : ''}
 
   ${lignesDetail.length ? `
   <div style="margin:0 24px;border:1px solid #c8e6c9;border-radius:4px;overflow:hidden;margin-top:10px;">
