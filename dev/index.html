@@ -911,7 +911,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
     </div>
 
     <div style="text-align:center;margin-top:20px;font-size:10px;color:var(--text4);">
-      ADTEM · Transport Manager · <span id="login-version">V1.71</span>
+      ADTEM · Transport Manager · <span id="login-version">V1.711</span>
     </div>
   </div>
 </div>
@@ -953,7 +953,7 @@ body.mode-config #page-title { color: var(--cfg-green); }
         <small>Paramètres avancés</small>
       </div>
     </div>
-    <div class="version-badge">Transport Manager · <span id="github-version">V1.71</span></div>
+    <div class="version-badge">Transport Manager · <span id="github-version">V1.711</span></div>
   </div>
 
   <!-- MENU NORMAL -->
@@ -1720,10 +1720,8 @@ body.mode-config #page-title { color: var(--cfg-green); }
   <!-- ====== MEMBRES ====== -->
   <div class="page" id="page-membres">
     <div class="flex-between mb-20">
-      <div>
-      </div>
+      <div></div>
       <div class="flex gap-8">
-        <button class="btn btn-secondary btn-sm" onclick="openImportMembres()">📋 Import copier/coller</button>
         <button class="btn btn-primary btn-sm" onclick="openAddMembre()">➕ Ajouter manuellement</button>
       </div>
     </div>
@@ -1994,6 +1992,8 @@ body.mode-config #page-title { color: var(--cfg-green); }
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
               <label class="form-label" style="margin:0;flex:1;">📊 Comptabilité — mois en cours</label>
               <span id="ts-api-compta-current" style="font-size:10px;color:var(--text3);font-family:'Fira Code',monospace;white-space:nowrap;">—</span>
+              <button onclick="bypassSyncLimit('comptaCurrent')" title="Forcer le téléchargement"
+                style="font-size:10px;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--yellowbg);color:var(--yellow);cursor:pointer;white-space:nowrap;">🔄 Forcer</button>
             </div>
             <input type="text" class="form-input" id="cfg-api-compta-current" placeholder="https://...">
           </div>
@@ -2014,6 +2014,8 @@ body.mode-config #page-title { color: var(--cfg-green); }
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
               <label class="form-label" style="margin:0;flex:1;">🚌 Véhicules</label>
               <span id="ts-api-vehicules" style="font-size:10px;color:var(--text3);font-family:'Fira Code',monospace;white-space:nowrap;">—</span>
+              <button onclick="bypassSyncLimit('vehicules')" title="Forcer le téléchargement"
+                style="font-size:10px;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--yellowbg);color:var(--yellow);cursor:pointer;white-space:nowrap;">🔄 Forcer</button>
             </div>
             <input type="text" class="form-input" id="cfg-api-vehicules" placeholder="https://...">
           </div>
@@ -2021,9 +2023,9 @@ body.mode-config #page-title { color: var(--cfg-green); }
           <!-- Employés & Salariés -->
           <div class="form-group">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-              <label class="form-label" style="margin:0;flex:1;">👷 Employés &amp; Salariés <span style="color:var(--yellow);font-size:9px;">⏱️ 1×/mois</span></label>
+              <label class="form-label" style="margin:0;flex:1;">👷 Employés &amp; Salariés <span style="color:var(--yellow);font-size:9px;">⏱️ 1×/jour</span></label>
               <span id="ts-api-employes" style="font-size:10px;color:var(--text3);font-family:'Fira Code',monospace;white-space:nowrap;">—</span>
-              <button onclick="bypassSyncLimit('employes')" title="Forcer le téléchargement même si déjà fait ce mois"
+              <button onclick="bypassSyncLimit('employes')" title="Forcer le téléchargement même si déjà fait aujourd'hui"
                 style="font-size:10px;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--yellowbg);color:var(--yellow);cursor:pointer;white-space:nowrap;">🔄 Forcer</button>
             </div>
             <input type="text" class="form-input" id="cfg-api-employes" placeholder="https://...">
@@ -2032,9 +2034,9 @@ body.mode-config #page-title { color: var(--cfg-green); }
           <!-- Suivi des Membres -->
           <div class="form-group">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-              <label class="form-label" style="margin:0;flex:1;">👥 Suivi des Membres <span style="color:var(--yellow);font-size:9px;">⏱️ 1×/mois</span></label>
+              <label class="form-label" style="margin:0;flex:1;">👥 Suivi des Membres</label>
               <span id="ts-api-suivi-membres" style="font-size:10px;color:var(--text3);font-family:'Fira Code',monospace;white-space:nowrap;">—</span>
-              <button onclick="bypassSyncLimit('suiviMembres')" title="Forcer le téléchargement même si déjà fait ce mois"
+              <button onclick="bypassSyncLimit('suiviMembres')" title="Forcer le téléchargement"
                 style="font-size:10px;padding:2px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--yellowbg);color:var(--yellow);cursor:pointer;white-space:nowrap;">🔄 Forcer</button>
             </div>
             <input type="text" class="form-input" id="cfg-api-suivi-membres" placeholder="https://...">
@@ -4349,9 +4351,14 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
   // Vérifier si un timestamp est du mois en cours
   function isSameMoisCourant(isoTs) {
     if (!isoTs) return false;
-    const d = new Date(isoTs);
-    const n = new Date();
+    const d = new Date(isoTs), n = new Date();
     return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth();
+  }
+  // Vérifier si un timestamp est du jour en cours
+  function isSameJourCourant(isoTs) {
+    if (!isoTs) return false;
+    const d = new Date(isoTs), n = new Date();
+    return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
   }
 
   const resultLines = [];
@@ -4395,6 +4402,7 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
     addResult('❌', 'Parc de véhicules', 'Erreur : ' + e.message, 'var(--red)');
     journalLog('Erreur sync véhicules : ' + e.message, 'danger');
   }
+  if (APP._bypassSync) delete APP._bypassSync.vehicules;
 
   // ── Compta mois en cours ────────────────────────────────────────
   try {
@@ -4431,6 +4439,7 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
     addResult('❌', 'Comptabilité — mois en cours', 'Erreur : ' + e.message, 'var(--red)');
     journalLog('Erreur sync compta current : ' + e.message, 'danger');
   }
+  if (APP._bypassSync) delete APP._bypassSync.comptaCurrent;
 
   // ── Compta mois précédent (1×/mois) ────────────────────────────
   if (isSameMoisCourant(APP.config.lastSyncComptaLast) && !APP._bypassSync?.comptaLast) {
@@ -4468,12 +4477,12 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
   }
   if (APP._bypassSync) delete APP._bypassSync.comptaLast;
 
-  // ── Employés & Salariés (1×/mois) ──────────────────────────────
+  // ── Employés & Salariés (1×/jour) ──────────────────────────────
   if (!urls.employes) {
     addResult('⚙️', 'Employés & Salariés', 'URL API non configurée — renseignez-la dans Config.', 'var(--text3)');
-  } else if (isSameMoisCourant(APP.config.lastSyncEmployes) && !APP._bypassSync?.employes) {
+  } else if (isSameJourCourant(APP.config.lastSyncEmployes) && !APP._bypassSync?.employes) {
     addResult('⏭️', 'Employés & Salariés',
-      `Déjà téléchargé ce mois (${formatSyncTs(APP.config.lastSyncEmployes)}). Utilisez 🔄 Forcer dans la Config.`,
+      `Déjà téléchargé aujourd'hui (${formatSyncTs(APP.config.lastSyncEmployes)}). Utilisez 🔄 Forcer dans la Config.`,
       'var(--text3)');
   } else {
     try {
@@ -4526,13 +4535,9 @@ if (_btnSync) _btnSync.addEventListener('click', async () => {
   }
   if (APP._bypassSync) delete APP._bypassSync.employes;
 
-  // ── Suivi des Membres (1×/mois) ─────────────────────────────────
+  // ── Suivi des Membres (aucune limite) ───────────────────────────
   if (!urls.suiviMembres) {
     addResult('⚙️', 'Suivi des Membres', 'URL API non configurée — renseignez-la dans Config.', 'var(--text3)');
-  } else if (isSameMoisCourant(APP.config.lastSyncSuiviMembres) && !APP._bypassSync?.suiviMembres) {
-    addResult('⏭️', 'Suivi des Membres',
-      `Déjà téléchargé ce mois (${formatSyncTs(APP.config.lastSyncSuiviMembres)}). Utilisez 🔄 Forcer dans la Config.`,
-      'var(--text3)');
   } else {
     try {
       const r = await fetch(urls.suiviMembres);
@@ -6811,7 +6816,8 @@ function updateSyncTimestamps() {
 function bypassSyncLimit(key) {
   APP._bypassSync = APP._bypassSync || {};
   APP._bypassSync[key] = true;
-  toast(`Prochain sync : ${key === 'comptaLast' ? 'compta mois précédent' : key === 'employes' ? 'employés' : 'suivi membres'} sera forcé`, 'info');
+  const labels = { comptaCurrent:'compta mois en cours', comptaLast:'compta mois précédent', vehicules:'véhicules', employes:'employés', suiviMembres:'suivi membres' };
+  toast(`Prochain sync : ${labels[key] || key} sera forcé`, 'info');
 }
 
 // ── Suivi membre — modale détail ──────────────────────────────────
